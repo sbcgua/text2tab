@@ -101,11 +101,12 @@ endclass. "lcx_data_parser_error
 **********************************************************************
 
 class lcl_data_parser definition final create private
-  friends lcl_test_data_parser.
+  friends lcl_test_data_parser
+  .
 
   public section.
 
-    constants version type string value 'v1.0.0'.
+    constants version type string value 'v1.0.1' ##NEEDED.
 
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab
                         value cl_abap_char_utilities=>horizontal_tab.
@@ -130,7 +131,8 @@ class lcl_data_parser definition final create private
         i_strict    type abap_bool default abap_true
         i_has_head  type abap_bool default abap_true
       exporting
-        e_container type any
+        e_container   type any
+        e_head_fields type tt_string
       raising
         lcx_data_parser_error.
 
@@ -139,6 +141,7 @@ class lcl_data_parser definition final create private
     data mv_amount_format type char2.
     data mo_struc_descr   type ref to cl_abap_structdescr.
     data mv_line_index    type sy-tabix.
+    data mt_head_fields   type tt_string.
 
     class-methods get_safe_struc_descr
       importing
@@ -228,12 +231,13 @@ class lcl_data_parser implementation.
 
   method parse.
     data:
-          lt_data  type tt_string,
-          lt_map   type int4_table,
-          l_header type string.
+          lt_data      type tt_string,
+          lt_map       type int4_table,
+          ls_component type abap_compdescr,
+          l_header_str type string.
 
-    clear e_container.
-    clear mv_line_index.
+    clear: e_container, e_head_fields.
+    clear: mv_line_index, mt_head_fields.
 
     " Validate params
     if i_has_head = abap_false and i_strict = abap_false.
@@ -249,27 +253,30 @@ class lcl_data_parser implementation.
 
     " Read and process header line
     if i_has_head = abap_true.
-      read table lt_data into l_header index 1.
+      read table lt_data into l_header_str index 1.
       if sy-subrc <> 0.
         lcx_data_parser_error=>raise( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
       endif.
-      if l_header is initial.
+      if l_header_str is initial.
         lcx_data_parser_error=>raise( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
       endif.
 
-      lt_map = me->map_head_structure( i_header = l_header
+      lt_map = me->map_head_structure( i_header = to_upper( l_header_str )
                                        i_strict = i_strict ).
       delete lt_data index 1.
     else.
-      do lines( mo_struc_descr->components ) times.
-        append sy-index to lt_map.
-      enddo.
+      loop at mo_struc_descr->components into ls_component.
+        append sy-tabix to lt_map.
+        append ls_component-name to mt_head_fields.
+      endloop.
     endif.
 
     " Do parsing
     parse_data( exporting it_data     = lt_data
                           it_map      = lt_map
                 importing e_container = e_container ).
+
+    e_head_fields = mt_head_fields.
 
   endmethod.  "parse
 
@@ -303,7 +310,7 @@ class lcl_data_parser implementation.
 
     field-symbols <field> type string.
 
-    split i_header at cl_abap_char_utilities=>horizontal_tab into table lt_fields.
+    split i_header at c_tab into table lt_fields.
     l_field_cnt  = lines( lt_fields ).
     l_struc_name = mo_struc_descr->get_relative_name( ).
 
@@ -349,6 +356,8 @@ class lcl_data_parser implementation.
         lcx_data_parser_error=>raise( msg = |{ <field> } not found in structure @{ l_struc_name }| code = 'MC' ). "#EC NOTEXT
       endif.
     endloop.
+
+    mt_head_fields = lt_fields. " Save field list to return to the caller
 
   endmethod.  "map_head_structure
 

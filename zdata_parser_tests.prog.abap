@@ -199,22 +199,29 @@ class lcl_test_data_parser implementation.
           dummy_stab     type sorted table of ty_dummy with unique key tdate,
           dummy_exp      type ty_dummy,
           dummy_tab_exp  type tt_dummy,
+          dummy_head     type string,
           l_string       type string,
-          lx          type ref to lcx_data_parser_error.
+          lt_header_act  type standard table of string,
+          lt_header_exp  type standard table of string,
+          lx             type ref to lcx_data_parser_error.
 
     " Strict parsing *********************************
     get_dummy_data( importing e_dummy_struc  = dummy_exp
                               e_dummy_tab    = dummy_tab_exp
+                              e_dummy_header = dummy_head
                               e_dummy_string = l_string ).
+    split dummy_head at c_tab into table lt_header_exp.
 
     try.
       o->parse( exporting i_data      = l_string
                 importing e_container = dummy_act ).
       assert_equals( act = dummy_act     exp = dummy_exp ).
 
-      o->parse( exporting i_data      = l_string
-                importing e_container = dummy_tab_act ).
+      o->parse( exporting i_data        = l_string
+                importing e_container   = dummy_tab_act
+                          e_head_fields = lt_header_act ).
       assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
+      assert_equals( act = lt_header_act exp = lt_header_exp ).
     catch lcx_data_parser_error into lx.
       fail( lx->get_text( ) ).
     endtry.
@@ -250,13 +257,17 @@ class lcl_test_data_parser implementation.
     " NOT STRICT parsing ******************************
     get_dummy_data( exporting i_strict       = abap_false
                     importing e_dummy_tab    = dummy_tab_exp
+                              e_dummy_header = dummy_head
                               e_dummy_string = l_string ).
+    split dummy_head at c_tab into table lt_header_exp.
 
     try.
-      o->parse( exporting i_data      = l_string
-                          i_strict    = ''
-                importing e_container = dummy_tab_act ).
+      o->parse( exporting i_data        = l_string
+                          i_strict      = abap_false
+                importing e_container   = dummy_tab_act
+                          e_head_fields = lt_header_act ).
       assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
+      assert_equals( act = lt_header_act exp = lt_header_exp ).
     catch lcx_data_parser_error into lx.
       fail( lx->get_text( ) ).
     endtry.

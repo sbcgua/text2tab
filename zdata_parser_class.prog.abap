@@ -44,15 +44,18 @@ class lcx_data_parser_error definition inheriting from cx_static_check final.
     data msg      type string read-only ##NEEDED.
     data code     type char2  read-only.
 
-    methods constructor
-      importing methname type string
-                msg      type string
-                code     type char2.
+    data struc    type string read-only ##NEEDED. " structure type name
+    data field    type string read-only ##NEEDED. " field name
+    data line     type i      read-only ##NEEDED. " text line number
+    data location type string read-only.          " full location of error STRUC:FIELD@LINE
 
-    class-methods raise
-      importing msg  type string
-                code type char2 optional
-      raising   lcx_data_parser_error.
+    methods constructor
+      importing methname type sys_calls-eventname
+                msg      type string
+                code     type char2
+                struc    type string optional
+                field    type string optional
+                line     type i optional.
 
 endclass.
 
@@ -61,37 +64,28 @@ class lcx_data_parser_error implementation.
   method constructor.
     super->constructor( ).
 
-    me->methname = methname.
+    me->methname = |[PARSER->{ methname }]|.
     me->msg      = msg.
     me->code     = code.
+    me->struc    = struc.
+    me->field    = field.
+    me->line     = line.
+
+    if struc is not initial. " Format location
+      me->location = struc.
+      if field is not initial.
+        me->location = |{ me->location }-{ field }|.
+      endif.
+      if line is not initial.
+        me->location = |{ me->location }@{ line }|.
+      endif.
+    endif.
 
     me->if_t100_message~t100key-msgid = 'SY'. " & & & &
     me->if_t100_message~t100key-msgno = '499'.
     me->if_t100_message~t100key-attr1 = 'METHNAME'.
     me->if_t100_message~t100key-attr2 = 'MSG'.
-  endmethod.
-
-  method raise.
-    data:
-          l_methname  type string,
-          sys_call    type sys_calls,
-          sys_stack   type sys_callst.
-
-    call function 'SYSTEM_CALLSTACK' " Get stack information
-      exporting
-        max_level    = 2
-      importing
-        et_callstack = sys_stack.
-
-    read table sys_stack into sys_call index 2.
-    l_methname = |[PARSER->{ sys_call-eventname }]|.
-
-    raise exception type lcx_data_parser_error
-      exporting
-        methname = l_methname
-        msg      = msg
-        code     = code.
-
+    me->if_t100_message~t100key-attr3 = 'LOCATION'.
   endmethod.
 
 endclass. "lcx_data_parser_error
@@ -106,7 +100,7 @@ class lcl_data_parser definition final create private
 
   public section.
 
-    constants version type string value 'v1.0.1' ##NEEDED.
+    constants version type string value 'v1.1.0' ##NEEDED.
 
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab
                         value cl_abap_char_utilities=>horizontal_tab.
@@ -140,6 +134,7 @@ class lcl_data_parser definition final create private
 
     data mv_amount_format type char2.
     data mo_struc_descr   type ref to cl_abap_structdescr.
+    data mv_current_field type string.
     data mv_line_index    type sy-tabix.
     data mt_head_fields   type tt_string.
 
@@ -203,6 +198,10 @@ class lcl_data_parser definition final create private
       raising
         lcx_data_parser_error.
 
+    methods raise_error
+      importing msg   type string
+                code  type char2 optional
+      raising   lcx_data_parser_error.
 
 endclass.
 
@@ -241,12 +240,12 @@ class lcl_data_parser implementation.
 
     " Validate params
     if i_has_head = abap_false and i_strict = abap_false.
-      lcx_data_parser_error=>raise( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
+      raise_error( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
     endif.
 
     " Check container type
     if mo_struc_descr->absolute_name <> get_safe_struc_descr( e_container )->absolute_name.
-      lcx_data_parser_error=>raise( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
+      raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
     endif.
 
     split i_data at c_crlf into table lt_data.
@@ -255,10 +254,10 @@ class lcl_data_parser implementation.
     if i_has_head = abap_true.
       read table lt_data into l_header_str index 1.
       if sy-subrc <> 0.
-        lcx_data_parser_error=>raise( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
+        raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
       endif.
       if l_header_str is initial.
-        lcx_data_parser_error=>raise( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
+        raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
       endif.
 
       lt_map = me->map_head_structure( i_header = to_upper( l_header_str )
@@ -294,14 +293,17 @@ class lcl_data_parser implementation.
     when 'S'. " Structure
       ro_struc_descr ?= lo_type_descr.
     when others. " Not a table or structure ?
-      lcx_data_parser_error=>raise( msg = 'Table or structure patterns only' code = 'PE' ). "#EC NOTEXT
+      raise exception type lcx_data_parser_error
+        exporting
+          methname = 'GET_SAFE_STRUC_DESCR'
+          msg      = 'Table or structure patterns only' "#EC NOTEXT
+          code     = 'PE'.
     endcase.
 
   endmethod.  "get_safe_struc_descr
 
   method map_head_structure.
     data:
-          l_struc_name type string,
           lt_fields    type tt_string,
           l_field_cnt  type i,
           l_mandt_cnt  type i,
@@ -312,12 +314,11 @@ class lcl_data_parser implementation.
 
     split i_header at c_tab into table lt_fields.
     l_field_cnt  = lines( lt_fields ).
-    l_struc_name = mo_struc_descr->get_relative_name( ).
 
     " Check if the line ends with TAB
     find all occurrences of c_tab in i_header match count l_tab_cnt.
     if l_tab_cnt = l_field_cnt. " Line ends with TAB, last empty field is not added to table, see help for 'split'
-      lcx_data_parser_error=>raise( msg = |Empty field at the end @{ l_struc_name }| code = 'EN' ).   "#EC NOTEXT
+      raise_error( msg = |Empty field at the end| code = 'EE' ).   "#EC NOTEXT
     endif.
 
     " Compare number of fields, check structure similarity
@@ -331,7 +332,7 @@ class lcl_data_parser implementation.
       endif.
 
       if l_field_cnt + l_mandt_cnt <> lines( mo_struc_descr->components ).
-        lcx_data_parser_error=>raise( msg = |Different columns number @{ l_struc_name }| code = 'CN' ).   "#EC NOTEXT
+        raise_error( msg = |Different columns number| code = 'CN' ).   "#EC NOTEXT
       endif.
     endif.
 
@@ -340,20 +341,20 @@ class lcl_data_parser implementation.
     sort lt_dupcheck[].
     delete adjacent duplicates from lt_dupcheck[].
     if lines( lt_dupcheck ) <> l_field_cnt.
-      lcx_data_parser_error=>raise( msg = |Duplicate field names found @{ l_struc_name }| code = 'DN' ).   "#EC NOTEXT
+      raise_error( msg = |Duplicate field names found| code = 'DN' ).   "#EC NOTEXT
     endif.
 
     " Compare columns names and make map
     loop at lt_fields assigning <field>.
       if <field> is initial. " Check empty fields
-        lcx_data_parser_error=>raise( msg = |Empty field name found @{ l_struc_name }| code = 'EN' ).   "#EC NOTEXT
+        raise_error( msg = |Empty field name found| code = 'EN' ).   "#EC NOTEXT
       endif.
 
       read table mo_struc_descr->components with key name = <field> transporting no fields.
       if sy-subrc is initial.
         append sy-tabix to rt_map.
       else.
-        lcx_data_parser_error=>raise( msg = |{ <field> } not found in structure @{ l_struc_name }| code = 'MC' ). "#EC NOTEXT
+        raise_error( msg = |{ <field> } not found in structure| code = 'MC'). "#EC NOTEXT
       endif.
     endloop.
 
@@ -371,6 +372,8 @@ class lcl_data_parser implementation.
                    <table>    type any table,
                    <record>   type any.
 
+    clear e_container.
+
     " Identify container type and Create temp container record
     l_container_kind = cl_abap_typedescr=>describe_by_data( e_container )->kind.
     create data ref_tab_line type handle mo_struc_descr.
@@ -385,7 +388,7 @@ class lcl_data_parser implementation.
 
       if <dataline> is initial. " Check empty lines
         check mv_line_index < lines( it_data ). " Last line of a file may be empty, others - not
-        lcx_data_parser_error=>raise( msg = |Empty line { mv_line_index } cannot be parsed|  code = 'LE' ). "#EC NOTEXT
+        raise_error( msg = 'Empty line cannot be parsed'  code = 'LE' ). "#EC NOTEXT
       endif.
 
       me->parse_line( exporting i_dataline     = <dataline>
@@ -422,9 +425,9 @@ class lcl_data_parser implementation.
 
     " Check field number is the same as in header
     if l_tab_cnt > lines( it_map ).
-      lcx_data_parser_error=>raise( msg = |More fields than in header @{ mv_line_index }| code = '>H' ). "#EC NOTEXT
+      raise_error( msg = 'More fields than in header' code = '>H' ). "#EC NOTEXT
     elseif l_tab_cnt < lines( it_map ).
-      lcx_data_parser_error=>raise( msg = |Less fields than in header @{ mv_line_index }| code = '<H' ). "#EC NOTEXT
+      raise_error( msg = 'Less fields than in header' code = '<H' ). "#EC NOTEXT
     endif.
 
     " Move data to table line
@@ -432,21 +435,22 @@ class lcl_data_parser implementation.
       read table it_map                     into l_index      index sy-tabix. " Read map
       read table mo_struc_descr->components into ls_component index l_index.  " Get component
       if sy-subrc is not initial.
-        lcx_data_parser_error=>raise( 'No component found?!' ). "#EC NOTEXT
+        raise_error( 'No component found?!' ). "#EC NOTEXT
       endif.
 
-      check ls_component-name ne 'MANDT'. " Skip client fields
+      check ls_component-name ne 'MANDT'.   " Skip client fields
+      mv_current_field = ls_component-name. " For error handling
 
       unassign <field>.
       assign component ls_component-name of structure es_container to <field>.
       if <field> is not assigned.
-        lcx_data_parser_error=>raise( 'Field assign failed?!' ). "#EC NOTEXT
+        raise_error( 'Field assign failed?!' ). "#EC NOTEXT
       endif.
 
       me->parse_field( exporting is_component = ls_component
                                  i_value      = l_field_value
                        importing e_field      = <field> ).
-
+      clear mv_current_field. " For error handling - field is not processed any more
     endloop.
 
   endmethod.
@@ -506,7 +510,7 @@ class lcl_data_parser implementation.
     endcase.
 
     if sy-subrc is not initial.
-      lcx_data_parser_error=>raise( msg = |Field parsing failed: { is_component-name } @{ mv_line_index }| code = 'PF' ). "#EC NOTEXT
+      raise_error( msg = 'Field parsing failed' code = 'PF' ). "#EC NOTEXT
     endif.
 
   endmethod.  "parse_field
@@ -576,7 +580,7 @@ class lcl_data_parser implementation.
         others             = 2.
 
     if sy-subrc <> 0.
-      lcx_data_parser_error=>raise( msg = 'Conversion exit not found' code = 'EM' ). "#EC NOTEXT
+      raise_error( msg = 'Conversion exit not found' code = 'EM' ). "#EC NOTEXT
     endif.
 
     call function l_fm_name
@@ -588,9 +592,37 @@ class lcl_data_parser implementation.
         others = 1.
 
     if sy-subrc <> 0.
-      lcx_data_parser_error=>raise( msg = 'Conversion exit failed' code = 'EF' ). "#EC NOTEXT
+      raise_error( msg = 'Conversion exit failed' code = 'EF' ). "#EC NOTEXT
     endif.
 
   endmethod.  "apply_conv_exit
+
+  method raise_error.
+    data: sys_call    type sys_calls,
+          sys_stack   type sys_callst,
+          l_struc     type string.
+
+    call function 'SYSTEM_CALLSTACK' " Get stack information
+      exporting
+        max_level    = 2
+      importing
+        et_callstack = sys_stack.
+
+    read table sys_stack into sys_call index 2.
+
+    if mo_struc_descr is bound.
+      l_struc = mo_struc_descr->get_relative_name( ).
+    endif.
+
+    raise exception type lcx_data_parser_error
+      exporting
+        methname = sys_call-eventname
+        msg      = msg
+        code     = code
+        struc    = l_struc
+        field    = mv_current_field
+        line     = mv_line_index.
+
+  endmethod.  "raise_error
 
 endclass.

@@ -488,7 +488,7 @@ class lcl_test_data_parser implementation.
           l_exp_code = 'CN'.
         when 5. " Empty field at the end
           replace first occurrence of 'TINTEGER' in l_header with 'TINTEGER' && c_tab.
-          l_exp_code = 'EN'.
+          l_exp_code = 'EE'.
       endcase.
 
       try.
@@ -584,6 +584,8 @@ class lcl_test_data_parser implementation.
     data:
           l_offs   type i,
           l_string type string.
+
+    clear e_map.
 
     if i_strict = abap_true.
       l_string = 'MANDT\tTDATE\tTCHAR\tTRAW\tTSTRING\tTALPHA\tTDECIMAL\tTNUMBER\tTINTEGER\n'

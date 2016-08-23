@@ -100,7 +100,7 @@ class lcl_data_parser definition final create private
 
   public section.
 
-    constants version type string value 'v1.1.0' ##NEEDED.
+    constants version type string value 'v1.1.1' ##NEEDED.
 
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab
                         value cl_abap_char_utilities=>horizontal_tab.
@@ -180,14 +180,14 @@ class lcl_data_parser definition final create private
       raising
         lcx_data_parser_error.
 
-    methods parse_amount
+    methods parse_float
       importing
         i_value      type string
         i_decimals   type abap_compdescr-decimals
       exporting
         e_field      type any
-      exceptions
-        conv_error.
+      raising
+        lcx_data_parser_error.
 
     methods apply_conv_exit
       importing
@@ -318,7 +318,7 @@ class lcl_data_parser implementation.
     " Check if the line ends with TAB
     find all occurrences of c_tab in i_header match count l_tab_cnt.
     if l_tab_cnt = l_field_cnt. " Line ends with TAB, last empty field is not added to table, see help for 'split'
-      raise_error( msg = |Empty field at the end| code = 'EE' ).   "#EC NOTEXT
+      raise_error( msg = 'Empty field at the end' code = 'EE' ).   "#EC NOTEXT
     endif.
 
     " Compare number of fields, check structure similarity
@@ -332,7 +332,7 @@ class lcl_data_parser implementation.
       endif.
 
       if l_field_cnt + l_mandt_cnt <> lines( mo_struc_descr->components ).
-        raise_error( msg = |Different columns number| code = 'CN' ).   "#EC NOTEXT
+        raise_error( msg = 'Different columns number' code = 'CN' ).   "#EC NOTEXT
       endif.
     endif.
 
@@ -341,20 +341,20 @@ class lcl_data_parser implementation.
     sort lt_dupcheck[].
     delete adjacent duplicates from lt_dupcheck[].
     if lines( lt_dupcheck ) <> l_field_cnt.
-      raise_error( msg = |Duplicate field names found| code = 'DN' ).   "#EC NOTEXT
+      raise_error( msg = 'Duplicate field names found' code = 'DN' ).   "#EC NOTEXT
     endif.
 
     " Compare columns names and make map
     loop at lt_fields assigning <field>.
       if <field> is initial. " Check empty fields
-        raise_error( msg = |Empty field name found| code = 'EN' ).   "#EC NOTEXT
+        raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
       endif.
 
       read table mo_struc_descr->components with key name = <field> transporting no fields.
       if sy-subrc is initial.
         append sy-tabix to rt_map.
       else.
-        raise_error( msg = |{ <field> } not found in structure| code = 'MC'). "#EC NOTEXT
+        raise_error( msg = |Field { <field> } not found in structure| code = 'MC'). "#EC NOTEXT
       endif.
     endloop.
 
@@ -457,13 +457,13 @@ class lcl_data_parser implementation.
 
 
   method parse_field.
-    data:
-          l_mask  type string.
+    data: l_mask type string,
+          l_len  type i.
 
     clear e_field.
 
     case is_component-type_kind.
-      when 'D'. " Date
+      when cl_abap_typedescr=>typekind_date. " Date
         call function 'CONVERT_DATE_TO_INTERNAL'
           exporting
             date_external            = i_value
@@ -473,7 +473,12 @@ class lcl_data_parser implementation.
           exceptions
             date_external_is_invalid = 4.
 
-      when 'C'. " Char + convexits
+      when cl_abap_typedescr=>typekind_char. " Char + Alpha
+        describe field e_field length l_len in character mode.
+        if l_len < strlen( i_value ).
+          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+        endif.
+
         describe field e_field edit mask l_mask.
         if l_mask is initial.
           e_field = i_value.
@@ -484,28 +489,52 @@ class lcl_data_parser implementation.
                                importing e_field    = e_field ).
         endif.
 
-      when 'g'. " String
+      when cl_abap_typedescr=>typekind_string. " String
         e_field = i_value.
 
-      when 'P'. " Amount
-        parse_amount( exporting  i_value    = i_value
-                                 i_decimals = is_component-decimals
-                      importing  e_field    = e_field
-                      exceptions conv_error = 4 ).
+      when cl_abap_typedescr=>typekind_packed. " Amount
+        parse_float( exporting  i_value    = i_value
+                                i_decimals = is_component-decimals
+                     importing  e_field    = e_field ).
 
-      when 'N' or 'I'. " Integer number
+      when cl_abap_typedescr=>typekind_float. " Float
+        parse_float( exporting  i_value    = i_value
+                                i_decimals = 34 " Abap decimal digit limit ?
+                     importing  e_field    = e_field ).
+
+      when cl_abap_typedescr=>typekind_int. " Integer
         if i_value co '0123456789'.
           e_field = i_value.
         else.
           sy-subrc = 4.
         endif.
 
-      when 'X'.        " Raw
+      when cl_abap_typedescr=>typekind_num. " Numchar
+        describe field e_field length l_len in character mode.
+        if l_len < strlen( i_value ).
+          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+        endif.
+
+        if i_value co '0123456789'.
+          e_field = i_value.
+        else.
+          sy-subrc = 4.
+        endif.
+
+      when cl_abap_typedescr=>typekind_hex. " Raw
+        describe field e_field length l_len in byte mode.
+        if l_len < strlen( i_value ) / 2 + strlen( i_value ) mod 2. " 2 hex-char per byte
+          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+        endif.
+
         try .
           e_field = i_value.
         catch cx_sy_conversion_no_raw cx_sy_conversion_error.
           sy-subrc = 4.
         endtry.
+
+      when others.
+        raise_error( msg = 'Unsupported field type' code = 'UT' ). "#EC NOTEXT
 
     endcase.
 
@@ -515,7 +544,7 @@ class lcl_data_parser implementation.
 
   endmethod.  "parse_field
 
-  method parse_amount.
+  method parse_float.
     data:
           l_decimal_sep  type c,
           l_thousand_sep type c,
@@ -557,14 +586,14 @@ class lcl_data_parser implementation.
         try. " Try converting again
           e_field = l_tmp.
         catch cx_sy_arithmetic_error cx_sy_conversion_error.
-          raise conv_error.
+          raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
         endtry.
       else. " Not matched
-        raise conv_error.
+        raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
       endif.
     endtry.
 
-  endmethod.  "parse_amount
+  endmethod.  "parse_float
 
   method apply_conv_exit.
 

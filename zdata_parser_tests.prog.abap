@@ -31,6 +31,16 @@
     assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
   end-of-definition.
 
+  define test_parse_negative_x.
+    clear lx.
+    try.
+      test_parse &1 &2.
+    catch lcx_data_parser_error into lx.
+      assert_equals( exp = &3 act = lx->code ).
+    endtry.
+    assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
+  end-of-definition.
+
   define append_dummy.
     e_dummy_struc-tdate    = &1.
     e_dummy_struc-tchar    = &2.
@@ -41,6 +51,7 @@
       e_dummy_struc-traw     = &6.
       e_dummy_struc-tinteger = &7.
       e_dummy_struc-talpha   = &8.
+      e_dummy_struc-tfloat   = &9.
     endif.
     append e_dummy_struc to e_dummy_tab.
   end-of-definition.
@@ -73,6 +84,7 @@ class lcl_test_data_parser definition for testing
         tdecimal type veri_cur13,
         tnumber  type veri_n04,
         tinteger type i,
+        tfloat   type float,
       end of ty_dummy.
 
     types: tt_dummy type standard table of ty_dummy with default key.
@@ -89,6 +101,7 @@ class lcl_test_data_parser definition for testing
     methods create                for testing.
     methods apply_conv_exit       for testing.
     methods parse_field           for testing.
+    methods parse_field_unsupp    for testing.
     methods map_head_structure    for testing.
     methods get_safe_struc_descr  for testing.
 
@@ -381,6 +394,7 @@ class lcl_test_data_parser implementation.
       test_parse_positive TNUMBER  '2015'            '2015'.
       test_parse_positive TINTEGER '123'             123.
       test_parse_positive TRAW     '8E'              '8E'.
+      test_parse_positive TFLOAT   '1.123456789'     '1.123456789'.
     catch lcx_data_parser_error into lx.
       fail( lx->get_text( ) ).
     endtry.
@@ -435,7 +449,28 @@ class lcl_test_data_parser implementation.
     test_parse_negative TDECIMAL '1 234,12'.
     test_parse_negative TDECIMAL '1.234,12'.
 
-  endmethod.       "parse_Field
+    " Overflow
+    test_parse_negative_x TCHAR    'ABCDEFGH123' 'FS'.
+    test_parse_negative_x TNUMBER  '201567'      'FS'.
+    test_parse_negative_x TRAW     '8E8F'        'FS'.
+    test_parse_negative_x TRAW     '8E8'         'FS'.
+
+  endmethod.       "parse_field
+
+  method parse_field_unsupp.
+    data:
+          begin of ls_dummy,
+            struc type ty_dummy,
+            float type float,
+          end of ls_dummy,
+          lo_struc_descr type ref to cl_abap_structdescr,
+          ls_component   type abap_compdescr,
+          lx             type ref to lcx_data_parser_error.
+
+    lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    test_parse_negative_x STRUC '12345' 'UT'.
+
+  endmethod.       "parse_field_unsupp
 
   method map_head_structure.
     data:
@@ -484,10 +519,10 @@ class lcl_test_data_parser implementation.
           replace first occurrence of 'TCHAR' in l_header with 'UNKNOWN'.
           l_exp_code = 'MC'.
         when 4. " More fields than in target structure
-          replace first occurrence of 'TINTEGER' in l_header with 'TINTEGER' && c_tab && 'EXCESS_FIELD'.
+          l_header = l_header && c_tab && 'EXCESS_FIELD'.
           l_exp_code = 'CN'.
         when 5. " Empty field at the end
-          replace first occurrence of 'TINTEGER' in l_header with 'TINTEGER' && c_tab.
+          l_header = l_header && c_tab.
           l_exp_code = 'EE'.
       endcase.
 
@@ -583,17 +618,18 @@ class lcl_test_data_parser implementation.
 
     data:
           l_offs   type i,
+          l_fields type i,
           l_string type string.
 
     clear e_map.
 
     if i_strict = abap_true.
-      l_string = 'MANDT\tTDATE\tTCHAR\tTRAW\tTSTRING\tTALPHA\tTDECIMAL\tTNUMBER\tTINTEGER\n'
-              && '\t01.01.2015\tTrololo1\t8A\tString1\t100000\t1234567,81\t2015\t1111\n'
-              && '\t02.01.2016\tTrololo2\t8B\tString2\t200000\t1234567,82\t2016\t2222\n'
-              && '\t03.01.2016\tTrololo3\t8C\tString3\t300000\t1234567,83\t2015\t3333\n' .
+      l_string = 'MANDT\tTDATE\tTCHAR\tTRAW\tTSTRING\tTALPHA\tTDECIMAL\tTNUMBER\tTINTEGER\tTFLOAT\n'
+              && '\t01.01.2015\tTrololo1\t8A\tString1\t100000\t1234567,81\t2015\t1111\t1,12345\n'
+              && '\t02.01.2016\tTrololo2\t8B\tString2\t200000\t1234567,82\t2016\t2222\t1,00\n'
+              && '\t03.01.2016\tTrololo3\t8C\tString3\t300000\t1234567,83\t2015\t3333\t1\n' .
 
-      do 9 times.
+      do 10 times.
         append sy-index to e_map.
       enddo.
 
@@ -616,10 +652,10 @@ class lcl_test_data_parser implementation.
 
     clear e_dummy_tab.
 
-    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA
-    append_dummy '20150101' 'Trololo1' 'String1' '1234567.81' 2015 '8A'  1111 '0000100000'.
-    append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000'.
+    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
+    append_dummy '20150101' 'Trololo1' 'String1' '1234567.81' 2015 '8A'  1111 '0000100000' '1.12345'.
+    append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000' '1.00'.
+    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1.00'.
 
     read table e_dummy_tab into e_dummy_struc index 1.
     e_dummy_string = l_string.

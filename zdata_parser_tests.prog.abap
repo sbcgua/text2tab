@@ -5,56 +5,56 @@
 **********************************************************************
 * MACRO
 **********************************************************************
-  define test_parse.
-    clear ls_dummy.
-    read table lo_struc_descr->components into ls_component with key name = '&1'.
-    call method o->parse_field
-      exporting
-        is_component = ls_component
-        i_value      = &2
-      importing
-        e_field      = ls_dummy-&1.
-  end-of-definition.
+define test_parse.
+  clear ls_dummy.
+  read table lo_struc_descr->components into ls_component with key name = '&1'.
+  o->parse_field(
+    exporting
+      is_component = ls_component
+      i_value      = &2
+    importing
+      e_field      = ls_dummy-&1 ).
+end-of-definition.
 
-  define test_parse_positive.
+define test_parse_positive.
+  test_parse &1 &2.
+  assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
+end-of-definition.
+
+define test_parse_negative.
+  clear lx.
+  try.
     test_parse &1 &2.
-    assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
-  end-of-definition.
+  catch lcx_data_parser_error into lx.
+    assert_equals( exp = 'PF' act = lx->code ).
+  endtry.
+  assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
+end-of-definition.
 
-  define test_parse_negative.
-    clear lx.
-    try.
-      test_parse &1 &2.
-    catch lcx_data_parser_error into lx.
-      assert_equals( exp = 'PF' act = lx->code ).
-    endtry.
-    assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
-  end-of-definition.
+define test_parse_negative_x.
+  clear lx.
+  try.
+    test_parse &1 &2.
+  catch lcx_data_parser_error into lx.
+    assert_equals( exp = &3 act = lx->code ).
+  endtry.
+  assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
+end-of-definition.
 
-  define test_parse_negative_x.
-    clear lx.
-    try.
-      test_parse &1 &2.
-    catch lcx_data_parser_error into lx.
-      assert_equals( exp = &3 act = lx->code ).
-    endtry.
-    assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
-  end-of-definition.
-
-  define append_dummy.
-    e_dummy_struc-tdate    = &1.
-    e_dummy_struc-tchar    = &2.
-    e_dummy_struc-tstring  = &3.
-    e_dummy_struc-tdecimal = &4.
-    e_dummy_struc-tnumber  = &5.
-    if i_strict = abap_true.
-      e_dummy_struc-traw     = &6.
-      e_dummy_struc-tinteger = &7.
-      e_dummy_struc-talpha   = &8.
-      e_dummy_struc-tfloat   = &9.
-    endif.
-    append e_dummy_struc to e_dummy_tab.
-  end-of-definition.
+define append_dummy.
+  e_dummy_struc-tdate    = &1.
+  e_dummy_struc-tchar    = &2.
+  e_dummy_struc-tstring  = &3.
+  e_dummy_struc-tdecimal = &4.
+  e_dummy_struc-tnumber  = &5.
+  if i_strict = abap_true.
+    e_dummy_struc-traw     = &6.
+    e_dummy_struc-tinteger = &7.
+    e_dummy_struc-talpha   = &8.
+    e_dummy_struc-tfloat   = &9.
+  endif.
+  append e_dummy_struc to e_dummy_tab.
+end-of-definition.
 
 *  define assert_excode.
 *    assert_not_initial( act = lx ).
@@ -214,6 +214,7 @@ class lcl_test_data_parser implementation.
           dummy_tab_exp  type tt_dummy,
           dummy_head     type string,
           l_string       type string,
+          lt_strings     type table of string,
           lt_header_act  type standard table of string,
           lt_header_exp  type standard table of string,
           lx             type ref to lcx_data_parser_error.
@@ -253,7 +254,6 @@ class lcl_test_data_parser implementation.
     endtry.
 
     " Parse without head
-    data lt_strings type table of string.
     split l_string at c_crlf into table lt_strings.
     delete lt_strings index 1.
     concatenate lines of lt_strings into l_string separated by c_crlf.

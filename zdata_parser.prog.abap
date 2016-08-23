@@ -43,7 +43,7 @@ write: / '      i_amount_format = '' .''',                     at 52 '" specify 
 write: / '    )->parse( '.
 write: / '      exporting'.
 write: / '        i_data      = my_get_some_raw_text_data( )', at 52 '" string of CRLF separated rows of TAB separated fields' color = 2 inverse.
-write: / '        i_strict    = abap_false',                   at 52 '" text may contain not all fields'                       color = 2 inverse.
+write: / '        i_strict    = abap_false',                   at 52 '" text may contain not all of fields defined in struct'  color = 2 inverse.
 write: / '        i_has_head  = abap_true',                    at 52 '" headers in the first line of the text'                 color = 2 inverse.
 write: / '      importing'.
 write: / '        e_container = lt_container ).',              at 52 '" table or structure (first data line from text)'        color = 2 inverse.

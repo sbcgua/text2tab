@@ -95,8 +95,7 @@ endclass. "lcx_data_parser_error
 **********************************************************************
 
 class lcl_data_parser definition final create private
-  friends lcl_test_data_parser
-  .
+  friends lcl_test_data_parser.
 
   public section.
 
@@ -287,17 +286,17 @@ class lcl_data_parser implementation.
     " Identify structure type
     lo_type_descr = cl_abap_typedescr=>describe_by_data( i_pattern ).
     case lo_type_descr->kind.
-    when 'T'. " Table
-      lo_table_descr ?= lo_type_descr.
-      ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
-    when 'S'. " Structure
-      ro_struc_descr ?= lo_type_descr.
-    when others. " Not a table or structure ?
-      raise exception type lcx_data_parser_error
-        exporting
-          methname = 'GET_SAFE_STRUC_DESCR'
-          msg      = 'Table or structure patterns only' "#EC NOTEXT
-          code     = 'PE'.
+      when 'T'. " Table
+        lo_table_descr ?= lo_type_descr.
+        ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
+      when 'S'. " Structure
+        ro_struc_descr ?= lo_type_descr.
+      when others. " Not a table or structure ?
+        raise exception type lcx_data_parser_error
+          exporting
+            methname = 'GET_SAFE_STRUC_DESCR'
+            msg      = 'Table or structure patterns only' "#EC NOTEXT
+            code     = 'PE'.
     endcase.
 
   endmethod.  "get_safe_struc_descr
@@ -421,7 +420,7 @@ class lcl_data_parser implementation.
 
     " Count TABs, if line ends with TAB last empty field is not added to table, see help for 'split'
     find all occurrences of c_tab in i_dataline match count l_tab_cnt.
-    add 1 to l_tab_cnt. " Number of fields in the line
+    l_tab_cnt = l_tab_cnt + 1. " Number of fields in the line
 
     " Check field number is the same as in header
     if l_tab_cnt > lines( it_map ).

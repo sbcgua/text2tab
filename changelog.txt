@@ -1,0 +1,23 @@
+Mockup loader changelog
+=======================
+
+Legend
+------
+* : fixed
+! : changed
++ : added
+- : removed
+
+v1.1.1, 2016-08-23
+------------------
++ float support added
++ overflow checks added
++ fine tuning
+
+v1.1.0, 2016-08-21
+------------------
++ added error location attributes to exception class
+
+v1.0.0
+------------------
++ first public realease as an independent lib (before was a part of mockup_loader)

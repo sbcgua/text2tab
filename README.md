@@ -1,3 +1,5 @@
+[![abaplint](http://abaplint.org/badges/sbcgua/abap_data_parser)](http://abaplint.org/project/sbcgua/abap_data_parser)
+
 # Abap data parser
 
 TAB-delimited text parser for ABAP
@@ -66,14 +68,14 @@ The exception class - `lcx_data_parser_error` - exposes `struc`, `field`, `line`
 
 ```abap
   ...
-  catch lcx_data_parser_error into lx. " Reformat to -> Import error at line LINE, field "FIELD": MSG
+  catch lcx_data_parser_error into lx. " Reformat to -> Import error at line LINE, field 'FIELD': MSG
     
-    l_error_msg = text-117. " Import error
+    l_error_msg = 'Import error'.
     if lx->line is not initial.
-      l_error_msg = |{ l_error_msg } { text-118 } { lx->line }|. " at line
+      l_error_msg = |{ l_error_msg } at line { lx->line }|.
     endif.
     if lx->field is not initial.
-      l_error_msg = |{ l_error_msg }, { text-119 } "{ lx->field }"|. " field
+      l_error_msg = |{ l_error_msg }, field '{ lx->field }'|.
     endif.
     l_error_msg = |{ l_error_msg }: { lx->msg }|.
     

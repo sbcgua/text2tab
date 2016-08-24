@@ -12,7 +12,7 @@ include zdata_parser_tests.
 
 start-of-selection.
 
-* Help message
+* Help banner
 
 write: / 'Abap data parser is an utility to parse TAB-delimited text into an internal table of an arbitrary'.
 write: / 'flat structure. It support "unstrict" mode which allows to skip fields in the source data (for the'.

@@ -554,10 +554,10 @@ class lcl_test_data_parser implementation.
       l_dataline = l_header_bak.
 
       case sy-index.
-        when 1. " Duplicate field names
-          replace first occurrence of c_tab && 'TINTEGER' in l_dataline with c_tab && 'TINTEGER' && c_tab && 'EXCESSFLD'.
+        when 1. " More fields than in header
+          l_dataline = l_dataline && c_tab && 'EXCESSFLD'.
           l_exp_code = '>H'.
-        when 2. " Empty field names
+        when 2. " Less fields than in header
           replace first occurrence of c_tab && 'TINTEGER' in l_dataline with ''.
           l_exp_code = '<H'.
       endcase.

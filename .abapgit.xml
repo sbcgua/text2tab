@@ -12,6 +12,7 @@
     <item>/.travis.yml</item>
     <item>/changelog.txt</item>
     <item>abaplint.json</item>
+    <item>/abaplint.json</item>
    </IGNORE>
   </DATA>
  </asx:values>

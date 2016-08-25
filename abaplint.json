@@ -11,7 +11,7 @@
       },
       "line_length":{  
          "enabled":true,
-         "length":120
+         "length":150
       },
       "max_one_statement":{  
          "enabled":true

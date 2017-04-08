@@ -395,6 +395,7 @@ class lcl_test_data_parser implementation.
       test_parse_positive TINTEGER '123'             123.
       test_parse_positive TRAW     '8E'              '8E'.
       test_parse_positive TFLOAT   '1.123456789'     '1.123456789'.
+      test_parse_positive TFLOAT   '"1.123456789"'   '1.123456789'. " Quoted data, issue#6
     catch lcx_data_parser_error into lx.
       fail( lx->get_text( ) ).
     endtry.

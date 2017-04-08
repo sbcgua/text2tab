@@ -456,16 +456,29 @@ class lcl_data_parser implementation.
 
 
   method parse_field.
-    data: l_mask type string,
-          l_len  type i.
+    data: l_mask     type string,
+          l_unquoted type string,
+          l_len      type i.
 
     clear e_field.
 
+    " Unquote field
+    l_len = strlen( i_value ).
+    if l_len >= 2
+       and substring( val = i_value off = 0         len = 1 ) = '"'
+       and substring( val = i_value off = l_len - 1 len = 1 ) = '"'.
+      l_unquoted = substring( val = i_value off = 1 len = l_len - 2 ).
+    else.
+      l_unquoted = i_value.
+    endif.
+    clear l_len.
+
+    " Parse depending on output type
     case is_component-type_kind.
       when cl_abap_typedescr=>typekind_date. " Date
         call function 'CONVERT_DATE_TO_INTERNAL'
           exporting
-            date_external            = i_value
+            date_external            = l_unquoted
             accept_initial_date      = 'X'
           importing
             date_internal   = e_field
@@ -474,60 +487,60 @@ class lcl_data_parser implementation.
 
       when cl_abap_typedescr=>typekind_char. " Char + Alpha
         describe field e_field length l_len in character mode.
-        if l_len < strlen( i_value ).
+        if l_len < strlen( l_unquoted ).
           raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
         endif.
 
         describe field e_field edit mask l_mask.
         if l_mask is initial.
-          e_field = i_value.
+          e_field = l_unquoted.
         else.
           shift l_mask left deleting leading '='.
-          me->apply_conv_exit( exporting i_value    = i_value
+          me->apply_conv_exit( exporting i_value    = l_unquoted
                                          i_convexit = l_mask
                                importing e_field    = e_field ).
         endif.
 
       when cl_abap_typedescr=>typekind_string. " String
-        e_field = i_value.
+        e_field = l_unquoted.
 
       when cl_abap_typedescr=>typekind_packed. " Amount
-        parse_float( exporting  i_value    = i_value
+        parse_float( exporting  i_value    = l_unquoted
                                 i_decimals = is_component-decimals
                      importing  e_field    = e_field ).
 
       when cl_abap_typedescr=>typekind_float. " Float
-        parse_float( exporting  i_value    = i_value
+        parse_float( exporting  i_value    = l_unquoted
                                 i_decimals = 34 " Abap decimal digit limit ?
                      importing  e_field    = e_field ).
 
       when cl_abap_typedescr=>typekind_int. " Integer
-        if i_value co '0123456789'.
-          e_field = i_value.
+        if l_unquoted co '0123456789'.
+          e_field = l_unquoted.
         else.
           sy-subrc = 4.
         endif.
 
       when cl_abap_typedescr=>typekind_num. " Numchar
         describe field e_field length l_len in character mode.
-        if l_len < strlen( i_value ).
+        if l_len < strlen( l_unquoted ).
           raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
         endif.
 
-        if i_value co '0123456789'.
-          e_field = i_value.
+        if l_unquoted co '0123456789'.
+          e_field = l_unquoted.
         else.
           sy-subrc = 4.
         endif.
 
       when cl_abap_typedescr=>typekind_hex. " Raw
         describe field e_field length l_len in byte mode.
-        if l_len < strlen( i_value ) / 2 + strlen( i_value ) mod 2. " 2 hex-char per byte
+        if l_len < strlen( l_unquoted ) / 2 + strlen( l_unquoted ) mod 2. " 2 hex-char per byte
           raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
         endif.
 
         try .
-          e_field = i_value.
+          e_field = l_unquoted.
         catch cx_sy_conversion_no_raw cx_sy_conversion_error.
           sy-subrc = 4.
         endtry.

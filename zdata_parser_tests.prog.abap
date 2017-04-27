@@ -17,21 +17,16 @@ define test_parse.
 end-of-definition.
 
 define test_parse_positive.
-  test_parse &1 &2.
-  assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
-end-of-definition.
-
-define test_parse_negative.
   clear lx.
   try.
     test_parse &1 &2.
   catch lcx_data_parser_error into lx.
-    assert_equals( exp = 'PF' act = lx->code ).
+    fail( lx->get_text( ) ).
   endtry.
-  assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
+  assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
 end-of-definition.
 
-define test_parse_negative_x.
+define test_parse_negative.
   clear lx.
   try.
     test_parse &1 &2.
@@ -162,6 +157,14 @@ class lcl_test_data_parser implementation.
       assert_not_initial( act = lo ).
       assert_equals( act = lo->mv_amount_format exp = ' ,' ).
 
+      lo = lcl_data_parser=>create( i_pattern = ls_dummy ).
+      assert_not_initial( act = lo ).
+      assert_equals( act = lo->mv_date_format exp = 'DMY' ).
+
+      lo = lcl_data_parser=>create( i_pattern = ls_dummy i_date_format = 'YMD' ).
+      assert_not_initial( act = lo ).
+      assert_equals( act = lo->mv_date_format exp = 'YMD' ).
+
     catch lcx_data_parser_error into lx.
       fail( lx->get_text( ) ).
     endtry.
@@ -171,7 +174,14 @@ class lcl_test_data_parser implementation.
     catch lcx_data_parser_error into lx.
       assert_equals( act = lx->code exp = 'PE' ). " Pattern error
     endtry.
+    assert_not_initial( act = lx ).
 
+    clear lx.
+    try.
+      lo = lcl_data_parser=>create( i_pattern = ls_dummy i_date_format = 'XXX' ).
+    catch lcx_data_parser_error into lx.
+      assert_equals( act = lx->code exp = 'UD' ). " Unsupported date format
+    endtry.
     assert_not_initial( act = lx ).
 
   endmethod.      "create
@@ -386,75 +396,88 @@ class lcl_test_data_parser implementation.
     lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
 
     " Positive tests ******************************
-    try.
-      test_parse_positive TDATE    '01.01.2015'      '20150101'.
-      test_parse_positive TCHAR    'ABC'             'ABC'.
-      test_parse_positive TSTRING  'The string test' 'The string test'.
-      test_parse_positive TALPHA   '100000'          '0000100000'.
-      test_parse_positive TNUMBER  '2015'            '2015'.
-      test_parse_positive TINTEGER '123'             123.
-      test_parse_positive TRAW     '8E'              '8E'.
-      test_parse_positive TFLOAT   '1.123456789'     '1.123456789'.
-      test_parse_positive TFLOAT   '"1.123456789"'   '1.123456789'. " Quoted data, issue#6
-    catch lcx_data_parser_error into lx.
-      fail( lx->get_text( ) ).
-    endtry.
+    test_parse_positive TDATE    '01.02.2015'      '20150201'.
+    test_parse_positive TDATE    '01022015'        '20150201'.
+    test_parse_positive TCHAR    'ABC'             'ABC'.
+    test_parse_positive TSTRING  'The string test' 'The string test'.
+    test_parse_positive TALPHA   '100000'          '0000100000'.
+    test_parse_positive TNUMBER  '2015'            '2015'.
+    test_parse_positive TINTEGER '123'             123.
+    test_parse_positive TRAW     '8E'              '8E'.
+    test_parse_positive TFLOAT   '1.123456789'     '1.123456789'.
+    test_parse_positive TFLOAT   '"1.123456789"'   '1.123456789'. " Quoted data, issue#6
 
     " Negative tests ******************************
 
-    test_parse_negative TDATE    '01.012015'.
-    test_parse_negative TNUMBER  '20ha'.
+    test_parse_negative TNUMBER  '20ha'      'PF'.
 
     " Decimal converion tests *********************
-    try.
-      test_parse_positive TDECIMAL '1234.12'         '1234.12'. " Native ABAP format
-      test_parse_positive TDECIMAL '-1234.12'        '-1234.12'." Native ABAP format
+    test_parse_positive TDECIMAL '1234.12'         '1234.12'. " Native ABAP format
+    test_parse_positive TDECIMAL '-1234.12'        '-1234.12'." Native ABAP format
 
-      " Default amount format
-      test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
-      test_parse_positive TDECIMAL '1234,12'         '1234.12'.
-      test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
-      test_parse_positive TDECIMAL '14,12'           '14.12'.
-      test_parse_positive TDECIMAL '1 234 567,12'    '1234567.12'.
-
-      o->mv_amount_format = '.,'.
-      test_parse_positive TDECIMAL '1234,12'         '1234.12'.
-      test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
-      test_parse_positive TDECIMAL '1.234,12'        '1234.12'.
-      test_parse_positive TDECIMAL '14,12'           '14.12'.
-      test_parse_positive TDECIMAL '1.234.567,12'    '1234567.12'.
-
-      o->mv_amount_format = ',.'.
-      test_parse_positive TDECIMAL '1234.12'         '1234.12'.
-      test_parse_positive TDECIMAL '1 234.12'        '1234.12'.
-      test_parse_positive TDECIMAL '1,234.12'        '1234.12'.
-      test_parse_positive TDECIMAL '14.12'           '14.12'.
-      test_parse_positive TDECIMAL '1,234,567.12'    '1234567.12'.
-
-    catch lcx_data_parser_error into lx.
-      fail( lx->get_text( ) ).
-    endtry.
-
-    o->mv_amount_format = ' ,'. " Set defaults
-    test_parse_negative TDECIMAL '1 234.12'.
-    test_parse_negative TDECIMAL '1 234_12'.
-    test_parse_negative TDECIMAL '1234,123'. " 3 decimal digits into amount which has just 2
-    test_parse_negative TDECIMAL '1234,12_'.
-    test_parse_negative TDECIMAL 'Not-a-number'.
+    " Different amount formats
+    test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
+    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
+    test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
+    test_parse_positive TDECIMAL '14,12'           '14.12'.
+    test_parse_positive TDECIMAL '1 234 567,12'    '1234567.12'.
 
     o->mv_amount_format = '.,'.
-    test_parse_negative TDECIMAL '1 234.12'.
-    test_parse_negative TDECIMAL '1,234.12'.
+    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
+    test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
+    test_parse_positive TDECIMAL '1.234,12'        '1234.12'.
+    test_parse_positive TDECIMAL '14,12'           '14.12'.
+    test_parse_positive TDECIMAL '1.234.567,12'    '1234567.12'.
 
     o->mv_amount_format = ',.'.
-    test_parse_negative TDECIMAL '1 234,12'.
-    test_parse_negative TDECIMAL '1.234,12'.
+    test_parse_positive TDECIMAL '1234.12'         '1234.12'.
+    test_parse_positive TDECIMAL '1 234.12'        '1234.12'.
+    test_parse_positive TDECIMAL '1,234.12'        '1234.12'.
+    test_parse_positive TDECIMAL '14.12'           '14.12'.
+    test_parse_positive TDECIMAL '1,234,567.12'    '1234567.12'.
 
-    " Overflow
-    test_parse_negative_x TCHAR    'ABCDEFGH123' 'FS'.
-    test_parse_negative_x TNUMBER  '201567'      'FS'.
-    test_parse_negative_x TRAW     '8E8F'        'FS'.
-    test_parse_negative_x TRAW     '8E8'         'FS'.
+    " Negative decimal tests
+    o->mv_amount_format = ' ,'. " Set defaults
+    test_parse_negative TDECIMAL '1 234.12' 'PF'.
+    test_parse_negative TDECIMAL '1 234_12' 'PF'.
+    test_parse_negative TDECIMAL '1234,123' 'PF'. " 3 decimal digits into amount which has just 2
+    test_parse_negative TDECIMAL '1234,12_' 'PF'.
+    test_parse_negative TDECIMAL 'Not-a-number' 'PF'.
+
+    o->mv_amount_format = '.,'.
+    test_parse_negative TDECIMAL '1 234.12' 'PF'.
+    test_parse_negative TDECIMAL '1,234.12' 'PF'.
+
+    o->mv_amount_format = ',.'.
+    test_parse_negative TDECIMAL '1 234,12' 'PF'.
+    test_parse_negative TDECIMAL '1.234,12' 'PF'.
+
+    " Date tests **********************************
+
+
+    o->mv_date_format = 'MDY'.
+    test_parse_positive TDATE    '02012015'    '20150201'.
+    o->mv_date_format = 'YMD'.
+    test_parse_positive TDATE    '20150201'    '20150201'.
+    test_parse_positive TDATE    '2015-02-01'  '20150201'.
+    o->mv_date_format = 'DMY'.
+    test_parse_positive TDATE    `        `    '00000000'.
+    test_parse_positive TDATE    ''            '00000000'.
+
+    " Negative tests
+    test_parse_negative TDATE    '01.012015'   'DL'. " Length
+    test_parse_negative TDATE    '2015020'     'DL'. " Length
+    test_parse_negative TDATE    '01_02_2015'  'DS'. " Wrong separators
+    test_parse_negative TDATE    '01.02-2015'  'DS'. " Wrong separators
+    test_parse_negative TDATE    '40012015'    'DU'.
+    test_parse_negative TDATE    '01132015'    'DU'.
+    test_parse_negative TDATE    'AB022015'    'DU'.
+
+    " Overflow ************************************
+    test_parse_negative TCHAR    'ABCDEFGH123' 'FS'.
+    test_parse_negative TNUMBER  '201567'      'FS'.
+    test_parse_negative TRAW     '8E8F'        'FS'.
+    test_parse_negative TRAW     '8E8'         'FS'.
 
   endmethod.       "parse_field
 
@@ -469,7 +492,7 @@ class lcl_test_data_parser implementation.
           lx             type ref to lcx_data_parser_error.
 
     lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
-    test_parse_negative_x STRUC '12345' 'UT'.
+    test_parse_negative STRUC '12345' 'UT'.
 
   endmethod.       "parse_field_unsupp
 

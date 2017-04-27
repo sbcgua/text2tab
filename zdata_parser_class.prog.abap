@@ -113,6 +113,7 @@ class lcl_data_parser definition final create private
       importing
         i_pattern        type any " target structure or table
         i_amount_format  type char2 optional
+        i_date_format    type char3 optional
       returning
         value(ro_parser) type ref to lcl_data_parser
       raising
@@ -132,6 +133,7 @@ class lcl_data_parser definition final create private
   private section.
 
     data mv_amount_format type char2.
+    data mv_date_format   type char3.
     data mo_struc_descr   type ref to cl_abap_structdescr.
     data mv_current_field type string.
     data mv_line_index    type sy-tabix.
@@ -188,6 +190,14 @@ class lcl_data_parser definition final create private
       raising
         lcx_data_parser_error.
 
+    methods parse_date
+      importing
+        i_value      type string
+      exporting
+        e_field      type d
+      raising
+        lcx_data_parser_error.
+
     methods apply_conv_exit
       importing
         i_value    type string
@@ -217,10 +227,23 @@ class lcl_data_parser implementation.
 
     lo_parser->mo_struc_descr   = get_safe_struc_descr( i_pattern ).
     lo_parser->mv_amount_format = ' ,'. " Defaults
+    lo_parser->mv_date_format   = 'DMY'. " Defaults
 
     " Not empty param and not empty decimal separator
     if not ( i_amount_format is initial or i_amount_format+1(1) is initial ).
       lo_parser->mv_amount_format = i_amount_format.
+    endif.
+
+    " Not empty param and not empty decimal separator
+    if i_date_format is not initial.
+      if not ( i_date_format = 'DMY' or i_date_format = 'MDY' or i_date_format = 'YMD' ).
+        raise exception type lcx_data_parser_error
+          exporting
+            methname = 'CREATE'
+            msg      = |Unsupported date format { i_date_format }|
+            code     = 'UD'. "#EC NOTEXT
+      endif.
+      lo_parser->mv_date_format = i_date_format.
     endif.
 
     ro_parser = lo_parser.
@@ -476,14 +499,8 @@ class lcl_data_parser implementation.
     " Parse depending on output type
     case is_component-type_kind.
       when cl_abap_typedescr=>typekind_date. " Date
-        call function 'CONVERT_DATE_TO_INTERNAL'
-          exporting
-            date_external            = l_unquoted
-            accept_initial_date      = 'X'
-          importing
-            date_internal   = e_field
-          exceptions
-            date_external_is_invalid = 4.
+        parse_date( exporting  i_value    = l_unquoted
+                    importing  e_field    = e_field ).
 
       when cl_abap_typedescr=>typekind_char. " Char + Alpha
         describe field e_field length l_len in character mode.
@@ -565,6 +582,7 @@ class lcl_data_parser implementation.
 
     l_thousand_sep = mv_amount_format+0(1).
     l_decimal_sep  = mv_amount_format+1(1).
+    clear e_field.
 
     try .
       e_field = i_value. " Try native format first - xxxx.xx
@@ -606,6 +624,67 @@ class lcl_data_parser implementation.
     endtry.
 
   endmethod.  "parse_float
+
+  method parse_date.
+
+    data: l_has_sep   type abap_bool,
+          l_idx       type i,
+          l_iter      type i,
+          l_part      type c,
+          l_rawdate   type char8,
+          l_seps      type char2.
+
+    clear e_field.
+    if i_value is initial or i_value co ` `.
+      return.
+    endif.
+
+    " Check separators
+    l_has_sep = boolc( strlen( i_value ) = 10 ).
+    if l_has_sep = abap_false and strlen( i_value ) <> 8.
+      raise_error( msg = 'Incorrect date length' code = 'DL' ). "#EC NOTEXT
+    endif.
+
+    do 3 times.
+      l_iter = sy-index - 1.
+      l_part = mv_date_format+l_iter(1).
+      case l_part.
+        when 'D'.
+          l_rawdate+6(2) = i_value+l_idx(2).
+          l_idx          = l_idx + 2.
+        when 'M'.
+          l_rawdate+4(2) = i_value+l_idx(2).
+          l_idx          = l_idx + 2.
+        when 'Y'.
+          l_rawdate+0(4) = i_value+l_idx(4).
+          l_idx          = l_idx + 4.
+        when others.
+          raise_error( msg = 'Wrong date format' ). "#EC NOTEXT
+      endcase.
+
+      if l_has_sep = abap_true and l_iter < 2.
+        l_seps+l_iter(1) = i_value+l_idx(1).
+        l_idx            = l_idx + 1.
+      endif.
+    enddo.
+
+    " Check separators
+    if l_has_sep = abap_true and ( l_seps+0(1) <> l_seps+1(1) or not l_seps co './-' ).
+      raise_error( msg = 'Wrong date separators' code = 'DS' ). "#EC NOTEXT
+    endif.
+
+    try.
+      cl_abap_datfm=>conv_date_ext_to_int(
+        exporting
+          im_datext   = l_rawdate
+          im_datfmdes = '4' " YYYY.MM.DD
+        importing
+          ex_datint   = e_field ).
+      catch cx_abap_datfm.
+        raise_error( msg = 'Date format unknown' code = 'DU' ). "#EC NOTEXT
+    endtry.
+
+  endmethod.  "parse_date
 
   method apply_conv_exit.
 

@@ -99,7 +99,7 @@ class lcl_data_parser definition final create private
 
   public section.
 
-    constants version type string value 'v1.1.1' ##NEEDED.
+    constants version type string value 'v1.2.1' ##NEEDED.
 
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab
                         value cl_abap_char_utilities=>horizontal_tab.
@@ -113,7 +113,7 @@ class lcl_data_parser definition final create private
       importing
         i_pattern        type any " target structure or table
         i_amount_format  type char2 optional
-        i_date_format    type char3 optional
+        i_date_format    type char4 optional
       returning
         value(ro_parser) type ref to lcl_data_parser
       raising
@@ -132,12 +132,12 @@ class lcl_data_parser definition final create private
 
   private section.
 
-    data mv_amount_format type char2.
-    data mv_date_format   type char3.
-    data mo_struc_descr   type ref to cl_abap_structdescr.
-    data mv_current_field type string.
-    data mv_line_index    type sy-tabix.
-    data mt_head_fields   type tt_string.
+    data: mv_amount_format type char2,
+          mv_date_format   type char4,
+          mo_struc_descr   type ref to cl_abap_structdescr,
+          mv_current_field type string,
+          mv_line_index    type sy-tabix,
+          mt_head_fields   type tt_string.
 
     class-methods get_safe_struc_descr
       importing
@@ -222,35 +222,37 @@ class lcl_data_parser implementation.
 
   method create.
 
-    data lo_parser  type ref to lcl_data_parser.
-    create object lo_parser.
+    create object ro_parser.
 
-    lo_parser->mo_struc_descr   = get_safe_struc_descr( i_pattern ).
-    lo_parser->mv_amount_format = ' ,'. " Defaults
-    lo_parser->mv_date_format   = 'DMY'. " Defaults
+    ro_parser->mo_struc_descr   = get_safe_struc_descr( i_pattern ).
+    ro_parser->mv_amount_format = ' ,'.   " Defaults
+    ro_parser->mv_date_format   = 'DMY.'. " Defaults
 
     " Not empty param and not empty decimal separator
     if not ( i_amount_format is initial or i_amount_format+1(1) is initial ).
-      lo_parser->mv_amount_format = i_amount_format.
+      ro_parser->mv_amount_format = i_amount_format.
     endif.
 
     " Not empty param and not empty decimal separator
     if i_date_format is not initial.
-      if not ( i_date_format = 'DMY' or i_date_format = 'MDY' or i_date_format = 'YMD' ).
+      if not i_date_format+3(1) co ' ./-' or not (
+        i_date_format+0(3)    = 'DMY'
+        or i_date_format+0(3) = 'MDY'
+        or i_date_format+0(3) = 'YMD' ).
         raise exception type lcx_data_parser_error
           exporting
             methname = 'CREATE'
             msg      = |Unsupported date format { i_date_format }|
             code     = 'UD'. "#EC NOTEXT
       endif.
-      lo_parser->mv_date_format = i_date_format.
-    endif.
 
-    ro_parser = lo_parser.
+      ro_parser->mv_date_format = i_date_format.
+    endif.
 
   endmethod.  "create
 
   method parse.
+
     data:
           lt_data      type tt_string,
           lt_map       type int4_table,
@@ -302,6 +304,7 @@ class lcl_data_parser implementation.
   endmethod.  "parse
 
   method get_safe_struc_descr.
+
     data:
           lo_type_descr  type ref to cl_abap_typedescr,
           lo_table_descr type ref to cl_abap_tabledescr.
@@ -325,6 +328,7 @@ class lcl_data_parser implementation.
   endmethod.  "get_safe_struc_descr
 
   method map_head_structure.
+
     data:
           lt_fields    type tt_string,
           l_field_cnt  type i,
@@ -385,6 +389,7 @@ class lcl_data_parser implementation.
   endmethod.  "map_head_structure
 
   method parse_data.
+
     data:
           l_container_kind like cl_abap_typedescr=>kind,
           ref_tab_line     type ref to data.
@@ -429,6 +434,7 @@ class lcl_data_parser implementation.
   endmethod.  "parse_data
 
   method parse_line.
+
     data:
           lt_fields      type table of string,
           l_tab_cnt      type i,
@@ -479,6 +485,7 @@ class lcl_data_parser implementation.
 
 
   method parse_field.
+
     data: l_mask     type string,
           l_unquoted type string,
           l_len      type i.
@@ -499,8 +506,8 @@ class lcl_data_parser implementation.
     " Parse depending on output type
     case is_component-type_kind.
       when cl_abap_typedescr=>typekind_date. " Date
-        parse_date( exporting  i_value    = l_unquoted
-                    importing  e_field    = e_field ).
+        parse_date( exporting  i_value = l_unquoted
+                    importing  e_field = e_field ).
 
       when cl_abap_typedescr=>typekind_char. " Char + Alpha
         describe field e_field length l_len in character mode.
@@ -574,6 +581,7 @@ class lcl_data_parser implementation.
   endmethod.  "parse_field
 
   method parse_float.
+
     data:
           l_decimal_sep  type c,
           l_thousand_sep type c,
@@ -627,52 +635,77 @@ class lcl_data_parser implementation.
 
   method parse_date.
 
-    data: l_has_sep   type abap_bool,
-          l_idx       type i,
-          l_iter      type i,
-          l_part      type c,
-          l_rawdate   type char8,
-          l_seps      type char2.
+    data: l_cursor  type i,
+          l_iter    type i,
+          l_part    type c,
+          l_size    type i,
+          l_offs    type i,
+          l_home    type i,
+          l_pad     type i,
+          l_stencil type numc4,
+          l_rawdate type char8,
+          l_charset type char11 value '0123456789',
+          l_sep     type c.
 
     clear e_field.
-    if i_value is initial or i_value co ` `.
+    l_sep           = mv_date_format+3(1).
+    l_charset+10(1) = l_sep.
+
+    if i_value is initial or i_value co ` `. " Empty string -> empty date
       return.
     endif.
 
-    " Check separators
-    l_has_sep = boolc( strlen( i_value ) = 10 ).
-    if l_has_sep = abap_false and strlen( i_value ) <> 8.
+    if not i_value co l_charset.  " Check wrong symbols
+      raise_error( msg = 'Date contains invalid symbols' code = 'DY' ). "#EC NOTEXT
+    endif.
+
+    " Not separated date must be 8 chars, separated not more than 10
+    if l_sep <> space and strlen( i_value ) > 10  or l_sep = space and strlen( i_value ) <> 8.
       raise_error( msg = 'Incorrect date length' code = 'DL' ). "#EC NOTEXT
     endif.
 
     do 3 times.
       l_iter = sy-index - 1.
       l_part = mv_date_format+l_iter(1).
+
       case l_part.
         when 'D'.
-          l_rawdate+6(2) = i_value+l_idx(2).
-          l_idx          = l_idx + 2.
+          l_size = 2.
+          l_home = 6.
         when 'M'.
-          l_rawdate+4(2) = i_value+l_idx(2).
-          l_idx          = l_idx + 2.
+          l_size = 2.
+          l_home = 4.
         when 'Y'.
-          l_rawdate+0(4) = i_value+l_idx(4).
-          l_idx          = l_idx + 4.
+          l_size = 4.
+          l_home = 0.
         when others.
           raise_error( msg = 'Wrong date format' ). "#EC NOTEXT
       endcase.
 
-      if l_has_sep = abap_true and l_iter < 2.
-        l_seps+l_iter(1) = i_value+l_idx(1).
-        l_idx            = l_idx + 1.
+      if l_sep is initial. " No seps
+        l_rawdate+l_home(l_size) = i_value+l_cursor(l_size).
+        l_cursor                 = l_cursor + l_size.
+      else.
+        if l_iter = 2. " Last part
+          l_offs = strlen( i_value+l_cursor ).
+        else.
+          find first occurrence of l_sep in i_value+l_cursor match offset l_offs.
+        endif.
+        if sy-subrc <> 0.
+          raise_error( msg = 'Date separator is missing' code = 'DS' ). "#EC NOTEXT
+        endif.
+        if l_offs > l_size.
+          raise_error( msg = 'Too long date part' code = 'DP' ). "#EC NOTEXT
+        endif.
+        l_stencil                = i_value+l_cursor(l_offs).
+        l_pad                    = 4 - l_size. " Offset within stencil
+        l_rawdate+l_home(l_size) = l_stencil+l_pad(l_size).
+        l_cursor                 = l_cursor + l_offs + 1. " Including separator
       endif.
+
     enddo.
 
-    " Check separators
-    if l_has_sep = abap_true and ( l_seps+0(1) <> l_seps+1(1) or not l_seps co './-' ).
-      raise_error( msg = 'Wrong date separators' code = 'DS' ). "#EC NOTEXT
-    endif.
-
+    " Native convert
     try.
       cl_abap_datfm=>conv_date_ext_to_int(
         exporting
@@ -718,6 +751,7 @@ class lcl_data_parser implementation.
   endmethod.  "apply_conv_exit
 
   method raise_error.
+
     data: sys_call    type sys_calls,
           sys_stack   type sys_callst,
           l_struc     type string.

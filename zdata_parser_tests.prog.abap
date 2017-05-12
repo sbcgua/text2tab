@@ -140,9 +140,10 @@ class lcl_test_data_parser implementation.
     data:
           lo type ref to lcl_data_parser,
           lx type ref to lcx_data_parser_error,
-          ls_dummy type ty_dummy,
-          lt_dummy type tt_dummy,
-          lv_dummy type i.
+          lv_date_format type char4,
+          ls_dummy       type ty_dummy,
+          lt_dummy       type tt_dummy,
+          lv_dummy       type i.
 
     try.
       lo = lcl_data_parser=>create( i_pattern = ls_dummy ).
@@ -159,7 +160,7 @@ class lcl_test_data_parser implementation.
 
       lo = lcl_data_parser=>create( i_pattern = ls_dummy ).
       assert_not_initial( act = lo ).
-      assert_equals( act = lo->mv_date_format exp = 'DMY' ).
+      assert_equals( act = lo->mv_date_format exp = 'DMY.' ).
 
       lo = lcl_data_parser=>create( i_pattern = ls_dummy i_date_format = 'YMD' ).
       assert_not_initial( act = lo ).
@@ -169,6 +170,7 @@ class lcl_test_data_parser implementation.
       fail( lx->get_text( ) ).
     endtry.
 
+    clear lx.
     try.
       lo = lcl_data_parser=>create( i_pattern = lv_dummy ).
     catch lcx_data_parser_error into lx.
@@ -176,13 +178,24 @@ class lcl_test_data_parser implementation.
     endtry.
     assert_not_initial( act = lx ).
 
-    clear lx.
-    try.
-      lo = lcl_data_parser=>create( i_pattern = ls_dummy i_date_format = 'XXX' ).
-    catch lcx_data_parser_error into lx.
-      assert_equals( act = lx->code exp = 'UD' ). " Unsupported date format
-    endtry.
-    assert_not_initial( act = lx ).
+    do 3 times.
+      case sy-index.
+        when 1.
+          lv_date_format = 'XXX'.
+        when 2.
+          lv_date_format = 'DM'.
+        when 3.
+          lv_date_format = 'DMY='.
+      endcase.
+
+      clear lx.
+      try.
+        lo = lcl_data_parser=>create( i_pattern = ls_dummy i_date_format = lv_date_format ).
+      catch lcx_data_parser_error into lx.
+        assert_equals( act = lx->code exp = 'UD' ). " Unsupported date format
+      endtry.
+      assert_not_initial( act = lx ).
+    enddo.
 
   endmethod.      "create
 
@@ -397,7 +410,7 @@ class lcl_test_data_parser implementation.
 
     " Positive tests ******************************
     test_parse_positive TDATE    '01.02.2015'      '20150201'.
-    test_parse_positive TDATE    '01022015'        '20150201'.
+    test_parse_positive TDATE    '1.2.2015'        '20150201'.
     test_parse_positive TCHAR    'ABC'             'ABC'.
     test_parse_positive TSTRING  'The string test' 'The string test'.
     test_parse_positive TALPHA   '100000'          '0000100000'.
@@ -408,7 +421,6 @@ class lcl_test_data_parser implementation.
     test_parse_positive TFLOAT   '"1.123456789"'   '1.123456789'. " Quoted data, issue#6
 
     " Negative tests ******************************
-
     test_parse_negative TNUMBER  '20ha'      'PF'.
 
     " Decimal converion tests *********************
@@ -453,25 +465,28 @@ class lcl_test_data_parser implementation.
     test_parse_negative TDECIMAL '1.234,12' 'PF'.
 
     " Date tests **********************************
-
-
     o->mv_date_format = 'MDY'.
     test_parse_positive TDATE    '02012015'    '20150201'.
     o->mv_date_format = 'YMD'.
     test_parse_positive TDATE    '20150201'    '20150201'.
+    test_parse_negative TDATE    '2015020'     'DL'.  " Too short
+    o->mv_date_format = 'YMD-'.
     test_parse_positive TDATE    '2015-02-01'  '20150201'.
-    o->mv_date_format = 'DMY'.
+    test_parse_positive TDATE    '2015-2-1'    '20150201'.
     test_parse_positive TDATE    `        `    '00000000'.
     test_parse_positive TDATE    ''            '00000000'.
+    o->mv_date_format = 'DMY.'. " Back to default
 
     " Negative tests
-    test_parse_negative TDATE    '01.012015'   'DL'. " Length
-    test_parse_negative TDATE    '2015020'     'DL'. " Length
-    test_parse_negative TDATE    '01_02_2015'  'DS'. " Wrong separators
-    test_parse_negative TDATE    '01.02-2015'  'DS'. " Wrong separators
-    test_parse_negative TDATE    '40012015'    'DU'.
-    test_parse_negative TDATE    '01132015'    'DU'.
-    test_parse_negative TDATE    'AB022015'    'DU'.
+    test_parse_negative TDATE    'AB022015'    'DY'. " Wrong symbols
+    test_parse_negative TDATE    '01.02-2015'  'DY'. " Wrong separators
+    test_parse_negative TDATE    '01.02.20156' 'DL'. " Too long
+    test_parse_negative TDATE    '1.2.201567'  'DP'. " Wrong part length
+    test_parse_negative TDATE    '123.2.2015'  'DP'. " Wrong part length
+    test_parse_negative TDATE    '01022015'    'DS'. " No separators
+    test_parse_negative TDATE    '01.012015'   'DS'. " No second separator
+    test_parse_negative TDATE    '40.01.2015'  'DU'. " Incorrect day
+    test_parse_negative TDATE    '01.13.2015'  'DU'. " Incorrect month
 
     " Overflow ************************************
     test_parse_negative TCHAR    'ABCDEFGH123' 'FS'.

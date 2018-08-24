@@ -8,6 +8,11 @@ Legend
 + : added
 - : removed
 
+v2.0.0, 2018-08-24
+------------------
+! moved the code to global classes for easier reuse
++ support for LF line breaks
+
 v1.1.1, 2016-08-23
 ------------------
 + float support added

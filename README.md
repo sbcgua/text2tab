@@ -1,17 +1,15 @@
-[![abaplint](http://abaplint.org/badges/sbcgua/abap_data_parser)](http://abaplint.org/project/sbcgua/abap_data_parser)
-
 # Abap data parser
 
 TAB-delimited text parser for ABAP  
-v1.1.1 ([changelog](./changelog.txt))
+v2.0.0 ([changelog](./changelog.txt))
 
 ## Synopsis
 
 Abap data parser is an utility to parse TAB-delimited text into an internal table of an arbitrary flat structure. It support "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded). It supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order. It also supports loading into a structure (the first data line of the text is parsed). 
 
-You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool. To utilize data_parser please include `zdata_parser_class` and `zdata_parser_tests` to your program. 
+You can **install** the whole code using [abapGit](https://github.com/larshp/abapGit) tool.
 
-Alternatively, you can also copy content of `zdata_parser_class.abap` to your program (please keep the license text). If you don't want to include unit tests just remove the `friends` reference in the class definition.
+Alternatively, you can also copy content of `zcl_data_parser.clas.abap` to your program (please keep the homepage and license text).
 
 The tool is open source and distributed under MIT license. It was initially created as a part of another project - [mockup loader](https://github.com/sbcgua/mockup_loader) - but then separated as an independent multiusage tool.
 
@@ -34,7 +32,7 @@ types: begin of my_table_type,
 
 data lt_container type my_table_type.
 
-lcl_data_parser=>create( lt_container )->parse(
+zcl_data_parser=>create( lt_container )->parse(
   exporting i_data      = my_get_some_raw_text_data( )
   importing e_container = lt_container ).
 ```
@@ -50,7 +48,7 @@ types: begin of my_table_type,
 
 ...
 
-lcl_data_parser=>create(
+zcl_data_parser=>create(
     i_pattern       = lt_container          " table or structure
     i_amount_format = ' .'                  " specify thousand and decimal delimiters
   )->parse( 
@@ -65,11 +63,11 @@ Of course, you can keep the object reference returned by `create()` and use it t
 
 ## Error message redefinition
 
-The exception class - `lcx_data_parser_error` - exposes `struc`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:
+The exception class - `zcx_data_parser_error` - exposes `struc`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:
 
 ```abap
   ...
-  catch lcx_data_parser_error into lx. " Reformat to -> Import error at line LINE, field 'FIELD': MSG
+  catch zcx_data_parser_error into lx. " Reformat to -> Import error at line LINE, field 'FIELD': MSG
     
     l_error_msg = 'Import error'.
     if lx->line is not initial.
@@ -84,5 +82,3 @@ The exception class - `lcx_data_parser_error` - exposes `struc`, `field`, `line`
       exporting msg = l_error_msg.
   endtry.
 ```
-
-

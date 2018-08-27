@@ -549,12 +549,15 @@ method parse_field.
         importing
           e_field    = e_field ).
 
-    when cl_abap_typedescr=>typekind_int. " Integer
+    when cl_abap_typedescr=>typekind_int OR cl_abap_typedescr=>typekind_int1 OR cl_abap_typedescr=>typekind_int2 . " Integer
       if l_unquoted co '0123456789'.
         e_field = l_unquoted.
       else.
         sy-subrc = 4.
       endif.
+
+    when cl_abap_typedescr=>typekind_time. " Time
+      e_field = l_unquoted.
 
     when cl_abap_typedescr=>typekind_num. " Numchar
       describe field e_field length l_len in character mode.

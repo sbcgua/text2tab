@@ -1,7 +1,7 @@
 # Abap data parser
 
 TAB-delimited text parser for ABAP  
-v2.0.0 ([changelog](./changelog.txt))
+v2.0.1 ([changelog](./changelog.txt))
 
 ## Synopsis
 

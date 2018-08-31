@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.0.1, 2018-08-31
+------------------
++ parse_typeless feature. create_typeless would create an instance which does not checks types but rather returns reference to table of records where all the fields are strings
+
 v2.0.0, 2018-08-24
 ------------------
 ! moved the code to global classes for easier reuse

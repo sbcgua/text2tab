@@ -7,7 +7,9 @@ v2.0.0 ([changelog](./changelog.txt))
 
 Abap data parser is an utility to parse TAB-delimited text into an internal table of an arbitrary flat structure. It support "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded). It supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order. It also supports loading into a structure (the first data line of the text is parsed). 
 
-You can **install** the whole code using [abapGit](https://github.com/larshp/abapGit) tool.
+## Installation
+
+You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool.
 
 Alternatively, you can also copy content of `zcl_data_parser.clas.abap` to your program (please keep the homepage and license text).
 
@@ -24,7 +26,6 @@ LARA     03.03.2000
 ```
 Simple parsing code
 ```abap
-
 types: begin of my_table_type,
          name      type char10,
          birthdate type datum,
@@ -60,6 +61,23 @@ zcl_data_parser=>create(
       e_container = lt_container ).       " table or structure (first data line from text)
 ```
 Of course, you can keep the object reference returned by `create()` and use it to parse more data of the same pattern.
+
+## Typeless parsing
+
+You can also create an instance that does not validate type against some existing type structure. Instead it generates the table dynamically, where each field if the line is unconverted string.
+
+```abap
+data:
+  lr_data   type ref to data,
+  lt_fields type string_table.
+
+zcl_data_parser=>create_typeless( )->parse( 
+    exporting 
+      i_data      = my_get_some_raw_text_data( )
+    importing 
+      e_head_fields = lt_fields  " Contain the list of field names !
+      e_container   = lr_data ). " The container is created inside the parser
+```
 
 ## Error message redefinition
 

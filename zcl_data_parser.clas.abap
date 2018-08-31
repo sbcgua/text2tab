@@ -6,7 +6,7 @@ class ZCL_DATA_PARSER definition
 public section.
 
   type-pools ABAP .
-  constants VERSION type STRING value 'v2.0.0'. "#EC NOTEXT
+  constants VERSION type STRING value 'v2.0.1'. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT
   constants C_LF like CL_ABAP_CHAR_UTILITIES=>NEWLINE value CL_ABAP_CHAR_UTILITIES=>NEWLINE. "#EC NOTEXT
@@ -237,10 +237,12 @@ method create.
 
 endmethod.  "create
 
+
 method create_typeless.
   create object ro_parser.
   ro_parser->mv_is_typeless = abap_true.
 endmethod.
+
 
 method get_safe_struc_descr.
 
@@ -266,28 +268,6 @@ method get_safe_struc_descr.
 
 endmethod.  "get_safe_struc_descr
 
-method parse_head_line.
-  data l_header_str type string.
-
-  read table ct_data into l_header_str index 1.
-  if sy-subrc <> 0.
-    raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
-  endif.
-  if l_header_str is initial.
-    raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
-  endif.
-
-  me->map_head_structure(
-    exporting
-      i_header = to_upper( l_header_str )
-      i_strict = i_strict
-    importing
-      et_map         = ct_map
-      et_head_fields = ct_head_fields ).
-
-  delete ct_data index 1.
-
-endmethod.
 
 method map_head_structure.
   data:
@@ -353,6 +333,7 @@ method map_head_structure.
 
 endmethod.  "map_head_structure
 
+
 method parse.
 
   if mv_is_typeless = abap_true.
@@ -375,54 +356,6 @@ method parse.
   endif.
 
 endmethod.  " parse
-
-method parse_typefull.
-
-  data:
-        lt_data      type string_table,
-        lt_map       type int4_table,
-        ls_component type abap_compdescr.
-
-  clear: e_container, e_head_fields.
-  clear: mv_line_index.
-
-  " Validate params
-  if i_has_head = abap_false and i_strict = abap_false.
-    raise_error( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
-  endif.
-
-  " Check container type
-  if mo_struc_descr->absolute_name <> get_safe_struc_descr( e_container )->absolute_name.
-    raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
-  endif.
-
-  lt_data = break_to_lines( i_data ).
-
-  " Read and process header line
-  if i_has_head = abap_true.
-    parse_head_line(
-      exporting
-        i_strict = i_strict
-      changing
-        ct_data        = lt_data
-        ct_head_fields = e_head_fields
-        ct_map         = lt_map ).
-  else.
-    loop at mo_struc_descr->components into ls_component.
-      append sy-tabix to lt_map.
-      append ls_component-name to e_head_fields.
-    endloop.
-  endif.
-
-  " Do parsing
-  parse_data(
-    exporting
-      it_data     = lt_data
-      it_map      = lt_map
-    importing
-      e_container = e_container ).
-
-endmethod.  "parse_typefull
 
 
 method parse_data.
@@ -724,6 +657,30 @@ method parse_float.
 endmethod.  "parse_float
 
 
+method parse_head_line.
+  data l_header_str type string.
+
+  read table ct_data into l_header_str index 1.
+  if sy-subrc <> 0.
+    raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
+  endif.
+  if l_header_str is initial.
+    raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
+  endif.
+
+  me->map_head_structure(
+    exporting
+      i_header = to_upper( l_header_str )
+      i_strict = i_strict
+    importing
+      et_map         = ct_map
+      et_head_fields = ct_head_fields ).
+
+  delete ct_data index 1.
+
+endmethod.
+
+
 method parse_line.
 
   data:
@@ -783,42 +740,54 @@ method parse_line.
 endmethod.
 
 
-method raise_error.
+method parse_typefull.
 
-  data: sys_call    type sys_calls,
-        sys_stack   type sys_callst,
-        l_location  type string,
-        l_struc     type string.
+  data:
+        lt_data      type string_table,
+        lt_map       type int4_table,
+        ls_component type abap_compdescr.
 
-  call function 'SYSTEM_CALLSTACK' " Get stack information
-    exporting
-      max_level    = 2
-    importing
-      et_callstack = sys_stack.
+  clear: e_container, e_head_fields.
+  clear: mv_line_index.
 
-  read table sys_stack into sys_call index 2.
-
-  if mo_struc_descr is bound.
-    l_struc = mo_struc_descr->get_relative_name( ).
-    if l_struc is not initial. " Format location
-      l_location = l_struc.
-      if mv_current_field is not initial.
-        l_location = |{ l_location }-{ mv_current_field }|.
-      endif.
-      if mv_line_index is not initial.
-        l_location = |{ l_location }@{ mv_line_index }|.
-      endif.
-    endif.
+  " Validate params
+  if i_has_head = abap_false and i_strict = abap_false.
+    raise_error( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
   endif.
 
-  raise exception type zcx_data_parser_error
-    exporting
-      methname = |{ sys_call-eventname }|
-      msg      = msg
-      code     = code
-      location = l_location.
+  " Check container type
+  if mo_struc_descr->absolute_name <> get_safe_struc_descr( e_container )->absolute_name.
+    raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
+  endif.
 
-endmethod.  "raise_error
+  lt_data = break_to_lines( i_data ).
+
+  " Read and process header line
+  if i_has_head = abap_true.
+    parse_head_line(
+      exporting
+        i_strict = i_strict
+      changing
+        ct_data        = lt_data
+        ct_head_fields = e_head_fields
+        ct_map         = lt_map ).
+  else.
+    loop at mo_struc_descr->components into ls_component.
+      append sy-tabix to lt_map.
+      append ls_component-name to e_head_fields.
+    endloop.
+  endif.
+
+  " Do parsing
+  parse_data(
+    exporting
+      it_data     = lt_data
+      it_map      = lt_map
+    importing
+      e_container = e_container ).
+
+endmethod.  "parse_typefull
+
 
   METHOD parse_typeless.
     data lt_data type string_table.
@@ -865,4 +834,41 @@ endmethod.  "raise_error
 
   ENDMETHOD.
 
+
+method raise_error.
+
+  data: sys_call    type sys_calls,
+        sys_stack   type sys_callst,
+        l_location  type string,
+        l_struc     type string.
+
+  call function 'SYSTEM_CALLSTACK' " Get stack information
+    exporting
+      max_level    = 2
+    importing
+      et_callstack = sys_stack.
+
+  read table sys_stack into sys_call index 2.
+
+  if mo_struc_descr is bound.
+    l_struc = mo_struc_descr->get_relative_name( ).
+    if l_struc is not initial. " Format location
+      l_location = l_struc.
+      if mv_current_field is not initial.
+        l_location = |{ l_location }-{ mv_current_field }|.
+      endif.
+      if mv_line_index is not initial.
+        l_location = |{ l_location }@{ mv_line_index }|.
+      endif.
+    endif.
+  endif.
+
+  raise exception type zcx_data_parser_error
+    exporting
+      methname = |{ sys_call-eventname }|
+      msg      = msg
+      code     = code
+      location = l_location.
+
+endmethod.  "raise_error
 ENDCLASS.

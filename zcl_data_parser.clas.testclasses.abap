@@ -47,6 +47,22 @@ define append_dummy.
   append e_dummy_struc to e_dummy_tab.
 end-of-definition.
 
+define append_dummy_s.
+  l_dummy_s-tdate    = &1.
+  l_dummy_s-tchar    = &2.
+  l_dummy_s-tstring  = &3.
+  l_dummy_s-tdecimal = &4.
+  l_dummy_s-tnumber  = &5.
+  if i_strict = abap_true.
+    l_dummy_s-traw     = &6.
+    l_dummy_s-tinteger = &7.
+    l_dummy_s-talpha   = &8.
+    l_dummy_s-tfloat   = &9.
+  endif.
+  append l_dummy_s to e_dummy_tab_s.
+end-of-definition.
+
+
 **********************************************************************
 * Test Class definition
 **********************************************************************
@@ -70,7 +86,20 @@ class lcl_test_data_parser definition for testing
         tinteger type i,
         tfloat   type float,
       end of ty_dummy,
-      tt_dummy type standard table of ty_dummy with default key.
+      tt_dummy type standard table of ty_dummy with default key,
+      begin of ty_dummy_str,
+        mandt    type string,
+        tdate    type string,
+        tchar    type string,
+        traw     type string,
+        tstring  type string,
+        talpha   type string,
+        tdecimal type string,
+        tnumber  type string,
+        tinteger type string,
+        tfloat   type string,
+      end of ty_dummy_str,
+      tt_dummy_str type standard table of ty_dummy_str with default key.
 
 * ================
   private section.
@@ -97,6 +126,8 @@ class lcl_test_data_parser definition for testing
     methods parse_negative        for testing.
     methods parse                 for testing.
 
+    methods parse_typeless for testing.
+
 * ==== HELPERS ===
 
     methods setup.
@@ -106,6 +137,7 @@ class lcl_test_data_parser definition for testing
       exporting
         e_dummy_struc  type ty_dummy
         e_dummy_tab    type tt_dummy
+        e_dummy_tab_s  type tt_dummy_str
         e_dummy_header type string
         e_dummy_string type string
         e_map          type int4_table.
@@ -339,7 +371,6 @@ class lcl_test_data_parser implementation.
 
   endmethod.  "parse
 
-
   method parse_negative.
 
     data: begin of wrong_struc ##NEEDED,
@@ -413,7 +444,6 @@ class lcl_test_data_parser implementation.
     enddo.
 
   endmethod.  "parse_negative
-
 
   method apply_conv_exit.
     data:
@@ -734,9 +764,10 @@ class lcl_test_data_parser implementation.
   method get_dummy_data.
 
     data:
-          l_offs   type i,
-          l_fields type i,
-          l_string type string.
+          l_dummy_s type ty_dummy_str,
+          l_offs    type i,
+          l_fields  type i,
+          l_string  type string.
 
     clear e_map.
 
@@ -774,6 +805,11 @@ class lcl_test_data_parser implementation.
     append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000' '1.00'.
     append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1.00'.
 
+    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
+    append_dummy_s '01.01.2015' 'Trololo1' 'String1' '1234567,81' '2015' '8A'  '1111' '100000' '1,12345'.
+    append_dummy_s '02.01.2016' 'Trololo2' 'String2' '1234567,82' '2016' '8B'  '2222' '200000' '1,00'.
+    append_dummy_s '03.01.2016' 'Trololo3' 'String3' '1234567,83' '2015' '8C'  '3333' '300000' '1'.
+
     read table e_dummy_tab into e_dummy_struc index 1.
     e_dummy_string = l_string.
 
@@ -781,5 +817,38 @@ class lcl_test_data_parser implementation.
     e_dummy_header = l_string+0(l_offs).
 
   endmethod.       " get_dummy_data
+
+  method parse_typeless.
+    data:
+          l_string      type string,
+          lt_exp        type tt_dummy_str,
+          lr_data       type ref to data,
+          lx            type ref to zcx_data_parser_error.
+
+    field-symbols:
+      <fld> type string,
+      <tab> type standard table.
+
+    get_dummy_data(
+      importing
+        e_dummy_tab_s  = lt_exp
+        e_dummy_string = l_string ).
+
+    try.
+      o = zcl_data_parser=>create_typeless( ).
+      o->parse(
+        exporting
+          i_data = l_string
+        importing
+          e_container = lr_data ).
+      assign lr_data->* to <tab>.
+    catch zcx_data_parser_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    cl_abap_unit_assert=>assert_equals( act = lines( <tab> ) exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = <tab> exp = lt_exp ).
+
+  endmethod.
 
 endclass.

@@ -5,6 +5,7 @@ class ZCL_DATA_PARSER definition
 
 public section.
 
+  type-pools ABAP .
   constants VERSION type STRING value 'v2.0.0'. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT
@@ -20,7 +21,11 @@ public section.
       value(RO_PARSER) type ref to ZCL_DATA_PARSER
     raising
       ZCX_DATA_PARSER_ERROR .
-  type-pools ABAP .
+  class-methods CREATE_TYPELESS
+    returning
+      value(RO_PARSER) type ref to ZCL_DATA_PARSER
+    raising
+      ZCX_DATA_PARSER_ERROR .
   methods PARSE
     importing
       !I_DATA type STRING
@@ -39,7 +44,35 @@ private section.
   data MO_STRUC_DESCR type ref to CL_ABAP_STRUCTDESCR .
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
+  data MV_IS_TYPELESS type abap_bool .
 
+  methods PARSE_TYPEFULL
+    importing
+      !I_DATA type STRING
+      !I_STRICT type ABAP_BOOL default ABAP_TRUE
+      !I_HAS_HEAD type ABAP_BOOL default ABAP_TRUE
+    exporting
+      !E_CONTAINER type ANY
+      !E_HEAD_FIELDS type STRING_TABLE
+    raising
+      ZCX_DATA_PARSER_ERROR .
+  methods PARSE_TYPELESS
+    importing
+      !I_DATA type STRING
+    exporting
+      !E_CONTAINER   type ref to data
+      !E_HEAD_FIELDS type STRING_TABLE
+    raising
+      ZCX_DATA_PARSER_ERROR .
+  methods PARSE_HEAD_LINE
+    importing
+      !I_STRICT type ABAP_BOOL
+    changing
+      !CT_DATA type STRING_TABLE
+      !CT_MAP type INT4_TABLE
+      !CT_HEAD_FIELDS type STRING_TABLE
+    raising
+      ZCX_DATA_PARSER_ERROR .
   class-methods GET_SAFE_STRUC_DESCR
     importing
       !I_PATTERN type ANY
@@ -204,6 +237,10 @@ method create.
 
 endmethod.  "create
 
+method create_typeless.
+  create object ro_parser.
+  ro_parser->mv_is_typeless = abap_true.
+endmethod.
 
 method get_safe_struc_descr.
 
@@ -229,6 +266,28 @@ method get_safe_struc_descr.
 
 endmethod.  "get_safe_struc_descr
 
+method parse_head_line.
+  data l_header_str type string.
+
+  read table ct_data into l_header_str index 1.
+  if sy-subrc <> 0.
+    raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
+  endif.
+  if l_header_str is initial.
+    raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
+  endif.
+
+  me->map_head_structure(
+    exporting
+      i_header = to_upper( l_header_str )
+      i_strict = i_strict
+    importing
+      et_map         = ct_map
+      et_head_fields = ct_head_fields ).
+
+  delete ct_data index 1.
+
+endmethod.
 
 method map_head_structure.
   data:
@@ -238,6 +297,7 @@ method map_head_structure.
         lt_dupcheck  type string_table.
 
   clear: et_map, et_head_fields.
+  assert not ( i_strict = abap_true and mv_is_typeless = abap_true ).
 
   field-symbols <field> type string.
 
@@ -275,28 +335,53 @@ method map_head_structure.
 
   " Compare columns names and make map
   loop at et_head_fields assigning <field>.
-    if <field> is initial. " Check empty fields
-      raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
-    endif.
+    if mv_is_typeless = abap_false.
+      if <field> is initial. " Check empty fields
+        raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
+      endif.
 
-    read table mo_struc_descr->components with key name = <field> transporting no fields.
-    if sy-subrc is initial.
-      append sy-tabix to et_map.
+      read table mo_struc_descr->components with key name = <field> transporting no fields.
+      if sy-subrc is initial.
+        append sy-tabix to et_map.
+      else.
+        raise_error( msg = |Field { <field> } not found in structure| code = 'MC'). "#EC NOTEXT
+      endif.
     else.
-      raise_error( msg = |Field { <field> } not found in structure| code = 'MC'). "#EC NOTEXT
+      append sy-tabix to et_map. " direct map
     endif.
   endloop.
 
 endmethod.  "map_head_structure
 
-
 method parse.
+
+  if mv_is_typeless = abap_true.
+    " TODO check e_container is ref to data ?
+    parse_typeless(
+      exporting
+        i_data = i_data
+      importing
+        e_container   = e_container
+        e_head_fields = e_head_fields ).
+  else.
+    parse_typefull(
+      exporting
+        i_data     = i_data
+        i_has_head = i_has_head
+        i_strict   = i_strict
+      importing
+        e_container   = e_container
+        e_head_fields = e_head_fields ).
+  endif.
+
+endmethod.  " parse
+
+method parse_typefull.
 
   data:
         lt_data      type string_table,
         lt_map       type int4_table,
-        ls_component type abap_compdescr,
-        l_header_str type string.
+        ls_component type abap_compdescr.
 
   clear: e_container, e_head_fields.
   clear: mv_line_index.
@@ -315,23 +400,13 @@ method parse.
 
   " Read and process header line
   if i_has_head = abap_true.
-    read table lt_data into l_header_str index 1.
-    if sy-subrc <> 0.
-      raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
-    endif.
-    if l_header_str is initial.
-      raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
-    endif.
-
-    me->map_head_structure(
+    parse_head_line(
       exporting
-        i_header = to_upper( l_header_str )
         i_strict = i_strict
-      importing
-        et_map         = lt_map
-        et_head_fields = e_head_fields ).
-
-    delete lt_data index 1.
+      changing
+        ct_data        = lt_data
+        ct_head_fields = e_head_fields
+        ct_map         = lt_map ).
   else.
     loop at mo_struc_descr->components into ls_component.
       append sy-tabix to lt_map.
@@ -347,7 +422,7 @@ method parse.
     importing
       e_container = e_container ).
 
-endmethod.  "parse
+endmethod.  "parse_typefull
 
 
 method parse_data.
@@ -691,12 +766,16 @@ method parse_line.
       raise_error( 'Field assign failed?!' ). "#EC NOTEXT
     endif.
 
-    me->parse_field(
-      exporting
-        is_component = ls_component
-        i_value      = l_field_value
-      importing
-        e_field      = <field> ).
+    if mv_is_typeless = abap_true.
+      <field> = l_field_value.
+    else.
+      me->parse_field(
+        exporting
+          is_component = ls_component
+          i_value      = l_field_value
+        importing
+          e_field      = <field> ).
+    endif.
 
     clear mv_current_field. " For error handling - field is not processed any more
   endloop.
@@ -740,4 +819,50 @@ method raise_error.
       location = l_location.
 
 endmethod.  "raise_error
+
+  METHOD parse_typeless.
+    data lt_data type string_table.
+    data lt_map type int4_table.
+    field-symbols <f> like line of e_head_fields.
+
+    lt_data = break_to_lines( i_data ).
+
+    " Read and process header line
+    parse_head_line(
+      exporting
+        i_strict       = abap_false
+      changing
+        ct_data        = lt_data
+        ct_head_fields = e_head_fields
+        ct_map         = lt_map ).
+
+    " Create dynamic structure
+    data lt_components type abap_component_tab.
+    data ls_comp like line of lt_components.
+    data ld_struc type ref to cl_abap_structdescr.
+    data ld_table type ref to cl_abap_tabledescr.
+
+    ls_comp-type ?= cl_abap_typedescr=>describe_by_name( 'STRING' ).
+    loop at e_head_fields assigning <f>.
+      ls_comp-name = <f>.
+      append ls_comp to lt_components.
+    endloop.
+
+    ld_struc = cl_abap_structdescr=>create( lt_components ).
+    ld_table = cl_abap_tabledescr=>create( ld_struc ).
+    create data e_container type handle ld_table.
+
+    " parse remaining data into the structure
+    field-symbols <tab> type any.
+    assign e_container->* to <tab>.
+    mo_struc_descr = ld_struc. "TODO: hack, maybe improve
+    parse_data(
+      exporting
+        it_data = lt_data
+        it_map  = lt_map
+      importing
+        e_container = <tab> ).
+
+  ENDMETHOD.
+
 ENDCLASS.

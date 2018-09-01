@@ -337,7 +337,10 @@ endmethod.  "map_head_structure
 method PARSE.
 
   if mv_is_typeless = abap_true.
-    " TODO check e_container is ref to data ?
+    if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.
+      raise_error( msg = 'Typeless parsing require dref as the container'  code = 'DR' ). "#EC NOTEXT
+    endif.
+
     parse_typeless(
       exporting
         i_data = i_data

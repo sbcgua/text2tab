@@ -1,16 +1,15 @@
-class ZCL_DATA_PARSER definition
+class ZCL_TEXT2TAB_PARSER definition
   public
   final
   create public .
 
 public section.
 
-  type-pools ABAP .
   constants VERSION type STRING value 'v2.0.1'. "#EC NOTEXT
+  constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT
   constants C_LF like CL_ABAP_CHAR_UTILITIES=>NEWLINE value CL_ABAP_CHAR_UTILITIES=>NEWLINE. "#EC NOTEXT
-  constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
 
   class-methods CREATE
     importing
@@ -18,14 +17,15 @@ public section.
       !I_AMOUNT_FORMAT type CHAR2 optional
       !I_DATE_FORMAT type CHAR4 optional
     returning
-      value(RO_PARSER) type ref to ZCL_DATA_PARSER
+      value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   class-methods CREATE_TYPELESS
     returning
-      value(RO_PARSER) type ref to ZCL_DATA_PARSER
+      value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
+  type-pools ABAP .
   methods PARSE
     importing
       !I_DATA type STRING
@@ -35,7 +35,7 @@ public section.
       !E_CONTAINER type ANY
       !E_HEAD_FIELDS type STRING_TABLE
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
 protected section.
 private section.
 
@@ -44,7 +44,8 @@ private section.
   data MO_STRUC_DESCR type ref to CL_ABAP_STRUCTDESCR .
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
-  data MV_IS_TYPELESS type abap_bool .
+  type-pools ABAP .
+  data MV_IS_TYPELESS type ABAP_BOOL .
 
   methods PARSE_TYPEFULL
     importing
@@ -55,15 +56,15 @@ private section.
       !E_CONTAINER type ANY
       !E_HEAD_FIELDS type STRING_TABLE
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_TYPELESS
     importing
       !I_DATA type STRING
     exporting
-      !E_CONTAINER   type ref to data
+      !E_CONTAINER type ref to DATA
       !E_HEAD_FIELDS type STRING_TABLE
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_HEAD_LINE
     importing
       !I_STRICT type ABAP_BOOL
@@ -72,15 +73,14 @@ private section.
       !CT_MAP type INT4_TABLE
       !CT_HEAD_FIELDS type STRING_TABLE
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   class-methods GET_SAFE_STRUC_DESCR
     importing
       !I_PATTERN type ANY
     returning
       value(RO_STRUC_DESCR) type ref to CL_ABAP_STRUCTDESCR
     raising
-      ZCX_DATA_PARSER_ERROR .
-  type-pools ABAP .
+      ZCX_TEXT2TAB_ERROR .
   methods MAP_HEAD_STRUCTURE
     importing
       !I_HEADER type STRING
@@ -89,7 +89,7 @@ private section.
       !ET_MAP type INT4_TABLE
       !ET_HEAD_FIELDS type STRING_TABLE
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_DATA
     importing
       !IT_DATA type STRING_TABLE
@@ -97,7 +97,7 @@ private section.
     exporting
       !E_CONTAINER type ANY
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_LINE
     importing
       !I_DATALINE type STRING
@@ -105,7 +105,7 @@ private section.
     exporting
       !ES_CONTAINER type ANY
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_FIELD
     importing
       !IS_COMPONENT type ABAP_COMPDESCR
@@ -113,7 +113,7 @@ private section.
     exporting
       !E_FIELD type ANY
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_FLOAT
     importing
       !I_VALUE type STRING
@@ -121,14 +121,14 @@ private section.
     exporting
       !E_FIELD type ANY
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods PARSE_DATE
     importing
       !I_VALUE type STRING
     exporting
       !E_FIELD type D
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods APPLY_CONV_EXIT
     importing
       !I_VALUE type STRING
@@ -136,13 +136,13 @@ private section.
     exporting
       !E_FIELD type ANY
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   methods RAISE_ERROR
     importing
       !MSG type STRING
       !CODE type CHAR2 optional
     raising
-      ZCX_DATA_PARSER_ERROR .
+      ZCX_TEXT2TAB_ERROR .
   class-methods BREAK_TO_LINES
     importing
       !I_TEXT type STRING
@@ -152,10 +152,10 @@ ENDCLASS.
 
 
 
-CLASS ZCL_DATA_PARSER IMPLEMENTATION.
+CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
 
-method apply_conv_exit.
+method APPLY_CONV_EXIT.
 
   data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
 
@@ -187,7 +187,7 @@ method apply_conv_exit.
 endmethod.  "apply_conv_exit
 
 
-method break_to_lines.
+method BREAK_TO_LINES.
   data:
         l_found type i,
         l_break type string value c_crlf.
@@ -206,7 +206,7 @@ method break_to_lines.
 endmethod.
 
 
-method create.
+method CREATE.
 
   create object ro_parser.
 
@@ -225,7 +225,7 @@ method create.
       i_date_format+0(3)    = 'DMY'
       or i_date_format+0(3) = 'MDY'
       or i_date_format+0(3) = 'YMD' ).
-      raise exception type zcx_data_parser_error
+      raise exception type zcx_text2tab_error
         exporting
           methname = 'CREATE'
           msg      = |Unsupported date format { i_date_format }|
@@ -238,13 +238,13 @@ method create.
 endmethod.  "create
 
 
-method create_typeless.
+method CREATE_TYPELESS.
   create object ro_parser.
   ro_parser->mv_is_typeless = abap_true.
 endmethod.
 
 
-method get_safe_struc_descr.
+method GET_SAFE_STRUC_DESCR.
 
   data:
         lo_type_descr  type ref to cl_abap_typedescr,
@@ -259,7 +259,7 @@ method get_safe_struc_descr.
     when 'S'. " Structure
       ro_struc_descr ?= lo_type_descr.
     when others. " Not a table or structure ?
-      raise exception type zcx_data_parser_error
+      raise exception type zcx_text2tab_error
         exporting
           methname = 'GET_SAFE_STRUC_DESCR'
           msg      = 'Table or structure patterns only' "#EC NOTEXT
@@ -269,7 +269,7 @@ method get_safe_struc_descr.
 endmethod.  "get_safe_struc_descr
 
 
-method map_head_structure.
+method MAP_HEAD_STRUCTURE.
   data:
         l_field_cnt  type i,
         l_mandt_cnt  type i,
@@ -334,7 +334,7 @@ method map_head_structure.
 endmethod.  "map_head_structure
 
 
-method parse.
+method PARSE.
 
   if mv_is_typeless = abap_true.
     " TODO check e_container is ref to data ?
@@ -358,7 +358,7 @@ method parse.
 endmethod.  " parse
 
 
-method parse_data.
+method PARSE_DATA.
 
   data:
         l_container_kind like cl_abap_typedescr=>kind,
@@ -407,7 +407,7 @@ method parse_data.
 endmethod.  "parse_data
 
 
-method parse_date.
+method PARSE_DATE.
 
   data: l_cursor  type i,
         l_iter    type i,
@@ -494,7 +494,7 @@ method parse_date.
 endmethod.  "parse_date
 
 
-method parse_field.
+method PARSE_FIELD.
 
   data: l_mask     type string,
         l_unquoted type string,
@@ -603,7 +603,7 @@ method parse_field.
 endmethod.  "parse_field
 
 
-method parse_float.
+method PARSE_FLOAT.
 
   data:
         l_decimal_sep  type c,
@@ -657,7 +657,7 @@ method parse_float.
 endmethod.  "parse_float
 
 
-method parse_head_line.
+method PARSE_HEAD_LINE.
   data l_header_str type string.
 
   read table ct_data into l_header_str index 1.
@@ -681,7 +681,7 @@ method parse_head_line.
 endmethod.
 
 
-method parse_line.
+method PARSE_LINE.
 
   data:
         lt_fields      type table of string,
@@ -740,7 +740,7 @@ method parse_line.
 endmethod.
 
 
-method parse_typefull.
+method PARSE_TYPEFULL.
 
   data:
         lt_data      type string_table,
@@ -789,7 +789,7 @@ method parse_typefull.
 endmethod.  "parse_typefull
 
 
-  METHOD parse_typeless.
+  METHOD PARSE_TYPELESS.
     data lt_data type string_table.
     data lt_map type int4_table.
     field-symbols <f> like line of e_head_fields.
@@ -835,7 +835,7 @@ endmethod.  "parse_typefull
   ENDMETHOD.
 
 
-method raise_error.
+method RAISE_ERROR.
 
   data: sys_call    type sys_calls,
         sys_stack   type sys_callst,
@@ -863,7 +863,7 @@ method raise_error.
     endif.
   endif.
 
-  raise exception type zcx_data_parser_error
+  raise exception type zcx_text2tab_error
     exporting
       methname = |{ sys_call-eventname }|
       msg      = msg

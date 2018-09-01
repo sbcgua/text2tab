@@ -16,7 +16,7 @@ define test_parse_positive.
   clear lx.
   try.
     test_parse &1 &2.
-  catch zcx_data_parser_error into lx.
+  catch zcx_text2tab_error into lx.
     cl_abap_unit_assert=>fail( lx->get_text( ) ).
   endtry.
   cl_abap_unit_assert=>assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
@@ -26,7 +26,7 @@ define test_parse_negative.
   clear lx.
   try.
     test_parse &1 &2.
-  catch zcx_data_parser_error into lx.
+  catch zcx_text2tab_error into lx.
     cl_abap_unit_assert=>assert_equals( exp = &3 act = lx->code ).
   endtry.
   cl_abap_unit_assert=>assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
@@ -67,7 +67,7 @@ end-of-definition.
 * Test Class definition
 **********************************************************************
 
-class lcl_test_data_parser definition for testing
+class lcl_text2tab_parser_test definition for testing
   final risk level harmless duration short.
 
 * ================
@@ -109,7 +109,7 @@ class lcl_test_data_parser definition for testing
     constants c_dummy type ty_dummy value is initial.
 
 
-    data o type ref to zcl_data_parser.  "class under test
+    data o type ref to zcl_text2tab_parser.  "class under test
 
 * ==== TESTING ===
 
@@ -144,61 +144,61 @@ class lcl_test_data_parser definition for testing
 
 endclass.       "lcl_test_data_parser
 
-class zcl_data_parser definition local friends lcl_test_data_parser.
+class zcl_text2tab_parser definition local friends lcl_text2tab_parser_test.
 
 **********************************************************************
 * Implementation
 **********************************************************************
 
-class lcl_test_data_parser implementation.
+class lcl_text2tab_parser_test implementation.
 
   method setup.
-    data lx type ref to zcx_data_parser_error.
+    data lx type ref to zcx_text2tab_error.
     try.
-      o = zcl_data_parser=>create( c_dummy ).
-    catch zcx_data_parser_error into lx.
+      o = zcl_text2tab_parser=>create( c_dummy ).
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
   endmethod.      "setup
 
   method create.
     data:
-          lo type ref to zcl_data_parser,
-          lx type ref to zcx_data_parser_error,
+          lo type ref to zcl_text2tab_parser,
+          lx type ref to zcx_text2tab_error,
           lv_date_format type char4,
           ls_dummy       type ty_dummy,
           lt_dummy       type tt_dummy,
           lv_dummy       type i.
 
     try.
-      lo = zcl_data_parser=>create( i_pattern = ls_dummy ).
+      lo = zcl_text2tab_parser=>create( i_pattern = ls_dummy ).
       cl_abap_unit_assert=>assert_not_initial( act = lo ).
       cl_abap_unit_assert=>assert_equals( act = lo->mv_amount_format exp = ' ,' ).
 
-      lo = zcl_data_parser=>create( i_pattern = lt_dummy i_amount_format = ' .' ).
+      lo = zcl_text2tab_parser=>create( i_pattern = lt_dummy i_amount_format = ' .' ).
       cl_abap_unit_assert=>assert_not_initial( act = lo ).
       cl_abap_unit_assert=>assert_equals( act = lo->mv_amount_format exp = ' .' ).
 
-      lo = zcl_data_parser=>create( i_pattern = ls_dummy i_amount_format = 'x' ).
+      lo = zcl_text2tab_parser=>create( i_pattern = ls_dummy i_amount_format = 'x' ).
       cl_abap_unit_assert=>assert_not_initial( act = lo ).
       cl_abap_unit_assert=>assert_equals( act = lo->mv_amount_format exp = ' ,' ).
 
-      lo = zcl_data_parser=>create( i_pattern = ls_dummy ).
+      lo = zcl_text2tab_parser=>create( i_pattern = ls_dummy ).
       cl_abap_unit_assert=>assert_not_initial( act = lo ).
       cl_abap_unit_assert=>assert_equals( act = lo->mv_date_format exp = 'DMY.' ).
 
-      lo = zcl_data_parser=>create( i_pattern = ls_dummy i_date_format = 'YMD' ).
+      lo = zcl_text2tab_parser=>create( i_pattern = ls_dummy i_date_format = 'YMD' ).
       cl_abap_unit_assert=>assert_not_initial( act = lo ).
       cl_abap_unit_assert=>assert_equals( act = lo->mv_date_format exp = 'YMD' ).
 
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
     clear lx.
     try.
-      lo = zcl_data_parser=>create( i_pattern = lv_dummy ).
-    catch zcx_data_parser_error into lx.
+      lo = zcl_text2tab_parser=>create( i_pattern = lv_dummy ).
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'PE' ). " Pattern error
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
@@ -215,8 +215,8 @@ class lcl_test_data_parser implementation.
 
       clear lx.
       try.
-        lo = zcl_data_parser=>create( i_pattern = ls_dummy i_date_format = lv_date_format ).
-      catch zcx_data_parser_error into lx.
+        lo = zcl_text2tab_parser=>create( i_pattern = ls_dummy i_date_format = lv_date_format ).
+      catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'UD' ). " Unsupported date format
       endtry.
       cl_abap_unit_assert=>assert_not_initial( act = lx ).
@@ -232,9 +232,9 @@ class lcl_test_data_parser implementation.
     append 'line1' to lt_exp.
     append 'line2' to lt_exp.
 
-    lt_act = zcl_data_parser=>break_to_lines( 'line1' && c_crlf && 'line2' ).
+    lt_act = zcl_text2tab_parser=>break_to_lines( 'line1' && c_crlf && 'line2' ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-    lt_act = zcl_data_parser=>break_to_lines( 'line1' && c_lf && 'line2' ).
+    lt_act = zcl_text2tab_parser=>break_to_lines( 'line1' && c_lf && 'line2' ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
 
   endmethod.  " break_to_lines.
@@ -245,22 +245,22 @@ class lcl_test_data_parser implementation.
           lt_dummy  type tt_dummy,
           lo_td_exp type ref to cl_abap_structdescr,
           lo_td_act type ref to cl_abap_structdescr,
-          lx        type ref to zcx_data_parser_error.
+          lx        type ref to zcx_text2tab_error.
 
     lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
 
     try. " Positive
-      lo_td_act = zcl_data_parser=>get_safe_struc_descr( ls_dummy ).
+      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( ls_dummy ).
       cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-      lo_td_act = zcl_data_parser=>get_safe_struc_descr( lt_dummy ).
+      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( lt_dummy ).
       cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
     try. " Negative
-      lo_td_act = zcl_data_parser=>get_safe_struc_descr( 'ABC' ).
-    catch zcx_data_parser_error into lx.
+      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( 'ABC' ).
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
@@ -280,7 +280,7 @@ class lcl_test_data_parser implementation.
           lt_strings     type table of string,
           lt_header_act  type standard table of string,
           lt_header_exp  type standard table of string,
-          lx             type ref to zcx_data_parser_error.
+          lx             type ref to zcx_text2tab_error.
 
     " Strict parsing *********************************
     get_dummy_data( importing e_dummy_struc  = dummy_exp
@@ -305,7 +305,7 @@ class lcl_test_data_parser implementation.
           e_head_fields = lt_header_act ).
       cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
       cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -324,7 +324,7 @@ class lcl_test_data_parser implementation.
         importing
           e_container = dummy_htab ).
       cl_abap_unit_assert=>assert_equals( act = dummy_htab exp = dummy_tab_exp ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -341,7 +341,7 @@ class lcl_test_data_parser implementation.
         importing
            e_container = dummy_tab_act ).
       cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -365,7 +365,7 @@ class lcl_test_data_parser implementation.
           e_head_fields = lt_header_act ).
       cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
       cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -385,7 +385,7 @@ class lcl_test_data_parser implementation.
           dummy_tab_act  type tt_dummy ##NEEDED,
           l_string       type string,
           l_string_bak   type string,
-          lx             type ref to zcx_data_parser_error.
+          lx             type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_string = l_string_bak ).
 
@@ -436,7 +436,7 @@ class lcl_test_data_parser implementation.
                 e_container = wrong_struc ).
         endcase.
 
-      catch zcx_data_parser_error into lx.
+      catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |parse, case { sy-index }| ).
       endtry.
       cl_abap_unit_assert=>assert_not_initial( act = lx msg = |parse, case { sy-index }| ).
@@ -448,7 +448,7 @@ class lcl_test_data_parser implementation.
   method apply_conv_exit.
     data:
           l_dummy  type ty_dummy,
-          lx       type ref to zcx_data_parser_error.
+          lx       type ref to zcx_text2tab_error.
 
     try .
       o->apply_conv_exit(
@@ -457,7 +457,7 @@ class lcl_test_data_parser implementation.
           i_value    = '123'
         importing
           e_field    = l_dummy-talpha ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -472,7 +472,7 @@ class lcl_test_data_parser implementation.
           i_value    = '123'
         importing
           e_field    = l_dummy-talpha ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'EM' ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
@@ -484,7 +484,7 @@ class lcl_test_data_parser implementation.
           ls_dummy       type ty_dummy,
           lo_struc_descr type ref to cl_abap_structdescr,
           ls_component   type abap_compdescr,
-          lx             type ref to zcx_data_parser_error.
+          lx             type ref to zcx_text2tab_error.
 
     lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
 
@@ -585,7 +585,7 @@ class lcl_test_data_parser implementation.
           end of ls_dummy,
           lo_struc_descr type ref to cl_abap_structdescr,
           ls_component   type abap_compdescr,
-          lx             type ref to zcx_data_parser_error.
+          lx             type ref to zcx_text2tab_error.
 
     lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
     test_parse_negative STRUC '12345' 'UT'.
@@ -599,7 +599,7 @@ class lcl_test_data_parser implementation.
           l_exp_code    type char2,
           l_act_map     type int4_table,
           l_exp_map     type int4_table,
-          lx            type ref to zcx_data_parser_error.
+          lx            type ref to zcx_text2tab_error.
 
     get_dummy_data(
       exporting
@@ -616,7 +616,7 @@ class lcl_test_data_parser implementation.
           i_strict     = abap_false
         importing
           et_map = l_act_map ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
     cl_abap_unit_assert=>assert_equals( act = l_act_map exp = l_exp_map ).
@@ -637,7 +637,7 @@ class lcl_test_data_parser implementation.
           i_strict     = abap_true
         importing
           et_map = l_act_map ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
     cl_abap_unit_assert=>assert_equals( act = l_act_map exp = l_exp_map ).
@@ -669,7 +669,7 @@ class lcl_test_data_parser implementation.
         o->map_head_structure(
           i_header     = l_header
           i_strict     = abap_true ).
-      catch zcx_data_parser_error into lx.
+      catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |map_head_structure, case { sy-index }| ).
       endtry.
       cl_abap_unit_assert=>assert_not_initial( act = lx msg = |map_head_structure, case { sy-index }| ).
@@ -684,7 +684,7 @@ class lcl_test_data_parser implementation.
           l_header_bak  type string,
           l_exp_code    type char2,
           lt_map        type int4_table,
-          lx            type ref to zcx_data_parser_error.
+          lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_header = l_header_bak
                               e_map          = lt_map ).
@@ -705,7 +705,7 @@ class lcl_test_data_parser implementation.
 
       try.
         o->parse_line( i_dataline = l_dataline it_map = lt_map ).
-      catch zcx_data_parser_error into lx.
+      catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |parse_line_negative, case { sy-index }| ).
       endtry.
       cl_abap_unit_assert=>assert_not_initial( act = lx msg = |parse_line_negative, case { sy-index }| ).
@@ -721,7 +721,7 @@ class lcl_test_data_parser implementation.
           l_string      type string,
           lt_data       type table of string,
           lt_map        type int4_table,
-          lx            type ref to zcx_data_parser_error.
+          lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_tab    = dummy_tab_exp
                               e_dummy_string = l_string
@@ -739,7 +739,7 @@ class lcl_test_data_parser implementation.
           it_map      = lt_map
         importing
           e_container = dummy_tab_act ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
@@ -754,7 +754,7 @@ class lcl_test_data_parser implementation.
           it_map      = lt_map
         importing
           e_container = dummy_tab_act ).
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'LE' ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
@@ -823,7 +823,7 @@ class lcl_test_data_parser implementation.
           l_string      type string,
           lt_exp        type tt_dummy_str,
           lr_data       type ref to data,
-          lx            type ref to zcx_data_parser_error.
+          lx            type ref to zcx_text2tab_error.
 
     field-symbols:
       <fld> type string,
@@ -835,14 +835,14 @@ class lcl_test_data_parser implementation.
         e_dummy_string = l_string ).
 
     try.
-      o = zcl_data_parser=>create_typeless( ).
+      o = zcl_text2tab_parser=>create_typeless( ).
       o->parse(
         exporting
           i_data = l_string
         importing
           e_container = lr_data ).
       assign lr_data->* to <tab>.
-    catch zcx_data_parser_error into lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 

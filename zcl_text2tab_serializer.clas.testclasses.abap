@@ -62,6 +62,7 @@ class lcl_text2tab_serializer_test definition final
     methods serialize_date for testing.
     methods serialize_field for testing.
     methods negatives for testing.
+    methods create for testing.
 
 * ==== HELPERS ===
 
@@ -157,6 +158,8 @@ class lcl_text2tab_serializer_test implementation.
     cl_abap_unit_assert=>assert_equals( act = l_act exp = '01.09.2018' ).
     l_act = zcl_text2tab_serializer=>serialize_date( i_date = '20180901' iv_date_format = 'YMD-' ).
     cl_abap_unit_assert=>assert_equals( act = l_act exp = '2018-09-01' ).
+    l_act = zcl_text2tab_serializer=>serialize_date( i_date = '00000000' iv_date_format = 'YMD-' ).
+    cl_abap_unit_assert=>assert_equals( act = l_act exp = '' ).
 
   endmethod.
 
@@ -216,6 +219,21 @@ class lcl_text2tab_serializer_test implementation.
       o->serialize( i_data = ls_deep ).
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'ET' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( lx ).
+
+  endmethod.
+
+  method create.
+    data:
+          lx        type ref to zcx_text2tab_error.
+
+    try.
+      clear lx.
+      o = zcl_text2tab_serializer=>create(
+        i_date_format = 'YYM-' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'UD' ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( lx ).
 

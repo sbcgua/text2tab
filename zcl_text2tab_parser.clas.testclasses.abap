@@ -849,6 +849,18 @@ class lcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_equals( act = lines( <tab> ) exp = 3 ).
     cl_abap_unit_assert=>assert_equals( act = <tab> exp = lt_exp ).
 
+    " Negatives
+    try.
+      o->parse(
+        exporting
+          i_data = l_string
+        importing
+          e_container = lt_exp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'DR' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
   endmethod.
 
 endclass.

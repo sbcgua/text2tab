@@ -8,11 +8,15 @@ Legend
 + : added
 - : removed
 
-v2.0.0-beta, 2018-09-01
+v2.0.0-beta, 2018-09-02
 ------------------
 ! moved the code to global classes for easier reuse, renamed to text2tab_parser (from data_parser) which should be clearer.
 + support for LF line breaks
++ supports double quotes
++ supports specifying date format
++ supports int1/2, thanks to @germanysources
 + parse_typeless feature. create_typeless would create an instance which does not checks types but rather returns reference to table of records where all the fields are strings
++ support for serializing - zcl_text2tab_serializer
 
 v1.1.1, 2016-08-23
 ------------------

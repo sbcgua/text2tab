@@ -1,22 +1,25 @@
 # ABAP text2tab parser and serializer (ex. Abap data parser)
 
-TAB-delimited text parser and serializer for ABAP
-v2.0.0-beta ([changelog](./changelog.txt))
+TAB-delimited text parser and serializer for ABAP  
+Version: v2.0.0-beta ([changelog](./changelog.txt))
 
 ## Synopsis
 
-Text2tab parser is an utility to parse TAB-delimited text into an internal table of an arbitrary flat structure.
+Text2tab is an utility to parse TAB-delimited text into an internal table of an arbitrary flat structure.
 
 - support "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
 - supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order.
 - supports loading into a structure (the first data line of the text is parsed). 
 - support *typeless* parsing, when the data is not checked against existing structure but dynamically creteas a table with string fields.
+- support specifying date and amount formats
+
+And vice versa - serialize flat table or structure to text.
+
+- support specifying date and amount formats, and line-break symbol
 
 ## Installation
 
-You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool.
-
-Alternatively, you can also copy content of `*.clas.abap` to your program (please keep the homepage and license text).
+You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool (recommended way). Alternatively, you can also copy content of `*.clas.abap` to your program (please keep the homepage reference and license text).
 
 The tool is open source and distributed under MIT license. It was initially created as a part of another project - [mockup loader](https://github.com/sbcgua/mockup_loader) - but then separated as an independent multiusage tool.
 
@@ -97,7 +100,21 @@ zcl_text2tab_parser=>create_typeless( )->parse(
 
 ## Serialization
 
-todo
+To do serialization use `ZCL_TEXT2TAB_SERIALIZER` class. Flat tables and structures are supported. In case of a structure it is serialized as one-line table.
+
+```abap
+  data lo_serializer type ref to zcl_text2tab_serializer.
+  lo_serializer = zcl_text2tab_serializer=>create(
+    " the below params are all optional and have defaults inside
+    i_decimal_sep     = ','
+    i_date_format     = 'DMY-'
+    i_max_frac_digits = 5         " For floats only ! not for decimals
+    i_use_lf          = abap_true " to use LF as line-break (not CRLF)
+  ).
+  
+  data lv_string type string.
+  lv_string = lo_serializer->serialize( lt_some_table ).
+```
 
 ## Error message redefinition
 
@@ -120,3 +137,5 @@ The exception class - `zcx_text2tab_error` - exposes `struc`, `field`, `line` an
       exporting msg = l_error_msg.
   endtry.
 ```
+
+This is supported in parser only at the moment. Serializer does not produce many error on line level.

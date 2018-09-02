@@ -30,6 +30,13 @@ public section.
       !MSG type STRING optional
       !CODE type CHAR2 optional
       !LOCATION type STRING optional .
+
+  class-methods raise
+    importing
+      !msg type string
+      !code type char2 optional
+    raising zcx_text2tab_error.
+
 protected section.
 private section.
 ENDCLASS.
@@ -55,4 +62,12 @@ else.
   IF_T100_MESSAGE~T100KEY = TEXTID.
 endif.
 endmethod.
+
+METHOD raise.
+  raise exception type zcx_text2tab_error
+    exporting
+      msg  = msg
+      code = code.
+ENDMETHOD.
+
 ENDCLASS.

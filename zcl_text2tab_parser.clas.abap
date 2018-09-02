@@ -221,17 +221,7 @@ method CREATE.
 
   " Not empty param and not empty decimal separator
   if i_date_format is not initial.
-    if not i_date_format+3(1) co ' ./-' or not (
-      i_date_format+0(3)    = 'DMY'
-      or i_date_format+0(3) = 'MDY'
-      or i_date_format+0(3) = 'YMD' ).
-      raise exception type zcx_text2tab_error
-        exporting
-          methname = 'CREATE'
-          msg      = |Unsupported date format { i_date_format }|
-          code     = 'UD'. "#EC NOTEXT
-    endif.
-
+    zcl_text2tab_utils=>validate_date_format_spec( i_date_format ).
     ro_parser->mv_date_format = i_date_format.
   endif.
 

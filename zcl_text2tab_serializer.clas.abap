@@ -7,6 +7,7 @@ public section.
 
   type-pools ABAP .
   class CL_ABAP_CHAR_UTILITIES definition load .
+  constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT
   constants C_LF like CL_ABAP_CHAR_UTILITIES=>NEWLINE value CL_ABAP_CHAR_UTILITIES=>NEWLINE. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
@@ -85,6 +86,40 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
+
+
+method apply_conv_exit.
+
+  data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_OUTPUT'.
+  replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
+
+  call function 'FUNCTION_EXISTS'
+    exporting
+      funcname           = l_fm_name
+    exceptions
+      function_not_exist = 1
+      others             = 2.
+
+  if sy-subrc <> 0.
+    return.
+  endif.
+
+  data l_tmp type char40. " Potential bug, but string is padded at the end
+  call function l_fm_name
+    exporting
+      input  = i_in
+    importing
+      output = l_tmp
+    exceptions
+      others = 1.
+
+  if sy-subrc <> 0.
+    return.
+  endif.
+
+  r_out = l_tmp.
+
+endmethod.  "apply_conv_exit
 
 
 method create.
@@ -168,6 +203,64 @@ method serialize.
 
 endmethod.
 
+
+method serialize_data.
+  data lt_fields type string_table.
+  data lv_buf type string.
+
+  field-symbols <c>      like line of id_struc->components.
+  field-symbols <record> type any.
+  field-symbols <field>  type any.
+
+  loop at i_data assigning <record>.
+    clear lt_fields.
+    loop at id_struc->components assigning <c>.
+      assign component sy-tabix of structure <record> to <field>.
+      lv_buf = serialize_field(
+        is_component = <c>
+        i_value      = <field> ).
+      append lv_buf to lt_fields.
+    endloop.
+    lv_buf = concat_lines_of( table = lt_fields sep = c_tab ).
+    append lv_buf to ct_lines.
+  endloop.
+
+endmethod.
+
+
+method serialize_date.
+  data:
+        l_iter    type i,
+        l_part    type c,
+        l_sep     type c.
+
+  if i_date is initial. " Empty date -> empty string
+    return.
+  endif.
+  l_sep = iv_date_format+3(1).
+
+  do 3 times.
+    l_iter = sy-index - 1.
+    l_part = iv_date_format+l_iter(1).
+
+    case l_part.
+      when 'D'.
+        r_out = r_out && i_date+6(2).
+      when 'M'.
+        r_out = r_out && i_date+4(2).
+      when 'Y'.
+        r_out = r_out && i_date+0(4).
+      when others.
+        " assuming date format was validated ...
+    endcase.
+
+    if l_sep is not initial and l_iter < 2.
+      r_out = r_out && l_sep.
+    endif.
+  enddo.
+endmethod.
+
+
 method serialize_field.
   data:
         l_tmp type char40,
@@ -226,83 +319,6 @@ method serialize_field.
 
 endmethod.
 
-method apply_conv_exit.
-
-  data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_OUTPUT'.
-  replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
-
-  call function 'FUNCTION_EXISTS'
-    exporting
-      funcname           = l_fm_name
-    exceptions
-      function_not_exist = 1
-      others             = 2.
-
-  if sy-subrc <> 0.
-    return.
-  endif.
-
-  data l_tmp type char40. " Potential bug, but string is padded at the end
-  call function l_fm_name
-    exporting
-      input  = i_in
-    importing
-      output = l_tmp
-    exceptions
-      others = 1.
-
-  if sy-subrc <> 0.
-    return.
-  endif.
-
-  r_out = l_tmp.
-
-endmethod.  "apply_conv_exit
-
-method serialize_date.
-  data:
-        l_iter    type i,
-        l_part    type c,
-        l_sep     type c.
-
-  if i_date is initial. " Empty date -> empty string
-    return.
-  endif.
-  l_sep = iv_date_format+3(1).
-
-  do 3 times.
-    l_iter = sy-index - 1.
-    l_part = iv_date_format+l_iter(1).
-
-    case l_part.
-      when 'D'.
-        r_out = r_out && i_date+6(2).
-      when 'M'.
-        r_out = r_out && i_date+4(2).
-      when 'Y'.
-        r_out = r_out && i_date+0(4).
-      when others.
-        " assuming date format was validated ...
-    endcase.
-
-    if l_sep is not initial and l_iter < 2.
-      r_out = r_out && l_sep.
-    endif.
-  enddo.
-endmethod.
-
-method validate_components.
-  " check if all components are elementary
-  field-symbols <c> like line of id_struc->components.
-  loop at id_struc->components assigning <c>.
-    if id_struc->get_component_type( <c>-name )->kind <> cl_abap_typedescr=>kind_elem.
-      zcx_text2tab_error=>raise(
-        msg  = 'i_data line should contain only fields of elementary types'
-        code = 'ET' ). "#EC NOTEXT
-    endif.
-  endloop.
-
-endmethod.
 
 method serialize_header.
   data lt_fields type string_table.
@@ -318,27 +334,17 @@ method serialize_header.
 
 endmethod.
 
-method serialize_data.
-  data lt_fields type string_table.
-  data lv_buf type string.
 
-  field-symbols <c>      like line of id_struc->components.
-  field-symbols <record> type any.
-  field-symbols <field>  type any.
-
-  loop at i_data assigning <record>.
-    clear lt_fields.
-    loop at id_struc->components assigning <c>.
-      assign component sy-tabix of structure <record> to <field>.
-      lv_buf = serialize_field(
-        is_component = <c>
-        i_value      = <field> ).
-      append lv_buf to lt_fields.
-    endloop.
-    lv_buf = concat_lines_of( table = lt_fields sep = c_tab ).
-    append lv_buf to ct_lines.
+method validate_components.
+  " check if all components are elementary
+  field-symbols <c> like line of id_struc->components.
+  loop at id_struc->components assigning <c>.
+    if id_struc->get_component_type( <c>-name )->kind <> cl_abap_typedescr=>kind_elem.
+      zcx_text2tab_error=>raise(
+        msg  = 'i_data line should contain only fields of elementary types'
+        code = 'ET' ). "#EC NOTEXT
+    endif.
   endloop.
 
 endmethod.
-
 ENDCLASS.

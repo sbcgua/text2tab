@@ -1,4 +1,4 @@
-class ZCX_DATA_PARSER_ERROR definition
+class ZCX_TEXT2TAB_ERROR definition
   public
   inheriting from CX_STATIC_CHECK
   final
@@ -9,14 +9,14 @@ public section.
   interfaces IF_T100_MESSAGE .
 
   constants:
-    begin of ZCX_DATA_PARSER_ERROR,
+    begin of ZCX_TEXT2TAB_ERROR,
       msgid type symsgid value 'SY',
       msgno type symsgno value '499',
       attr1 type scx_attrname value 'METHNAME',
       attr2 type scx_attrname value 'MSG',
       attr3 type scx_attrname value 'LOCATION',
       attr4 type scx_attrname value '',
-    end of ZCX_DATA_PARSER_ERROR .
+    end of ZCX_TEXT2TAB_ERROR .
   data METHNAME type STRING read-only .
   data MSG type STRING read-only .
   data CODE type CHAR2 read-only .
@@ -30,13 +30,20 @@ public section.
       !MSG type STRING optional
       !CODE type CHAR2 optional
       !LOCATION type STRING optional .
+
+  class-methods raise
+    importing
+      !msg type string
+      !code type char2 optional
+    raising zcx_text2tab_error.
+
 protected section.
 private section.
 ENDCLASS.
 
 
 
-CLASS ZCX_DATA_PARSER_ERROR IMPLEMENTATION.
+CLASS ZCX_TEXT2TAB_ERROR IMPLEMENTATION.
 
 
 method CONSTRUCTOR.
@@ -50,9 +57,17 @@ me->CODE = CODE .
 me->LOCATION = LOCATION .
 clear me->textid.
 if textid is initial.
-  IF_T100_MESSAGE~T100KEY = ZCX_DATA_PARSER_ERROR .
+  IF_T100_MESSAGE~T100KEY = ZCX_TEXT2TAB_ERROR .
 else.
   IF_T100_MESSAGE~T100KEY = TEXTID.
 endif.
 endmethod.
+
+METHOD raise.
+  raise exception type zcx_text2tab_error
+    exporting
+      msg  = msg
+      code = code.
+ENDMETHOD.
+
 ENDCLASS.

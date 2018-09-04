@@ -1,9 +1,9 @@
 *&---------------------------------------------------------------------*
-*& ABAP DATA PARSER
+*& ABAP TEXT2TAB PARSER
 *&   project homepage: https://github.com/sbcgua/abap_data_parser
 *&---------------------------------------------------------------------*
 
-report zdata_parser_example.
+report ztext2tab_example.
 
 start-of-selection.
 
@@ -21,7 +21,7 @@ lv_text = 'NUM\tWORD\n1\tHello\n2\tWorld'.
 replace all occurrences of '\t' in lv_text with cl_abap_char_utilities=>horizontal_tab.
 replace all occurrences of '\n' in lv_text with cl_abap_char_utilities=>cr_lf.
 
-zcl_data_parser=>create(
+zcl_text2tab_parser=>create(
   i_pattern       = lt_container
   i_amount_format = ''
 )->parse(

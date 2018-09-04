@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+    <VERSION>1</VERSION>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Table to text serializer</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <CLSFINAL>X</CLSFINAL>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+    <WITH_UNIT_TESTS>X</WITH_UNIT_TESTS>
+   </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>CREATE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create serializer instance</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>C_CRLF</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>&quot;Carriage Return and Line Feed&quot; Character Pair</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>C_LF</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>&quot;New</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>C_TAB</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>&quot;Horizontal Tab Stop&quot; Character</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>MV_DATE_FORMAT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Not More Closely Defined Area, Possibly Used for Patchlevels</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_TEXT2TAB_SERIALIZER</CLSNAME>
+     <CMPNAME>SERIALIZE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Serialize data</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

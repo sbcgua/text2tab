@@ -77,12 +77,12 @@ class lcl_text2tab_parser_test definition for testing
       begin of ty_dummy,
         mandt    type mandt,
         tdate    type datum,
-        tchar    type veri_c08,
-        traw     type veri_x1,
+        tchar    type char08,
+        traw     type thraw1,
         tstring  type string,
         talpha   type veri_alpha,
-        tdecimal type veri_cur13,
-        tnumber  type veri_n04,
+        tdecimal type dmbtr,
+        tnumber  type numc04,
         tinteger type i,
         tfloat   type float,
       end of ty_dummy,
@@ -376,7 +376,7 @@ class lcl_text2tab_parser_test implementation.
     data: begin of wrong_struc ##NEEDED,
             mandt    type mandt,
             tdate    type datum,
-            tchar    type veri_c08,
+            tchar    type char08,
           end of   wrong_struc.
 
     data:

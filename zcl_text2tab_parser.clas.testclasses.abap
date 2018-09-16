@@ -673,8 +673,36 @@ class lcl_text2tab_parser_test implementation.
         cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |map_head_structure, case { sy-index }| ).
       endtry.
       cl_abap_unit_assert=>assert_not_initial( act = lx msg = |map_head_structure, case { sy-index }| ).
-
     enddo.
+
+    " Negative tests, typeless
+    o->mv_is_typeless = abap_true.
+    do 5 times.
+      clear lx.
+      case sy-index.
+        when 1. " Too long field
+          l_header = 'A123456789_123456789_123456789_EXTRA'.
+          l_exp_code = 'WE'.
+        when 2. " Special characters
+          l_header = 'A123456789_123456789_123456789_EXTRA'.
+          l_exp_code = 'WE'.
+      endcase.
+
+      try.
+        o->map_head_structure(
+          i_header     = l_header
+          i_strict     = abap_false ).
+      catch zcx_text2tab_error into lx.
+        cl_abap_unit_assert=>assert_equals(
+          exp = l_exp_code
+          act = lx->code
+          msg = |map_head_structure typeless, case { sy-index }| ).
+      endtry.
+      cl_abap_unit_assert=>assert_not_initial(
+        act = lx
+        msg = |map_head_structure typeless, case { sy-index }| ).
+    enddo.
+
 
   endmethod.     "map_head_structure
 

@@ -305,11 +305,14 @@ method MAP_HEAD_STRUCTURE.
 
   " Compare columns names and make map
   loop at et_head_fields assigning <field>.
+    if <field> is initial. " Check empty fields
+      raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
+    endif.
+    " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE
+    if strlen( <field> ) > abap_max_comp_name_ln or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789'.
+      raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
+    endif.
     if mv_is_typeless = abap_false.
-      if <field> is initial. " Check empty fields
-        raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
-      endif.
-
       read table mo_struc_descr->components with key name = <field> transporting no fields.
       if sy-subrc is initial.
         append sy-tabix to et_map.

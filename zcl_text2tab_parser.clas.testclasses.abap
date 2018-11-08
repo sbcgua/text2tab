@@ -127,6 +127,7 @@ class lcl_text2tab_parser_test definition for testing
     methods parse                 for testing.
 
     methods parse_typeless for testing.
+    methods with_renames for testing.
 
 * ==== HELPERS ===
 
@@ -629,6 +630,8 @@ class lcl_text2tab_parser_test implementation.
           l_exp_code    type char2,
           l_act_map     type int4_table,
           l_exp_map     type int4_table,
+          l_ren_map	    type zcl_text2tab_parser=>th_field_name_map,
+          l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
 
     get_dummy_data(
@@ -642,6 +645,7 @@ class lcl_text2tab_parser_test implementation.
     try.
       o->map_head_structure(
         exporting
+          i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_false
         importing
@@ -650,6 +654,26 @@ class lcl_text2tab_parser_test implementation.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
     cl_abap_unit_assert=>assert_equals( act = l_act_map exp = l_exp_map ).
+
+    " Renames
+    l_header = replace( val = l_header sub = 'TSTRING' with = 'SOME_FIELD' ).
+    l_rename-from = 'SOME_FIELD'.
+    l_rename-to   = 'TSTRING'.
+    insert l_rename into table l_ren_map.
+    try.
+      o->map_head_structure(
+        exporting
+          i_rename_map = l_ren_map
+          i_header     = l_header
+          i_strict     = abap_false
+        importing
+          et_map = l_act_map ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = l_act_map exp = l_exp_map ).
+    clear l_ren_map.
+
 
     get_dummy_data( " Complete
       importing
@@ -663,6 +687,7 @@ class lcl_text2tab_parser_test implementation.
     try.
       o->map_head_structure(
         exporting
+          i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_true
         importing
@@ -673,7 +698,7 @@ class lcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_equals( act = l_act_map exp = l_exp_map ).
 
     " Negative tests
-    do 5 times.
+    do 6 times.
       clear lx.
       l_header = l_header_bak.
 
@@ -693,10 +718,16 @@ class lcl_text2tab_parser_test implementation.
         when 5. " Empty field at the end
           l_header = l_header && c_tab.
           l_exp_code = 'EE'.
+        when 6.
+          l_rename-from = 'TCHAR'.
+          l_rename-to   = 'TSTRING'.
+          insert l_rename into table l_ren_map.
+          l_exp_code = 'DR'.
       endcase.
 
       try.
         o->map_head_structure(
+          i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_true ).
       catch zcx_text2tab_error into lx.
@@ -720,6 +751,7 @@ class lcl_text2tab_parser_test implementation.
 
       try.
         o->map_head_structure(
+          i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_false ).
       catch zcx_text2tab_error into lx.
@@ -907,6 +939,20 @@ class lcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_equals( act = lines( <tab> ) exp = 3 ).
     cl_abap_unit_assert=>assert_equals( act = <tab> exp = lt_exp ).
 
+    " Check components are the same
+    " cl_abap_unit_assert accepts similar tables with different fielnames (wtf?)
+    data lo_tt_act type ref to cl_abap_tabledescr.
+    data lo_tt_exp type ref to cl_abap_tabledescr.
+    data lo_st_act type ref to cl_abap_structdescr.
+    data lo_st_exp type ref to cl_abap_structdescr.
+    lo_tt_act ?= cl_abap_typedescr=>describe_by_data( <tab> ).
+    lo_tt_exp ?= cl_abap_typedescr=>describe_by_data( lt_exp ).
+    lo_st_act ?= lo_tt_act->get_table_line_type( ).
+    lo_st_exp ?= lo_tt_exp->get_table_line_type( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_st_act->get_components( )
+      exp = lo_st_exp->get_components( ) ).
+
     " Negatives
     try.
       o->parse(
@@ -918,6 +964,86 @@ class lcl_text2tab_parser_test implementation.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'DR' ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+  endmethod.
+
+  method with_renames.
+
+    data:
+          l_string      type string,
+          lt_typed_act  type tt_dummy,
+          lt_typed_exp  type tt_dummy,
+          lt_exp        type tt_dummy_str,
+          lr_data       type ref to data,
+          lv_dummy_head type string,
+          lt_header_act type standard table of string,
+          lt_header_exp type standard table of string,
+          lx            type ref to zcx_text2tab_error.
+
+    field-symbols:
+      <fld> type string,
+      <tab> type standard table.
+
+    get_dummy_data(
+      importing
+        e_dummy_tab    = lt_typed_exp
+        e_dummy_header = lv_dummy_head
+        e_dummy_tab_s  = lt_exp
+        e_dummy_string = l_string ).
+    split lv_dummy_head at c_tab into table lt_header_exp.
+
+    l_string = replace( val = l_string sub = 'TSTRING' with = 'SOME_FIELD' ).
+    data lt_map type zcl_text2tab_parser=>tt_field_name_map.
+    field-symbols <map> like line of lt_map.
+    append initial line to lt_map assigning <map>.
+    <map>-from = 'some_field'.
+    <map>-to   = 'tstring'.
+
+    " Typefull
+    try.
+      o->parse(
+        exporting
+          i_data          = l_string
+          i_rename_fields = lt_map
+        importing
+          e_container   = lt_typed_act
+          e_head_fields = lt_header_act ).
+      cl_abap_unit_assert=>assert_equals( act = lt_typed_act  exp = lt_typed_exp ).
+      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    " Typeless
+    try.
+      o = zcl_text2tab_parser=>create_typeless( ).
+      o->parse(
+        exporting
+          i_data = l_string
+          i_rename_fields = lt_map
+        importing
+          e_container = lr_data ).
+      assign lr_data->* to <tab>.
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    cl_abap_unit_assert=>assert_equals( act = lines( <tab> ) exp = 3 ).
+    cl_abap_unit_assert=>assert_equals( act = <tab> exp = lt_exp ).
+
+    " Check components are the same
+    " cl_abap_unit_assert accepts similar tables with different fielnames (wtf?)
+    data lo_tt_act type ref to cl_abap_tabledescr.
+    data lo_tt_exp type ref to cl_abap_tabledescr.
+    data lo_st_act type ref to cl_abap_structdescr.
+    data lo_st_exp type ref to cl_abap_structdescr.
+    lo_tt_act ?= cl_abap_typedescr=>describe_by_data( <tab> ).
+    lo_tt_exp ?= cl_abap_typedescr=>describe_by_data( lt_exp ).
+    lo_st_act ?= lo_tt_act->get_table_line_type( ).
+    lo_st_exp ?= lo_tt_exp->get_table_line_type( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lo_st_act->get_components( )
+      exp = lo_st_exp->get_components( ) ).
 
   endmethod.
 

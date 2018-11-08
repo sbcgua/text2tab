@@ -4,6 +4,17 @@ class ZCL_TEXT2TAB_PARSER definition
   create public .
 
 public section.
+  type-pools ABAP .
+
+  types:
+    begin of ty_field_name_map,
+      from type char40,
+      to   type abap_compname,
+    end of ty_field_name_map .
+  types:
+    tt_field_name_map type standard table of ty_field_name_map with key from .
+  types:
+    th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
   constants VERSION type STRING value 'v2.0.1'. "#EC NOTEXT
   constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
@@ -25,12 +36,12 @@ public section.
       value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising
       ZCX_TEXT2TAB_ERROR .
-  type-pools ABAP .
   methods PARSE
     importing
       !I_DATA type STRING
       !I_STRICT type ABAP_BOOL default ABAP_TRUE
       !I_HAS_HEAD type ABAP_BOOL default ABAP_TRUE
+      !I_RENAME_FIELDS type TT_FIELD_NAME_MAP optional
     exporting
       !E_CONTAINER type ANY
       !E_HEAD_FIELDS type STRING_TABLE
@@ -44,7 +55,6 @@ private section.
   data MO_STRUC_DESCR type ref to CL_ABAP_STRUCTDESCR .
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
-  type-pools ABAP .
   data MV_IS_TYPELESS type ABAP_BOOL .
 
   methods PARSE_TYPEFULL
@@ -52,6 +62,7 @@ private section.
       !I_DATA type STRING
       !I_STRICT type ABAP_BOOL default ABAP_TRUE
       !I_HAS_HEAD type ABAP_BOOL default ABAP_TRUE
+      !I_RENAME_MAP type TH_FIELD_NAME_MAP
     exporting
       !E_CONTAINER type ANY
       !E_HEAD_FIELDS type STRING_TABLE
@@ -60,6 +71,7 @@ private section.
   methods PARSE_TYPELESS
     importing
       !I_DATA type STRING
+      !I_RENAME_MAP type TH_FIELD_NAME_MAP
     exporting
       !E_CONTAINER type ref to DATA
       !E_HEAD_FIELDS type STRING_TABLE
@@ -68,6 +80,7 @@ private section.
   methods PARSE_HEAD_LINE
     importing
       !I_STRICT type ABAP_BOOL
+      !I_RENAME_MAP type TH_FIELD_NAME_MAP
     changing
       !CT_DATA type STRING_TABLE
       !CT_MAP type INT4_TABLE
@@ -85,6 +98,7 @@ private section.
     importing
       !I_HEADER type STRING
       !I_STRICT type ABAP_BOOL
+      !I_RENAME_MAP type TH_FIELD_NAME_MAP
     exporting
       !ET_MAP type INT4_TABLE
       !ET_HEAD_FIELDS type STRING_TABLE
@@ -272,7 +286,7 @@ method MAP_HEAD_STRUCTURE.
   field-symbols <field> type string.
 
   split i_header at c_tab into table et_head_fields.
-  l_field_cnt  = lines( et_head_fields ).
+  l_field_cnt = lines( et_head_fields ).
 
   " Check if the line ends with TAB
   find all occurrences of c_tab in i_header match count l_tab_cnt.
@@ -296,11 +310,28 @@ method MAP_HEAD_STRUCTURE.
   endif.
 
   " Check duplicate field names in incoming structure
-  lt_dupcheck[] = et_head_fields[].
-  sort lt_dupcheck[].
-  delete adjacent duplicates from lt_dupcheck[].
+  lt_dupcheck = et_head_fields.
+  sort lt_dupcheck.
+  delete adjacent duplicates from lt_dupcheck.
   if lines( lt_dupcheck ) <> l_field_cnt.
     raise_error( msg = 'Duplicate field names found' code = 'DN' ).   "#EC NOTEXT
+  endif.
+
+  " Check duplicates after rename
+  data ls_rename like line of i_rename_map.
+  if i_rename_map is not initial.
+    loop at et_head_fields assigning <field>.
+      read table i_rename_map with key from = <field> into ls_rename.
+      check sy-subrc is initial.
+      <field> = ls_rename-to.
+    endloop.
+
+    lt_dupcheck = et_head_fields.
+    sort lt_dupcheck.
+    delete adjacent duplicates from lt_dupcheck.
+    if lines( lt_dupcheck ) <> l_field_cnt.
+      raise_error( msg = 'Duplicate field names found after rename' code = 'DR' ).   "#EC NOTEXT
+    endif.
   endif.
 
   " Compare columns names and make map
@@ -329,6 +360,16 @@ endmethod.  "map_head_structure
 
 method PARSE.
 
+  data lt_rename_map type th_field_name_map.
+  data ls_rename like line of i_rename_fields.
+  if i_rename_fields is not initial.
+    loop at i_rename_fields into ls_rename.
+      ls_rename-from = to_upper( ls_rename-from ).
+      ls_rename-to   = to_upper( ls_rename-to ).
+      insert ls_rename into table lt_rename_map.
+    endloop.
+  endif.
+
   if mv_is_typeless = abap_true.
     if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.
       raise_error( msg = 'Typeless parsing require dref as the container'  code = 'DR' ). "#EC NOTEXT
@@ -336,16 +377,18 @@ method PARSE.
 
     parse_typeless(
       exporting
-        i_data = i_data
+        i_data       = i_data
+        i_rename_map = lt_rename_map
       importing
         e_container   = e_container
         e_head_fields = e_head_fields ).
   else.
     parse_typefull(
       exporting
-        i_data     = i_data
-        i_has_head = i_has_head
-        i_strict   = i_strict
+        i_data       = i_data
+        i_has_head   = i_has_head
+        i_strict     = i_strict
+        i_rename_map = lt_rename_map
       importing
         e_container   = e_container
         e_head_fields = e_head_fields ).
@@ -666,6 +709,7 @@ method PARSE_HEAD_LINE.
 
   me->map_head_structure(
     exporting
+      i_rename_map = i_rename_map
       i_header = to_upper( l_header_str )
       i_strict = i_strict
     importing
@@ -762,7 +806,8 @@ method PARSE_TYPEFULL.
   if i_has_head = abap_true.
     parse_head_line(
       exporting
-        i_strict = i_strict
+        i_rename_map = i_rename_map
+        i_strict     = i_strict
       changing
         ct_data        = lt_data
         ct_head_fields = e_head_fields
@@ -795,6 +840,7 @@ endmethod.  "parse_typefull
     " Read and process header line
     parse_head_line(
       exporting
+        i_rename_map   = i_rename_map
         i_strict       = abap_false
       changing
         ct_data        = lt_data

@@ -16,7 +16,7 @@ public section.
   types:
     th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
-  constants VERSION type STRING value 'v2.0.1'. "#EC NOTEXT
+  constants VERSION type STRING value 'v2.1.0'. "#EC NOTEXT
   constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT

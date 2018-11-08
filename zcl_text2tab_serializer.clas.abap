@@ -32,55 +32,53 @@ public section.
 protected section.
 private section.
 
-  type-pools ABAP .
-  class CL_ABAP_CHAR_UTILITIES definition load .
   data MV_DECIMAL_SEP type CHAR1 .
   data MV_DATE_FORMAT type CHAR4 .
-  data MV_LINE_SEP type string .
-  data MV_MAX_FRAC_DIGITS type i.
+  data MV_LINE_SEP type STRING .
+  data MV_MAX_FRAC_DIGITS type I .
+  data MV_CURRENT_FIELD type STRING .
+  data MV_LINE_INDEX type SY-TABIX .
 
-  methods serialize_field
+  methods SERIALIZE_FIELD
     importing
-      is_component type abap_compdescr
-      i_value      type any
+      !IS_COMPONENT type ABAP_COMPDESCR
+      !I_VALUE type ANY
     returning
-      value(r_out) type string
+      value(R_OUT) type STRING
     raising
-      zcx_text2tab_error .
-
-  class-methods apply_conv_exit
+      ZCX_TEXT2TAB_ERROR .
+  class-methods APPLY_CONV_EXIT
     importing
-      !i_in type any
-      !i_convexit type string
-    returning value(r_out) type string.
-
-  class-methods serialize_date
+      !I_IN type ANY
+      !I_CONVEXIT type STRING
+    returning
+      value(R_OUT) type STRING
+    exceptions
+      CONV_FAILED .
+  class-methods SERIALIZE_DATE
     importing
-      !i_date type datum
-      !iv_date_format type char4
-    returning value(r_out) type string.
-
-  class-methods validate_components
+      !I_DATE type DATUM
+      !IV_DATE_FORMAT type CHAR4
+    returning
+      value(R_OUT) type STRING .
+  class-methods VALIDATE_COMPONENTS
     importing
-      id_struc type ref to cl_abap_structdescr
+      !ID_STRUC type ref to CL_ABAP_STRUCTDESCR
     raising
-      zcx_text2tab_error .
-
-  class-methods serialize_header
+      ZCX_TEXT2TAB_ERROR .
+  class-methods SERIALIZE_HEADER
     importing
-      id_struc type ref to cl_abap_structdescr
+      !ID_STRUC type ref to CL_ABAP_STRUCTDESCR
     changing
-      ct_lines type string_table.
-
-  methods serialize_data
+      !CT_LINES type STRING_TABLE .
+  methods SERIALIZE_DATA
     importing
-      id_struc type ref to cl_abap_structdescr
-      i_data type any table
+      !ID_STRUC type ref to CL_ABAP_STRUCTDESCR
+      !I_DATA type ANY TABLE
     changing
-      ct_lines type string_table
+      !CT_LINES type STRING_TABLE
     raising
-      zcx_text2tab_error .
-
+      ZCX_TEXT2TAB_ERROR .
 ENDCLASS.
 
 
@@ -114,7 +112,7 @@ method apply_conv_exit.
       others = 1.
 
   if sy-subrc <> 0.
-    return.
+    raise conv_failed.
   endif.
 
   r_out = l_tmp.
@@ -213,9 +211,11 @@ method serialize_data.
   field-symbols <field>  type any.
 
   loop at i_data assigning <record>.
+    mv_line_index = sy-tabix.
     clear lt_fields.
     loop at id_struc->components assigning <c>.
       assign component sy-tabix of structure <record> to <field>.
+      mv_current_field = <c>-name.
       lv_buf = serialize_field(
         is_component = <c>
         i_value      = <field> ).
@@ -274,11 +274,18 @@ method serialize_field.
         r_out = i_value.
       else.
         shift l_mask left deleting leading '='.
-        r_out = apply_conv_exit(
-          i_in = i_value
-          i_convexit = l_mask ).
+        apply_conv_exit(
+          exporting
+            i_in       = i_value
+            i_convexit = l_mask
+          receiving
+            r_out = r_out
+          exceptions others = 1 ).
         if sy-subrc is not initial.
-          zcx_text2tab_error=>raise( msg = 'convexit failed' code = 'CF' ). "#EC NOTEXT
+          zcx_text2tab_error=>raise(
+            msg      = |convexit failed for "{ i_value }"|
+            location = |{ mv_current_field }@{ mv_line_index }|
+            code     = 'CF' ). "#EC NOTEXT
         endif.
       endif.
 

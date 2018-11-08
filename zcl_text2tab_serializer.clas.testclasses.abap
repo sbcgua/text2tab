@@ -170,6 +170,9 @@ class lcl_text2tab_serializer_test implementation.
           ls_dummy  type ty_dummy,
           ld_type   type ref to cl_abap_structdescr.
 
+    data lv_meins type meins.
+    data ls_comp like line of ld_type->components.
+
     field-symbols: <comp> like line of ld_type->components.
 
     ld_type ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
@@ -194,9 +197,25 @@ class lcl_text2tab_serializer_test implementation.
       test_field TDATE  '00000000' ''.
       test_field TDATE  '' ''.
 
+      lv_meins          = 'KG'.
+      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+      l_act = o->serialize_field( i_value = lv_meins is_component = ls_comp ).
+      cl_abap_unit_assert=>assert_equals( act = l_act exp = 'KG' ).
+
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
+
+    " Negative tests
+    try.
+      clear lx.
+      lv_meins = '??'.
+      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+      l_act = o->serialize_field( i_value = lv_meins is_component = ls_comp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'CF' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( lx ).
 
   endmethod.
 

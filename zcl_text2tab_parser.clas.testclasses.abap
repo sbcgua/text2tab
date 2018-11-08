@@ -575,6 +575,36 @@ class lcl_text2tab_parser_test implementation.
     test_parse_negative TRAW     '8E8F'        'FS'.
     test_parse_negative TRAW     '8E8'         'FS'.
 
+    " CONV EXITS
+    data lv_meins type meins.
+    data ls_comp type abap_compdescr.
+    ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+    try.
+      o->parse_field(
+        exporting
+          is_component = ls_comp
+          i_value      = 'KG'
+        importing
+          e_field      = lv_meins ).
+      cl_abap_unit_assert=>assert_equals( act = lv_meins exp = 'KG' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    try.
+      clear lx.
+      o->parse_field(
+        exporting
+          is_component = ls_comp
+          i_value      = '??'
+        importing
+          e_field      = lv_meins ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'EF' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( lx ).
+
+
   endmethod.       "parse_field
 
   method parse_field_unsupp.

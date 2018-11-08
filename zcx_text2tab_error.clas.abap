@@ -30,13 +30,13 @@ public section.
       !MSG type STRING optional
       !CODE type CHAR2 optional
       !LOCATION type STRING optional .
-
-  class-methods raise
+  class-methods RAISE
     importing
-      !msg type string
-      !code type char2 optional
-    raising zcx_text2tab_error.
-
+      !MSG type STRING
+      !CODE type CHAR2 optional
+      !LOCATION type STRING optional
+    raising
+      ZCX_TEXT2TAB_ERROR .
 protected section.
 private section.
 ENDCLASS.
@@ -63,11 +63,12 @@ else.
 endif.
 endmethod.
 
+
 METHOD raise.
   raise exception type zcx_text2tab_error
     exporting
       msg  = msg
-      code = code.
+      code = code
+      location = location.
 ENDMETHOD.
-
 ENDCLASS.

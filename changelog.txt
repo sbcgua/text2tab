@@ -8,6 +8,14 @@ Legend
 + : added
 - : removed
 
+v2.1.0, 2018-11-08
+------------------
++ field name mapping feature (rename fields on-the-fly)
+! more generic data types (thanks to odjhey)
+! fieldname charset validation
+! fixed date serialization (empty date translated to "  .  .    ")
+! improved conv exit error handling
+
 v2.0.0-beta, 2018-09-02
 ------------------
 ! moved the code to global classes for easier reuse, renamed to text2tab_parser (from data_parser) which should be clearer.

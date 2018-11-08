@@ -1,7 +1,7 @@
 # ABAP text2tab parser and serializer (ex. Abap data parser)
 
 TAB-delimited text parser and serializer for ABAP  
-Version: v2.0.0-beta ([changelog](./changelog.txt))
+Version: v2.1.0 ([changelog](./changelog.txt))
 
 ## Synopsis
 
@@ -12,6 +12,7 @@ Text2tab is an utility to parse TAB-delimited text into an internal table of an 
 - supports loading into a structure (the first data line of the text is parsed). 
 - support *typeless* parsing, when the data is not checked against existing structure but dynamically creteas a table with string fields.
 - support specifying date and amount formats
+- support on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
 
 And vice versa - serialize flat table or structure to text.
 
@@ -73,6 +74,38 @@ zcl_text2tab_parser=>create(
       e_container = lt_container ).  " table or structure (first data line from text)
 ```
 Of course, you can keep the object reference returned by `create()` and use it to parse more data of the same pattern.
+
+## Field name remapping
+
+Change target field name on-the-fly. (Useful e.g. for data migration)
+
+```abap
+* Input text to parse:
+* FULL_NAME  BIRTHDATE
+* ALEX       01.01.1990
+* JOHN       02.02.1995
+
+    data lt_map type zcl_text2tab_parser=>tt_field_name_map.
+    field-symbols <map> like line of lt_map.
+    append initial line to lt_map assigning <map>.
+    <map>-from = 'Full_name'.
+    <map>-to   = 'name'.
+
+...
+
+zcl_text2tab_parser=>create( lt_container )->parse(
+  exporting
+    i_rename_fields = lt_map " <<<<<<< FIELD MAP
+    i_data          = my_get_some_raw_text_data( )
+  importing
+    e_container = lt_container ).
+
+* Output data:
+* NAME  BIRTHDATE
+* ALEX  01.01.1990
+* JOHN  02.02.1995
+```
+
 
 ## Typeless parsing
 

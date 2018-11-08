@@ -234,8 +234,8 @@ method serialize_date.
         l_part    type c,
         l_sep     type c.
 
-  if i_date is initial. " Empty date -> empty string
-    return.
+  if i_date is initial or i_date = ''. " 00.. is initial, '' is not !
+    return. " Empty date -> empty string
   endif.
   l_sep = iv_date_format+3(1).
 

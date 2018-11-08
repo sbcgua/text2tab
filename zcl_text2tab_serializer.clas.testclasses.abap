@@ -190,6 +190,10 @@ class lcl_text2tab_serializer_test implementation.
       test_field TALPHA    '0000100000' '100000'.
       test_field TINTEGER  3333         '3333'.
 
+      test_field TDATE  '20180901' '01.09.2018'.
+      test_field TDATE  '00000000' ''.
+      test_field TDATE  '' ''.
+
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.

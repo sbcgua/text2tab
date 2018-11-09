@@ -27,6 +27,7 @@ public section.
       !I_PATTERN type ANY         " target structure or table
       !I_AMOUNT_FORMAT type CHAR2 optional
       !I_DATE_FORMAT type CHAR4 optional
+      i_begin_comment TYPE clike OPTIONAL
     returning
       value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising
@@ -56,6 +57,7 @@ private section.
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
+  data MV_BEGIN_COMMENT type RVARI_VAL_255 .
 
   methods PARSE_TYPEFULL
     importing
@@ -157,11 +159,16 @@ private section.
       !CODE type CHAR2 optional
     raising
       ZCX_TEXT2TAB_ERROR .
-  class-methods BREAK_TO_LINES
+  methods BREAK_TO_LINES
     importing
       !I_TEXT type STRING
     returning
       value(RT_TAB) type STRING_TABLE .
+  methods IS_COMMENT_LINE
+    importing
+      !LINE type STRING
+    returning
+      value(IS) type ABAP_BOOL .
 ENDCLASS.
 
 
@@ -204,7 +211,9 @@ endmethod.  "apply_conv_exit
 method BREAK_TO_LINES.
   data:
         l_found type i,
+        idx TYPE i,
         l_break type string value c_crlf.
+  FIELD-SYMBOLS: <line> TYPE string.
 
   " Detect line break
   l_found = find( val = i_text sub = c_crlf ).
@@ -216,6 +225,13 @@ method BREAK_TO_LINES.
   endif.
 
   split i_text at l_break into table rt_tab.
+
+  LOOP AT rt_tab ASSIGNING <line>.
+    idx = sy-tabix.
+    if is_comment_line( <line> ) = abap_true.
+      delete rt_tab INDEX idx.
+    endif.
+  ENDLOOP.
 
 endmethod.
 
@@ -238,6 +254,18 @@ method CREATE.
     zcl_text2tab_utils=>validate_date_format_spec( i_date_format ).
     ro_parser->mv_date_format = i_date_format.
   endif.
+
+  CLEAR ro_parser->mv_begin_comment.
+  IF i_begin_comment IS SUPPLIED.
+    ro_parser->mv_begin_comment = i_begin_comment.
+  ELSE.
+    SELECT low UP TO 1 ROWS FROM tvarvc INTO ro_parser->mv_begin_comment
+      WHERE name = 'ZMOCKUP_LOADER_COMMENT' AND type = 'P'.
+    ENDSELECT.
+    " IF sy-subrc <> 0.
+    "   by default no comment lines
+    " ENDIF.
+  ENDIF.
 
 endmethod.  "create
 
@@ -271,6 +299,20 @@ method GET_SAFE_STRUC_DESCR.
   endcase.
 
 endmethod.  "get_safe_struc_descr
+
+
+  method IS_COMMENT_LINE.
+    DATA: offset TYPE offset.
+
+    is = abap_false.
+
+    FIND FIRST OCCURRENCE OF REGEX '[^[:space:]]' IN line
+      MATCH OFFSET offset.
+    IF sy-subrc = 0 AND line+offset(1) CO mv_begin_comment.
+      is = abap_true.
+    ENDIF.
+
+  endmethod.
 
 
 method MAP_HEAD_STRUCTURE.

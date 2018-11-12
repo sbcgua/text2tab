@@ -16,7 +16,7 @@ public section.
   types:
     th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
-  constants VERSION type STRING value 'v2.1.0'. "#EC NOTEXT
+  constants VERSION type STRING value 'v2.1.1'. "#EC NOTEXT
   constants HOMEPAGE type STRING value 'https://github.com/sbcgua/abap_data_parser'. "#EC NOTEXT
   constants C_TAB like CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB value CL_ABAP_CHAR_UTILITIES=>HORIZONTAL_TAB. "#EC NOTEXT
   constants C_CRLF like CL_ABAP_CHAR_UTILITIES=>CR_LF value CL_ABAP_CHAR_UTILITIES=>CR_LF. "#EC NOTEXT
@@ -47,6 +47,11 @@ public section.
       !E_HEAD_FIELDS type STRING_TABLE
     raising
       ZCX_TEXT2TAB_ERROR .
+  class-methods CHECK_VERSION_FITS
+    importing
+      !I_REQUIRED_VERSION type STRING
+    returning
+      value(R_FITS) type ABAP_BOOL .
 protected section.
 private section.
 
@@ -57,6 +62,12 @@ private section.
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
 
+  class-methods _CHECK_VERSION_FITS
+    importing
+      !I_REQUIRED_VERSION type STRING
+      !I_CURRENT_VERSION type STRING
+    returning
+      value(R_FITS) type ABAP_BOOL .
   methods PARSE_TYPEFULL
     importing
       !I_DATA type STRING
@@ -216,6 +227,15 @@ method BREAK_TO_LINES.
   endif.
 
   split i_text at l_break into table rt_tab.
+
+endmethod.
+
+
+method CHECK_VERSION_FITS.
+
+  r_fits = _check_version_fits(
+    i_current_version  = version
+    i_required_version = i_required_version ).
 
 endmethod.
 
@@ -913,4 +933,36 @@ method RAISE_ERROR.
       location = l_location.
 
 endmethod.  "raise_error
+
+
+method _CHECK_VERSION_FITS.
+
+  types:
+    begin of ty_version,
+      major type numc4,
+      minor type numc4,
+      patch type numc4,
+    end of ty_version.
+
+  data ls_cur_ver type ty_version.
+  data ls_req_ver type ty_version.
+  data lv_buf type string.
+
+  lv_buf = i_current_version.
+  shift lv_buf left deleting leading 'v'.
+  split lv_buf at '.' into ls_cur_ver-major ls_cur_ver-minor ls_cur_ver-patch.
+
+  lv_buf = i_required_version.
+  shift lv_buf left deleting leading 'v'.
+  split lv_buf at '.' into ls_req_ver-major ls_req_ver-minor ls_req_ver-patch.
+
+  if ls_req_ver-major <= ls_cur_ver-major.
+    if ls_req_ver-minor <= ls_cur_ver-minor.
+      if ls_req_ver-patch <= ls_cur_ver-patch.
+        r_fits = abap_true.
+      endif.
+    endif.
+  endif.
+
+endmethod.
 ENDCLASS.

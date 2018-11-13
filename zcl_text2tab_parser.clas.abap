@@ -57,7 +57,7 @@ private section.
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
-  data MV_BEGIN_COMMENT type RVARI_VAL_255 .
+  data MV_BEGIN_COMMENT type char1.
 
   methods PARSE_TYPEFULL
     importing
@@ -159,16 +159,12 @@ private section.
       !CODE type CHAR2 optional
     raising
       ZCX_TEXT2TAB_ERROR .
-  methods BREAK_TO_LINES
+  class-methods BREAK_TO_LINES
     importing
       !I_TEXT type STRING
+      i_begin_comment TYPE char1
     returning
       value(RT_TAB) type STRING_TABLE .
-  methods IS_COMMENT_LINE
-    importing
-      !LINE type STRING
-    returning
-      value(IS) type ABAP_BOOL .
 ENDCLASS.
 
 
@@ -208,12 +204,11 @@ method APPLY_CONV_EXIT.
 endmethod.  "apply_conv_exit
 
 
-method BREAK_TO_LINES.
+method break_to_lines.
   data:
-        l_found type i,
-        idx TYPE i,
-        l_break type string value c_crlf.
-  FIELD-SYMBOLS: <line> TYPE string.
+    l_found type i,
+    l_break type string value c_crlf.
+  field-symbols: <line> type string.
 
   " Detect line break
   l_found = find( val = i_text sub = c_crlf ).
@@ -226,12 +221,18 @@ method BREAK_TO_LINES.
 
   split i_text at l_break into table rt_tab.
 
-  LOOP AT rt_tab ASSIGNING <line>.
-    idx = sy-tabix.
-    if is_comment_line( <line> ) = abap_true.
-      delete rt_tab INDEX idx.
-    endif.
-  ENDLOOP.
+  if i_begin_comment <> space.
+    loop at rt_tab assigning <line>.
+      try.
+          if <line>+0(1) = i_begin_comment.
+            delete rt_tab index sy-tabix.
+          endif.
+        catch cx_sy_range_out_of_bounds.
+          " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+          delete rt_tab index sy-tabix.
+      endtry.
+    endloop.
+  endif.
 
 endmethod.
 
@@ -255,17 +256,7 @@ method CREATE.
     ro_parser->mv_date_format = i_date_format.
   endif.
 
-  CLEAR ro_parser->mv_begin_comment.
-  IF i_begin_comment IS SUPPLIED.
-    ro_parser->mv_begin_comment = i_begin_comment.
-  ELSE.
-    SELECT low UP TO 1 ROWS FROM tvarvc INTO ro_parser->mv_begin_comment
-      WHERE name = 'ZMOCKUP_LOADER_COMMENT' AND type = 'P'.
-    ENDSELECT.
-    " IF sy-subrc <> 0.
-    "   by default no comment lines
-    " ENDIF.
-  ENDIF.
+  ro_parser->mv_begin_comment = i_begin_comment.
 
 endmethod.  "create
 
@@ -299,20 +290,6 @@ method GET_SAFE_STRUC_DESCR.
   endcase.
 
 endmethod.  "get_safe_struc_descr
-
-
-  method IS_COMMENT_LINE.
-    DATA: offset TYPE offset.
-
-    is = abap_false.
-
-    FIND FIRST OCCURRENCE OF REGEX '[^[:space:]]' IN line
-      MATCH OFFSET offset.
-    IF sy-subrc = 0 AND line+offset(1) CO mv_begin_comment.
-      is = abap_true.
-    ENDIF.
-
-  endmethod.
 
 
 method MAP_HEAD_STRUCTURE.
@@ -842,7 +819,7 @@ method PARSE_TYPEFULL.
     raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
   endif.
 
-  lt_data = break_to_lines( i_data ).
+  lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
   " Read and process header line
   if i_has_head = abap_true.
@@ -877,7 +854,7 @@ endmethod.  "parse_typefull
     data lt_map type int4_table.
     field-symbols <f> like line of e_head_fields.
 
-    lt_data = break_to_lines( i_data ).
+    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     parse_head_line(

@@ -129,6 +129,7 @@ class lcl_text2tab_parser_test definition for testing
     methods parse_typeless for testing.
     methods with_renames for testing.
     methods check_version_fits for testing.
+    methods adopt_renames for testing.
 
 * ==== HELPERS ===
 
@@ -1025,6 +1026,20 @@ class lcl_text2tab_parser_test implementation.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
 
+    try. " string based
+      o->parse(
+        exporting
+          i_data          = l_string
+          i_rename_fields = 'some_field:tstring'
+        importing
+          e_container   = lt_typed_act
+          e_head_fields = lt_header_act ).
+      cl_abap_unit_assert=>assert_equals( act = lt_typed_act  exp = lt_typed_exp ).
+      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
     " Typeless
     try.
       o = zcl_text2tab_parser=>create_typeless( ).
@@ -1087,6 +1102,65 @@ class lcl_text2tab_parser_test implementation.
       zcl_text2tab_parser=>_check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v3.0.0' ) ).
+  endmethod.
+
+  method adopt_renames.
+    data lx type ref to zcx_text2tab_error.
+
+    try.
+      clear lx.
+      zcl_text2tab_parser=>adopt_renames( 1234 ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WY' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    try.
+      clear lx.
+      zcl_text2tab_parser=>adopt_renames( 'abc' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WR' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    data lt_fields type zcl_text2tab_parser=>tt_field_name_map.
+    data lt_map_act type zcl_text2tab_parser=>tt_field_name_map.
+    data lt_map_exp type zcl_text2tab_parser=>tt_field_name_map.
+    field-symbols <map> like line of lt_map_exp.
+
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field'.
+    <map>-to   = 'tstring'.
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field2'.
+    <map>-to   = 'tstring2'.
+
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD'.
+    <map>-to   = 'TSTRING'.
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD2'.
+    <map>-to   = 'TSTRING2'.
+
+    " Table based
+    try.
+      lt_map_act = zcl_text2tab_parser=>adopt_renames( lt_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
+    " string based
+    data lv_fields type string.
+    lv_fields = 'some_field:tstring;some_field2:tstring2;;'.
+
+    try.
+      lt_map_act = zcl_text2tab_parser=>adopt_renames( lv_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
   endmethod.
 
 endclass.

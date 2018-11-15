@@ -41,7 +41,7 @@ public section.
       !I_DATA type STRING
       !I_STRICT type ABAP_BOOL default ABAP_TRUE
       !I_HAS_HEAD type ABAP_BOOL default ABAP_TRUE
-      !I_RENAME_FIELDS type TT_FIELD_NAME_MAP optional
+      !I_RENAME_FIELDS type ANY optional
     exporting
       !E_CONTAINER type ANY
       !E_HEAD_FIELDS type STRING_TABLE
@@ -62,6 +62,13 @@ private section.
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
 
+  class-methods ADOPT_RENAMES
+    importing
+      !I_RENAME_FIELDS type ANY
+    returning
+      value(R_RENAME_MAP) type TT_FIELD_NAME_MAP
+    raising
+      ZCX_TEXT2TAB_ERROR .
   class-methods _CHECK_VERSION_FITS
     importing
       !I_REQUIRED_VERSION type STRING
@@ -178,6 +185,53 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
+
+
+method ADOPT_RENAMES.
+  data lo_type type ref to cl_abap_typedescr.
+  data lo_ref_type type ref to cl_abap_typedescr.
+  data ls_rename like line of r_rename_map.
+
+  if i_rename_fields is initial.
+    return.
+  endif.
+
+  lo_type = cl_abap_typedescr=>describe_by_data( i_rename_fields ).
+  lo_ref_type = cl_abap_typedescr=>describe_by_data( r_rename_map ).
+
+  if lo_type->type_kind = cl_abap_typedescr=>typekind_table and lo_type->absolute_name = lo_ref_type->absolute_name.
+    field-symbols <tab> type standard table.
+    assign i_rename_fields to <tab>.
+    loop at <tab> into ls_rename.
+      ls_rename-from = to_upper( ls_rename-from ).
+      ls_rename-to   = to_upper( ls_rename-to ).
+      append ls_rename to r_rename_map.
+    endloop.
+  elseif lo_type->type_kind = cl_abap_typedescr=>typekind_char or lo_type->type_kind = cl_abap_typedescr=>typekind_string.
+    data lt_renames type string_table.
+    field-symbols <str> type string.
+    split i_rename_fields at ';' into table lt_renames.
+    delete lt_renames where table_line is initial.
+    loop at lt_renames assigning <str>.
+      clear ls_rename.
+      <str> = to_upper( <str> ).
+      split <str> at ':' into ls_rename-from ls_rename-to.
+      if ls_rename-from is initial or ls_rename-to is initial.
+        zcx_text2tab_error=>raise(
+          methname = 'adopt_renames'
+          msg      = 'Wrong rename pair'
+          code     = 'WR' ). "#EC NOTEXT
+      endif.
+      append ls_rename to r_rename_map.
+    endloop.
+  else.
+    zcx_text2tab_error=>raise(
+      methname = 'adopt_renames'
+      msg      = 'Wrong rename fields type'
+      code     = 'WY' ). "#EC NOTEXT
+  endif.
+
+endmethod.
 
 
 method APPLY_CONV_EXIT.
@@ -381,14 +435,7 @@ endmethod.  "map_head_structure
 method PARSE.
 
   data lt_rename_map type th_field_name_map.
-  data ls_rename like line of i_rename_fields.
-  if i_rename_fields is not initial.
-    loop at i_rename_fields into ls_rename.
-      ls_rename-from = to_upper( ls_rename-from ).
-      ls_rename-to   = to_upper( ls_rename-to ).
-      insert ls_rename into table lt_rename_map.
-    endloop.
-  endif.
+  lt_rename_map = adopt_renames( i_rename_fields ).
 
   if mv_is_typeless = abap_true.
     if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.

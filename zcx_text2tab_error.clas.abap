@@ -35,6 +35,7 @@ public section.
       !MSG type STRING
       !CODE type CHAR2 optional
       !LOCATION type STRING optional
+      !METHNAME type CLIKE optional
     raising
       ZCX_TEXT2TAB_ERROR .
 protected section.
@@ -69,6 +70,7 @@ METHOD raise.
     exporting
       msg  = msg
       code = code
+      methname = methname
       location = location.
 ENDMETHOD.
 ENDCLASS.

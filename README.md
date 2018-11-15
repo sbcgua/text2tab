@@ -172,3 +172,17 @@ The exception class - `zcx_text2tab_error` - exposes `struc`, `field`, `line` an
 ```
 
 This is supported in parser only at the moment. Serializer does not produce many error on line level.
+
+## Checking version
+
+`zcl_text2tab_parser` has the `version` attribute. And there is an util method `check_version_fits` to check if the text2tab package has the minimal required version.
+
+```abap
+* Assuming version is 2.1.0
+
+" Returns false, 2.1.2 is required
+zcl_text2tab_parser=>check_version_fits( 'v2.1.2' ). 
+
+" Returns true, 2.1.0 > 2.0.0
+zcl_text2tab_parser=>check_version_fits( 'v2.0.0' ). 
+```

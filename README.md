@@ -108,6 +108,17 @@ zcl_text2tab_parser=>create( lt_container )->parse(
 * JOHN  02.02.1995
 ```
 
+Renames can be also passed as a string in this format: `'field_to_rename:new_name;another_field:another_new_name'`. Coding conveniense is important ;)
+
+```abap
+zcl_text2tab_parser=>create( lt_container )->parse(
+  exporting
+    i_rename_fields = 'Full_name:name'
+    i_data          = my_get_some_raw_text_data( )
+  importing
+    e_container = lt_container ).
+
+```
 
 ## Typeless parsing
 

@@ -368,7 +368,7 @@ method MAP_HEAD_STRUCTURE.
       if sy-subrc is initial.
         append sy-tabix to et_map.
       else.
-        raise_error( msg = |Field { <field> } not found in structure| code = 'MC'). "#EC NOTEXT
+        raise_error( msg = |Field { <field> } not found in structure| code = 'MC' ). "#EC NOTEXT
       endif.
     else.
       append sy-tabix to et_map. " direct map
@@ -616,7 +616,9 @@ method PARSE_FIELD.
         importing
           e_field    = e_field ).
 
-    when cl_abap_typedescr=>typekind_int OR cl_abap_typedescr=>typekind_int1 OR cl_abap_typedescr=>typekind_int2 . " Integer
+    when cl_abap_typedescr=>typekind_int
+      or cl_abap_typedescr=>typekind_int1
+      or cl_abap_typedescr=>typekind_int2. " Integer
       if l_unquoted co '0123456789'.
         e_field = l_unquoted.
       else.

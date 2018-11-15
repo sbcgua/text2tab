@@ -294,7 +294,9 @@ method serialize_field.
         i_date         = i_value
         iv_date_format = mv_date_format ).
 
-    when cl_abap_typedescr=>typekind_int OR cl_abap_typedescr=>typekind_int1 OR cl_abap_typedescr=>typekind_int2 . " Integer
+    when cl_abap_typedescr=>typekind_int
+      or cl_abap_typedescr=>typekind_int1
+      or cl_abap_typedescr=>typekind_int2. " Integer
       l_tmp = i_value.
       shift l_tmp left deleting leading space. " In case it is the last one
       r_out = l_tmp.

@@ -631,7 +631,7 @@ class lcl_text2tab_parser_test implementation.
           l_exp_code    type char2,
           l_act_map     type int4_table,
           l_exp_map     type int4_table,
-          l_ren_map	    type zcl_text2tab_parser=>th_field_name_map,
+          l_ren_map     type zcl_text2tab_parser=>th_field_name_map,
           l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
 
@@ -732,9 +732,14 @@ class lcl_text2tab_parser_test implementation.
           i_header     = l_header
           i_strict     = abap_true ).
       catch zcx_text2tab_error into lx.
-        cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |map_head_structure, case { sy-index }| ).
+        cl_abap_unit_assert=>assert_equals(
+          exp = l_exp_code
+          act = lx->code
+          msg = |map_head_structure, case { sy-index }| ).
       endtry.
-      cl_abap_unit_assert=>assert_not_initial( act = lx msg = |map_head_structure, case { sy-index }| ).
+      cl_abap_unit_assert=>assert_not_initial(
+        act = lx
+        msg = |map_head_structure, case { sy-index }| ).
     enddo.
 
     " Negative tests, typeless
@@ -797,9 +802,14 @@ class lcl_text2tab_parser_test implementation.
       try.
         o->parse_line( i_dataline = l_dataline it_map = lt_map ).
       catch zcx_text2tab_error into lx.
-        cl_abap_unit_assert=>assert_equals( exp = l_exp_code act = lx->code msg = |parse_line_negative, case { sy-index }| ).
+        cl_abap_unit_assert=>assert_equals(
+          exp = l_exp_code
+          act = lx->code
+          msg = |parse_line_negative, case { sy-index }| ).
       endtry.
-      cl_abap_unit_assert=>assert_not_initial( act = lx msg = |parse_line_negative, case { sy-index }| ).
+      cl_abap_unit_assert=>assert_not_initial(
+        act = lx
+        msg = |parse_line_negative, case { sy-index }| ).
 
     enddo.
   endmethod.    "parse_line_negative
@@ -1069,7 +1079,7 @@ class lcl_text2tab_parser_test implementation.
       zcl_text2tab_parser=>_check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v2.2.30' ) ).
-     cl_abap_unit_assert=>assert_false(
+    cl_abap_unit_assert=>assert_false(
       zcl_text2tab_parser=>_check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v2.3.1' ) ).
@@ -1077,6 +1087,6 @@ class lcl_text2tab_parser_test implementation.
       zcl_text2tab_parser=>_check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v3.0.0' ) ).
- endmethod.
+  endmethod.
 
 endclass.

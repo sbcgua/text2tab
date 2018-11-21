@@ -149,6 +149,22 @@ To do serialization use `ZCL_TEXT2TAB_SERIALIZER` class. Flat tables and structu
   lv_string = lo_serializer->serialize( lt_some_table ).
 ```
 
+## Comments
+
+Since version 2.2.0 the text file can contain comment lines. A comment lines begins with one specific char, which is supplied in the factory method ```create```.
+A sample text-file:
+```
+* comment line: expected birthdays in test class ...
+NAME	  BIRTHDAY
+JOHN	  01.01.1990
+```
+Now we should call the factory method like this and the first line is interpreted as a comment:
+```abap
+zcl_text2tab_parser=>create( i_pattern = ls_birthday i_begin_comment = '*' ).
+```
+The char '*' must have the first position in the text line.  Otherwise it isn't interpreted as a comment.
+
+
 ## Error message redefinition
 
 The exception class - `zcx_text2tab_error` - exposes `struc`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:

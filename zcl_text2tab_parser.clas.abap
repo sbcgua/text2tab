@@ -27,7 +27,7 @@ public section.
       !I_PATTERN type ANY         " target structure or table
       !I_AMOUNT_FORMAT type CHAR2 optional
       !I_DATE_FORMAT type CHAR4 optional
-      i_begin_comment TYPE clike OPTIONAL
+      i_begin_comment TYPE char1 OPTIONAL
     returning
       value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising

@@ -235,9 +235,20 @@ class lcl_text2tab_parser_test implementation.
     append 'line1' to lt_exp.
     append 'line2' to lt_exp.
 
-    lt_act = zcl_text2tab_parser=>break_to_lines( 'line1' && c_crlf && 'line2' ).
+    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_crlf && 'line2'
+      i_begin_comment = space ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-    lt_act = zcl_text2tab_parser=>break_to_lines( 'line1' && c_lf && 'line2' ).
+    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_lf && 'line2'
+      i_begin_comment = space ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+    " with comment line
+    clear lt_exp.
+    append 'not a comment 1' to lt_exp.
+    append 'not a comment 2' to lt_exp.
+    lt_act = zcl_text2tab_parser=>break_to_lines( i_text =
+      '*a comment' && c_lf && 'not a comment 1' && c_lf && 'not a comment 2' && c_lf
+      && cl_abap_char_utilities=>newline i_begin_comment = '*' ).
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
 
   endmethod.  " break_to_lines.

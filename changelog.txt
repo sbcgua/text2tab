@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.2.0, 2018-11-09
+------------------
++ comment lines
+
 v2.1.0, 2018-11-08
 ------------------
 + field name mapping feature (rename fields on-the-fly)

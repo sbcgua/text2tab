@@ -27,6 +27,7 @@ public section.
       !I_PATTERN type ANY         " target structure or table
       !I_AMOUNT_FORMAT type CHAR2 optional
       !I_DATE_FORMAT type CHAR4 optional
+      i_begin_comment TYPE char1 OPTIONAL
     returning
       value(RO_PARSER) type ref to ZCL_TEXT2TAB_PARSER
     raising
@@ -61,6 +62,7 @@ private section.
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
+  data MV_BEGIN_COMMENT type char1.
 
   class-methods ADOPT_RENAMES
     importing
@@ -178,6 +180,7 @@ private section.
   class-methods BREAK_TO_LINES
     importing
       !I_TEXT type STRING
+      i_begin_comment TYPE char1
     returning
       value(RT_TAB) type STRING_TABLE .
 ENDCLASS.
@@ -266,10 +269,11 @@ method APPLY_CONV_EXIT.
 endmethod.  "apply_conv_exit
 
 
-method BREAK_TO_LINES.
+method break_to_lines.
   data:
-        l_found type i,
-        l_break type string value c_crlf.
+    l_found type i,
+    l_break type string value c_crlf.
+  field-symbols: <line> type string.
 
   " Detect line break
   l_found = find( val = i_text sub = c_crlf ).
@@ -281,6 +285,19 @@ method BREAK_TO_LINES.
   endif.
 
   split i_text at l_break into table rt_tab.
+
+  if i_begin_comment <> space.
+    loop at rt_tab assigning <line>.
+      try.
+          if <line>+0(1) = i_begin_comment.
+            delete rt_tab index sy-tabix.
+          endif.
+        catch cx_sy_range_out_of_bounds.
+          " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+          delete rt_tab index sy-tabix.
+      endtry.
+    endloop.
+  endif.
 
 endmethod.
 
@@ -312,6 +329,8 @@ method CREATE.
     zcl_text2tab_utils=>validate_date_format_spec( i_date_format ).
     ro_parser->mv_date_format = i_date_format.
   endif.
+
+  ro_parser->mv_begin_comment = i_begin_comment.
 
 endmethod.  "create
 
@@ -869,7 +888,7 @@ method PARSE_TYPEFULL.
     raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
   endif.
 
-  lt_data = break_to_lines( i_data ).
+  lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
   " Read and process header line
   if i_has_head = abap_true.
@@ -904,7 +923,7 @@ endmethod.  "parse_typefull
     data lt_map type int4_table.
     field-symbols <f> like line of e_head_fields.
 
-    lt_data = break_to_lines( i_data ).
+    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     parse_head_line(

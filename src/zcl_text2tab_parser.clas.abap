@@ -242,15 +242,7 @@ method APPLY_CONV_EXIT.
   data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
 
   replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
-
-  call function 'FUNCTION_EXISTS'
-    exporting
-      funcname           = l_fm_name
-    exceptions
-      function_not_exist = 1
-      others             = 2.
-
-  if sy-subrc <> 0.
+  if zcl_text2tab_utils=>function_exists( l_fm_name ) = abap_false.
     raise_error( msg = 'Conversion exit not found' code = 'EM' ). "#EC NOTEXT
   endif.
 

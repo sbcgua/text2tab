@@ -7,8 +7,8 @@ class lcl_text2tab_utils_test definition
   private section.
 
 * ==== TESTING ===
-    methods validate_date_format_spec.
-
+    methods validate_date_format_spec for testing.
+    methods function_exists for testing.
 
 endclass.
 
@@ -46,5 +46,21 @@ class lcl_text2tab_utils_test implementation.
     enddo.
 
   endmethod.      "validate_date_format_spec
+
+  method function_exists.
+
+    data lv_act type abap_bool.
+
+    lv_act = zcl_text2tab_utils=>function_exists( 'CONVERSION_EXIT_?????_OUTPUT' ).
+    cl_abap_unit_assert=>assert_equals( act = lv_act exp = abap_false ).
+
+    lv_act = zcl_text2tab_utils=>function_exists( 'CONVERSION_EXIT_ALPHA_OUTPUT' ).
+    cl_abap_unit_assert=>assert_equals( act = lv_act exp = abap_true ).
+
+    " cached
+    lv_act = zcl_text2tab_utils=>function_exists( 'CONVERSION_EXIT_ALPHA_OUTPUT' ).
+    cl_abap_unit_assert=>assert_equals( act = lv_act exp = abap_true ).
+
+  endmethod.
 
 endclass.

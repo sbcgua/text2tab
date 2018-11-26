@@ -89,16 +89,9 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 method apply_conv_exit.
 
   data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_OUTPUT'.
+
   replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
-
-  call function 'FUNCTION_EXISTS'
-    exporting
-      funcname           = l_fm_name
-    exceptions
-      function_not_exist = 1
-      others             = 2.
-
-  if sy-subrc <> 0.
+  if zcl_text2tab_utils=>function_exists( l_fm_name ) = abap_false.
     return.
   endif.
 

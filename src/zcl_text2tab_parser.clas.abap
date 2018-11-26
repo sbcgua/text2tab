@@ -697,8 +697,7 @@ method PARSE_FIELD.
       endif.
 
     when cl_abap_typedescr=>typekind_hex. " Raw
-      describe field e_field length l_len in byte mode.
-      if l_len < strlen( l_unquoted ) / 2 + strlen( l_unquoted ) mod 2. " 2 hex-char per byte
+      if is_component-length < strlen( l_unquoted ) / 2 + strlen( l_unquoted ) mod 2. " 2 hex-char per byte
         raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
       endif.
 

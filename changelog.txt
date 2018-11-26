@@ -8,6 +8,11 @@ Legend
 + : added
 - : removed
 
+v2.2.2, 2018-11-26
+------------------
+! bug fix for data types in exception
++ added an example of DB table backup with serializer - ztext2tab_backup_example
+
 v2.2.1, 2018-11-21
 ------------------
 ! source moved to src subfolder

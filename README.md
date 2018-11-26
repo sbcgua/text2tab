@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/sbcgua/abap_data_parser.svg?branch=master)](https://travis-ci.org/sbcgua/abap_data_parser)
 
 TAB-delimited text parser and serializer for ABAP  
-Version: v2.2.1 ([changelog](./changelog.txt))
+Version: v2.2.2 ([changelog](./changelog.txt))
 
 ## Synopsis
 
@@ -19,6 +19,10 @@ Text2tab is an utility to parse TAB-delimited text into an internal table of an 
 And vice versa - serialize flat table or structure to text.
 
 - support specifying date and amount formats, and line-break symbol
+
+The package also conatains 2 **examples**:
+- `ZTEXT2TAB_EXAMPLE` - simple parsing code
+- `ZTEXT2TAB_BACKUP_EXAMPLE` - example of DB table backup with serializer
 
 ## Installation
 

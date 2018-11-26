@@ -3,7 +3,7 @@
 **********************************************************************
 define test_parse.
   clear ls_dummy.
-  read table lo_struc_descr->components into ls_component with key name = '&1'.
+  read table lt_components into ls_component with key name = '&1'.
   o->parse_field(
     exporting
       is_component = ls_component
@@ -497,10 +497,16 @@ class lcl_text2tab_parser_test implementation.
     data:
           ls_dummy       type ty_dummy,
           lo_struc_descr type ref to cl_abap_structdescr,
-          ls_component   type abap_compdescr,
+          lt_components  type zcl_text2tab_utils=>tt_comp_descr,
+          ls_component   like line of lt_components,
           lx             type ref to zcx_text2tab_error.
 
     lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    try.
+      lt_components = zcl_text2tab_utils=>describe_struct( lo_struc_descr ).
+    catch zcx_text2tab_error.
+      cl_abap_unit_assert=>fail( ).
+    endtry.
 
     " Positive tests ******************************
     test_parse_positive TDATE    '01.02.2015'      '20150201'.
@@ -591,9 +597,12 @@ class lcl_text2tab_parser_test implementation.
 
     " CONV EXITS
     data lv_meins type meins.
-    data ls_comp type abap_compdescr.
-    ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+    data ls_comp like line of lt_components.
     try.
+      clear lx.
+      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+      ls_comp-edit_mask = 'CUNIT'.
+      ls_comp-output_length = 3.
       o->parse_field(
         exporting
           is_component = ls_comp
@@ -607,6 +616,9 @@ class lcl_text2tab_parser_test implementation.
 
     try.
       clear lx.
+      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+      ls_comp-edit_mask = 'CUNIT'.
+      ls_comp-output_length = 3.
       o->parse_field(
         exporting
           is_component = ls_comp
@@ -622,17 +634,6 @@ class lcl_text2tab_parser_test implementation.
   endmethod.       "parse_field
 
   method parse_field_unsupp.
-    data:
-          begin of ls_dummy,
-            struc type ty_dummy,
-            float type float,
-          end of ls_dummy,
-          lo_struc_descr type ref to cl_abap_structdescr,
-          ls_component   type abap_compdescr,
-          lx             type ref to zcx_text2tab_error.
-
-    lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
-    test_parse_negative STRUC '12345' 'UT'.
 
   endmethod.       "parse_field_unsupp
 

@@ -17,7 +17,7 @@ end-of-definition.
 
 define test_field.
   ls_dummy-&1 = &2.
-  read table ld_type->components with key name = '&1' assigning <comp>.
+  read table lt_components with key name = '&1' assigning <comp>.
   l_act = o->serialize_field( i_value = ls_dummy-&1 is_component = <comp> ).
   cl_abap_unit_assert=>assert_equals( act = l_act exp = &3 ).
 end-of-definition.
@@ -170,12 +170,14 @@ class lcl_text2tab_serializer_test implementation.
           ls_dummy  type ty_dummy,
           ld_type   type ref to cl_abap_structdescr.
 
+    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
     data lv_meins type meins.
-    data ls_comp like line of ld_type->components.
+    data ls_comp like line of lt_components.
 
-    field-symbols: <comp> like line of ld_type->components.
+    field-symbols: <comp> like line of lt_components.
 
     ld_type ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
+    lt_components = zcl_text2tab_utils=>describe_struct( ld_type ).
 
     try.
       test_field TFLOAT '1.123456' '1.12346'.
@@ -211,6 +213,7 @@ class lcl_text2tab_serializer_test implementation.
       clear lx.
       lv_meins = '??'.
       ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+      ls_comp-edit_mask = 'CUNIT'.
       l_act = o->serialize_field( i_value = lv_meins is_component = ls_comp ).
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'CF' ).

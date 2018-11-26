@@ -5,6 +5,16 @@ class ZCL_TEXT2TAB_UTILS definition
 
 public section.
 
+  types:
+    begin of ty_comp_descr.
+      include type abap_compdescr.
+      types:
+      edit_mask type abap_editmask,
+      output_length type i,
+    end of ty_comp_descr .
+  types:
+    tt_comp_descr type standard table of ty_comp_descr with default key .
+
   type-pools ABAP .
   class-methods FUNCTION_EXISTS
     importing
@@ -14,6 +24,13 @@ public section.
   class-methods VALIDATE_DATE_FORMAT_SPEC
     importing
       !I_DATE_FORMAT type CHAR4
+    raising
+      ZCX_TEXT2TAB_ERROR .
+  class-methods DESCRIBE_STRUCT
+    importing
+      !ID_STRUC type ref to CL_ABAP_STRUCTDESCR
+    returning
+      value(RT_DESCR) type TT_COMP_DESCR
     raising
       ZCX_TEXT2TAB_ERROR .
 protected section.
@@ -27,6 +44,30 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
+
+
+method describe_struct.
+
+  field-symbols <c> like line of id_struc->components.
+  field-symbols <descr> like line of rt_descr.
+  data lo_ed type ref to cl_abap_elemdescr.
+
+  try.
+    loop at id_struc->components assigning <c>.
+      append initial line to rt_descr assigning <descr>.
+      move-corresponding <c> to <descr>.
+      lo_ed ?= id_struc->get_component_type( <c>-name ).
+      <descr>-output_length = lo_ed->output_length.
+      <descr>-edit_mask     = lo_ed->edit_mask.
+      shift <descr>-edit_mask left deleting leading '='.
+    endloop.
+  catch cx_sy_move_cast_error.
+    zcx_text2tab_error=>raise(
+      msg = 'Structure must be flat'
+      code = 'SF' ).
+  endtry.
+
+endmethod.
 
 
 method FUNCTION_EXISTS.

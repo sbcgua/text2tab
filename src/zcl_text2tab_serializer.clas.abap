@@ -39,9 +39,10 @@ private section.
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
 
+  class ZCL_TEXT2TAB_UTILS definition load .
   methods SERIALIZE_FIELD
     importing
-      !IS_COMPONENT type ABAP_COMPDESCR
+      !IS_COMPONENT type ZCL_TEXT2TAB_UTILS=>TY_COMP_DESCR
       !I_VALUE type ANY
     returning
       value(R_OUT) type STRING
@@ -50,7 +51,7 @@ private section.
   class-methods APPLY_CONV_EXIT
     importing
       !I_IN type ANY
-      !I_CONVEXIT type STRING
+      !I_CONVEXIT type ABAP_EDITMASK
     returning
       value(R_OUT) type STRING
     exceptions
@@ -199,14 +200,18 @@ method serialize_data.
   data lt_fields type string_table.
   data lv_buf type string.
 
-  field-symbols <c>      like line of id_struc->components.
   field-symbols <record> type any.
   field-symbols <field>  type any.
 
+  data lt_components type zcl_text2tab_utils=>tt_comp_descr.
+  field-symbols <c> like line of lt_components.
+  lt_components = zcl_text2tab_utils=>describe_struct( id_struc ).
+
+  " Serialization loop
   loop at i_data assigning <record>.
     mv_line_index = sy-tabix.
     clear lt_fields.
-    loop at id_struc->components assigning <c>.
+    loop at lt_components assigning <c>.
       assign component sy-tabix of structure <record> to <field>.
       mv_current_field = <c>-name.
       lv_buf = serialize_field(
@@ -256,21 +261,18 @@ endmethod.
 
 method serialize_field.
   data:
-        l_tmp type char40,
-        l_mask type string.
+        l_tmp type char40.
 
   case is_component-type_kind.
 
     when cl_abap_typedescr=>typekind_char. " Char + Alpha
-      describe field i_value edit mask l_mask.
-      if l_mask is initial.
+      if is_component-edit_mask is initial.
         r_out = i_value.
       else.
-        shift l_mask left deleting leading '='.
         apply_conv_exit(
           exporting
             i_in       = i_value
-            i_convexit = l_mask
+            i_convexit = is_component-edit_mask
           receiving
             r_out = r_out
           exceptions others = 1 ).

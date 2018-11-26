@@ -62,7 +62,9 @@ private section.
   data MV_CURRENT_FIELD type STRING .
   data MV_LINE_INDEX type SY-TABIX .
   data MV_IS_TYPELESS type ABAP_BOOL .
-  data MV_BEGIN_COMMENT type char1.
+  data MV_BEGIN_COMMENT type CHAR1 .
+  class ZCL_TEXT2TAB_UTILS definition load .
+  data MT_COMPONENTS type ZCL_TEXT2TAB_UTILS=>TT_COMP_DESCR .
 
   class-methods ADOPT_RENAMES
     importing
@@ -142,7 +144,7 @@ private section.
       ZCX_TEXT2TAB_ERROR .
   methods PARSE_FIELD
     importing
-      !IS_COMPONENT type ABAP_COMPDESCR
+      !IS_COMPONENT type ZCL_TEXT2TAB_UTILS=>TY_COMP_DESCR
       !I_VALUE type STRING
     exporting
       !E_FIELD type ANY
@@ -166,7 +168,7 @@ private section.
   methods APPLY_CONV_EXIT
     importing
       !I_VALUE type STRING
-      !I_CONVEXIT type STRING
+      !I_CONVEXIT type ABAP_EDITMASK
     exporting
       !E_FIELD type ANY
     raising
@@ -180,7 +182,7 @@ private section.
   class-methods BREAK_TO_LINES
     importing
       !I_TEXT type STRING
-      i_begin_comment TYPE char1
+      !I_BEGIN_COMMENT type CHAR1
     returning
       value(RT_TAB) type STRING_TABLE .
 ENDCLASS.
@@ -308,6 +310,7 @@ method CREATE.
   create object ro_parser.
 
   ro_parser->mo_struc_descr   = get_safe_struc_descr( i_pattern ).
+  ro_parser->mt_components    = zcl_text2tab_utils=>describe_struct( ro_parser->mo_struc_descr ).
   ro_parser->mv_amount_format = ' ,'.   " Defaults
   ro_parser->mv_date_format   = 'DMY.'. " Defaults
 
@@ -381,7 +384,7 @@ method MAP_HEAD_STRUCTURE.
 
   " Compare number of fields, check structure similarity
   if i_strict = abap_true.
-    read table mo_struc_descr->components with key name = 'MANDT' transporting no fields.
+    read table mt_components with key name = 'MANDT' transporting no fields.
     if sy-subrc is initial. " Found in structure components
       read table et_head_fields with key table_line = 'MANDT' transporting no fields.
       if sy-subrc is not initial. " But not found in the file
@@ -389,7 +392,7 @@ method MAP_HEAD_STRUCTURE.
       endif.
     endif.
 
-    if l_field_cnt + l_mandt_cnt <> lines( mo_struc_descr->components ).
+    if l_field_cnt + l_mandt_cnt <> lines( mt_components ).
       raise_error( msg = 'Different columns number' code = 'CN' ).   "#EC NOTEXT
     endif.
   endif.
@@ -429,7 +432,7 @@ method MAP_HEAD_STRUCTURE.
       raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
     endif.
     if mv_is_typeless = abap_false.
-      read table mo_struc_descr->components with key name = <field> transporting no fields.
+      read table mt_components with key name = <field> transporting no fields.
       if sy-subrc is initial.
         append sy-tabix to et_map.
       else.
@@ -613,8 +616,7 @@ endmethod.  "parse_date
 
 method PARSE_FIELD.
 
-  data: l_mask     type string,
-        l_unquoted type string,
+  data: l_unquoted type string,
         l_len      type i.
 
   clear e_field.
@@ -637,20 +639,17 @@ method PARSE_FIELD.
                   importing  e_field = e_field ).
 
     when cl_abap_typedescr=>typekind_char. " Char + Alpha
-      describe field e_field length l_len in character mode.
-      if l_len < strlen( l_unquoted ).
+      if is_component-output_length < strlen( l_unquoted ).
         raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
       endif.
 
-      describe field e_field edit mask l_mask.
-      if l_mask is initial.
+      if is_component-edit_mask is initial.
         e_field = l_unquoted.
       else.
-        shift l_mask left deleting leading '='.
         me->apply_conv_exit(
           exporting
             i_value    = l_unquoted
-            i_convexit = l_mask
+            i_convexit = is_component-edit_mask
           importing
             e_field    = e_field ).
       endif.
@@ -687,8 +686,7 @@ method PARSE_FIELD.
       e_field = l_unquoted.
 
     when cl_abap_typedescr=>typekind_num. " Numchar
-      describe field e_field length l_len in character mode.
-      if l_len < strlen( l_unquoted ).
+      if is_component-output_length < strlen( l_unquoted ).
         raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
       endif.
 
@@ -807,7 +805,7 @@ method PARSE_LINE.
         lt_fields      type table of string,
         l_tab_cnt      type i,
         l_field_value  type string,
-        ls_component   type abap_compdescr,
+        ls_component   like line of mt_components,
         l_index        type int4.
 
   field-symbols <field> type any.
@@ -828,8 +826,8 @@ method PARSE_LINE.
 
   " Move data to table line
   loop at lt_fields into l_field_value.
-    read table it_map                     into l_index      index sy-tabix. " Read map
-    read table mo_struc_descr->components into ls_component index l_index.  " Get component
+    read table it_map        into l_index      index sy-tabix. " Read map
+    read table mt_components into ls_component index l_index.  " Get component
     if sy-subrc is not initial.
       raise_error( 'No component found?!' ). "#EC NOTEXT
     endif.
@@ -865,7 +863,7 @@ method PARSE_TYPEFULL.
   data:
         lt_data      type string_table,
         lt_map       type int4_table,
-        ls_component type abap_compdescr.
+        ls_component like line of mt_components.
 
   clear: e_container, e_head_fields.
   clear: mv_line_index.
@@ -893,7 +891,7 @@ method PARSE_TYPEFULL.
         ct_head_fields = e_head_fields
         ct_map         = lt_map ).
   else.
-    loop at mo_struc_descr->components into ls_component.
+    loop at mt_components into ls_component.
       append sy-tabix to lt_map.
       append ls_component-name to e_head_fields.
     endloop.
@@ -947,6 +945,7 @@ endmethod.  "parse_typefull
     field-symbols <tab> type any.
     assign e_container->* to <tab>.
     mo_struc_descr = ld_struc. "TODO: hack, maybe improve
+    mt_components = zcl_text2tab_utils=>describe_struct( mo_struc_descr ).
     parse_data(
       exporting
         it_data = lt_data

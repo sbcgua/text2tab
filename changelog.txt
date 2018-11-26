@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.2.3, 2018-11-26
+------------------
+! serialization performance improved ~2x on large datasets (150k lines in test)
+
 v2.2.2, 2018-11-26
 ------------------
 ! bug fix for data types in exception

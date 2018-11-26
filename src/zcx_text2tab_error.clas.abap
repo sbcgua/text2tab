@@ -35,7 +35,7 @@ public section.
       !MSG type STRING
       !CODE type CHAR2 optional
       !LOCATION type STRING optional
-      !METHNAME type CLIKE optional
+      !METHNAME type STRING optional
     raising
       ZCX_TEXT2TAB_ERROR .
 protected section.

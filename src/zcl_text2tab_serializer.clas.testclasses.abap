@@ -177,9 +177,10 @@ class lcl_text2tab_serializer_test implementation.
     field-symbols: <comp> like line of lt_components.
 
     ld_type ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
-    lt_components = zcl_text2tab_utils=>describe_struct( ld_type ).
 
     try.
+      lt_components = zcl_text2tab_utils=>describe_struct( ld_type ).
+
       test_field TFLOAT '1.123456' '1.12346'.
       test_field TFLOAT '1.00'     '1'.
       test_field TFLOAT '1.10'     '1.1'.

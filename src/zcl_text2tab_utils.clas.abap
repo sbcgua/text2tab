@@ -63,7 +63,7 @@ method describe_struct.
     endloop.
   catch cx_sy_move_cast_error.
     zcx_text2tab_error=>raise(
-      msg = 'Structure must be flat'
+      msg = 'Structure must be flat' "#EC NOTEXT
       code = 'SF' ).
   endtry.
 

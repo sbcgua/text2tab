@@ -261,7 +261,7 @@ endmethod.  " constructor.
 method delete.
   mo_zip->delete( exporting name = iv_filename exceptions others = 4 ).
   if sy-subrc is not initial.
-    zcx_w3mime_error=>raise( 'delete failed' ).
+    zcx_w3mime_error=>raise( 'delete failed' ). "#EC NOTEXT
   endif.
   mv_is_dirty = abap_true.
 endmethod.
@@ -356,7 +356,7 @@ class lcl_app implementation.
 
   method save_t000.
     data lt_data type standard table of t000.
-    write: / 'Backing up t000 ...'.
+    write: / 'Backing up t000 ...'. "#EC NOTEXT
     select * from t000 into table lt_data.
     pile_data(
       iv_name = 't000.txt'
@@ -366,7 +366,7 @@ class lcl_app implementation.
   method run.
 
     save_t000( ).
-    write: / 'Archiving ...'.
+    write: / 'Archiving ...'. "#EC NOTEXT
 
     data lv_xdata type xstring.
     lv_xdata = mo_zipw->get_blob( ).
@@ -381,8 +381,8 @@ class lcl_app implementation.
     cl_gui_frontend_services=>directory_get_current( changing current_directory = lv_workdir_name ).
     cl_gui_cfw=>flush( ).
 
-    write: / 'Current dir:', lv_workdir_name.
-    write: / 'Done. File saved to:' color 5, lv_filename.
+    write: / 'Current dir:', lv_workdir_name. "#EC NOTEXT
+    write: / 'Done. File saved to:' color 5, lv_filename. "#EC NOTEXT
 
   endmethod.
 
@@ -399,10 +399,10 @@ form main.
   " Ensure right version of text2tab
   data lv_required_text2tab_ver type string value 'v2.1.1'.
   if zcl_text2tab_parser=>check_version_fits( lv_required_text2tab_ver ) = abap_false.
-    write: / 'Error: text2tab version is lower than required' color 6.
-    write: / 'Required is:', lv_required_text2tab_ver.
-    write: / 'Installed is:', zcl_text2tab_parser=>version.
-    write: / 'Please upgrade text2tab'.
+    write: / 'Error: text2tab version is lower than required' color 6. "#EC NOTEXT
+    write: / 'Required is:', lv_required_text2tab_ver. "#EC NOTEXT
+    write: / 'Installed is:', zcl_text2tab_parser=>version. "#EC NOTEXT
+    write: / 'Please upgrade text2tab'. "#EC NOTEXT
     return.
   endif.
 
@@ -412,7 +412,7 @@ form main.
   catch cx_root into lx.
     data msg type string.
     msg = lx->get_text( ).
-    write: / 'Error:' color 6, msg.
+    write: / 'Error:' color 6, msg. "#EC NOTEXT
   endtry.
 
 endform.

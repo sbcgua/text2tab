@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/sbcgua/abap_data_parser.svg?branch=master)](https://travis-ci.org/sbcgua/abap_data_parser)
 
 TAB-delimited text parser and serializer for ABAP  
-Version: v2.2.3 ([changelog](./changelog.txt))
+Version: v2.2.4 ([changelog](./changelog.txt))
 
 ## Synopsis
 
@@ -12,7 +12,7 @@ Text2tab is an utility to parse TAB-delimited text into an internal table of an 
 - support "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
 - supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order.
 - supports loading into a structure (the first data line of the text is parsed). 
-- support *typeless* parsing, when the data is not checked against existing structure but dynamically creteas a table with string fields.
+- support *typeless* parsing, when the data is not checked against existing structure but dynamically create as a table with string fields.
 - support specifying date and amount formats
 - support on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
 
@@ -20,7 +20,7 @@ And vice versa - serialize flat table or structure to text.
 
 - support specifying date and amount formats, and line-break symbol
 
-The package also conatains 2 **examples**:
+The package also contains 2 **examples**:
 - `ZTEXT2TAB_EXAMPLE` - simple parsing code
 - `ZTEXT2TAB_BACKUP_EXAMPLE` - example of DB table backup with serializer
 
@@ -28,7 +28,7 @@ The package also conatains 2 **examples**:
 
 You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool (recommended way). Alternatively, you can also copy content of `*.clas.abap` to your program (please keep the homepage reference and license text).
 
-The tool is open source and distributed under MIT license. It was initially created as a part of another project - [mockup loader](https://github.com/sbcgua/mockup_loader) - but then separated as an independent multiusage tool.
+The tool is open source and distributed under MIT license. It was initially created as a part of another project - [mockup loader](https://github.com/sbcgua/mockup_loader) - but then separated as an independent multi-usage tool.
 
 ## Example of usage
 
@@ -112,7 +112,7 @@ zcl_text2tab_parser=>create( lt_container )->parse(
 * JOHN  02.02.1995
 ```
 
-Renames can be also passed as a string in this format: `'field_to_rename:new_name;another_field:another_new_name'`. Coding conveniense is important ;)
+Renames can be also passed as a string in this format: `'field_to_rename:new_name;another_field:another_new_name'`. Coding convenience is important ;)
 
 ```abap
 zcl_text2tab_parser=>create( lt_container )->parse(
@@ -208,7 +208,7 @@ This is supported in parser only at the moment. Serializer does not produce many
 
 ## Checking version
 
-`zcl_text2tab_parser` has the `version` attribute. And there is an util method `check_version_fits` to check if the text2tab package has the minimal required version.
+`zif_text2tab_constants` has the `version` attribute. And there is a helper method `check_version_fits` to check if the text2tab package has the minimal required version.
 
 ```abap
 * Assuming version is 2.1.0

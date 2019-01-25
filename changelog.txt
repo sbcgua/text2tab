@@ -1,5 +1,5 @@
-Abap data changelog
-=======================
+Text2tab changelog
+==================
 
 Legend
 ------
@@ -8,9 +8,14 @@ Legend
 + : added
 - : removed
 
+v2.2.4, 2019-01-25
+------------------
+! `version` constant moved to zif_text2tab_constants
+! utils=>check_version_fits - used internally, but also can be used to check 2 versions in vX.X.X format
+
 v2.2.3, 2018-11-26
 ------------------
-! serialization performance improved ~2x on large datasets (150k lines in test)
+! serialization performance improved ~2x on large data sets (150k lines in test)
 
 v2.2.2, 2018-11-26
 ------------------
@@ -29,10 +34,10 @@ v2.2.0, 2018-11-09
 v2.1.0, 2018-11-08
 ------------------
 + field name mapping feature (rename fields on-the-fly)
-! more generic data types (thanks to odjhey)
-! fieldname charset validation
+! more generic data types (thanks to @odjhey)
+! field name charset validation
 ! fixed date serialization (empty date translated to "  .  .    ")
-! improved conv exit error handling
+! improved conv_exit error handling
 
 v2.0.0-beta, 2018-09-02
 ------------------
@@ -56,4 +61,4 @@ v1.1.0, 2016-08-21
 
 v1.0.0
 ------------------
-+ first public realease as an independent lib (before was a part of mockup_loader)
++ first public release as an independent lib (before was a part of mockup_loader)

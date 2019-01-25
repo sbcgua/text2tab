@@ -128,7 +128,6 @@ class lcl_text2tab_parser_test definition for testing
 
     methods parse_typeless for testing.
     methods with_renames for testing.
-    methods check_version_fits for testing.
     methods adopt_renames for testing.
 
 * ==== HELPERS ===
@@ -1083,37 +1082,6 @@ class lcl_text2tab_parser_test implementation.
       act = lo_st_act->get_components( )
       exp = lo_st_exp->get_components( ) ).
 
-  endmethod.
-
-  method check_version_fits.
-    cl_abap_unit_assert=>assert_true(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v2.2.2' ) ).
-    cl_abap_unit_assert=>assert_true(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v2.1.2' ) ).
-    cl_abap_unit_assert=>assert_true(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v1.0.0' ) ).
-    cl_abap_unit_assert=>assert_false(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v2.2.3' ) ).
-    cl_abap_unit_assert=>assert_false(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v2.2.30' ) ).
-    cl_abap_unit_assert=>assert_false(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v2.3.1' ) ).
-    cl_abap_unit_assert=>assert_false(
-      zcl_text2tab_parser=>_check_version_fits(
-        i_current_version = 'v2.2.2'
-        i_required_version = 'v3.0.0' ) ).
   endmethod.
 
   method adopt_renames.

@@ -33,6 +33,13 @@ public section.
       value(RT_DESCR) type TT_COMP_DESCR
     raising
       ZCX_TEXT2TAB_ERROR .
+  class-methods CHECK_VERSION_FITS
+    importing
+      !I_REQUIRED_VERSION type STRING
+      !I_CURRENT_VERSION type STRING
+    returning
+      value(R_FITS) type ABAP_BOOL .
+
 protected section.
 private section.
   types:
@@ -44,6 +51,38 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
+
+
+method CHECK_VERSION_FITS.
+
+  types:
+    begin of ty_version,
+      major type numc4,
+      minor type numc4,
+      patch type numc4,
+    end of ty_version.
+
+  data ls_cur_ver type ty_version.
+  data ls_req_ver type ty_version.
+  data lv_buf type string.
+
+  lv_buf = i_current_version.
+  shift lv_buf left deleting leading 'v'.
+  split lv_buf at '.' into ls_cur_ver-major ls_cur_ver-minor ls_cur_ver-patch.
+
+  lv_buf = i_required_version.
+  shift lv_buf left deleting leading 'v'.
+  split lv_buf at '.' into ls_req_ver-major ls_req_ver-minor ls_req_ver-patch.
+
+  if ls_req_ver-major <= ls_cur_ver-major.
+    if ls_req_ver-minor <= ls_cur_ver-minor.
+      if ls_req_ver-patch <= ls_cur_ver-patch.
+        r_fits = abap_true.
+      endif.
+    endif.
+  endif.
+
+endmethod.
 
 
 method describe_struct.

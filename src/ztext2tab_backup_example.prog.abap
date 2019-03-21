@@ -401,7 +401,7 @@ form main.
   if zcl_text2tab_parser=>check_version_fits( lv_required_text2tab_ver ) = abap_false.
     write: / 'Error: text2tab version is lower than required' color 6. "#EC NOTEXT
     write: / 'Required is:', lv_required_text2tab_ver. "#EC NOTEXT
-    write: / 'Installed is:', zcl_text2tab_parser=>version. "#EC NOTEXT
+    write: / 'Installed is:', zif_text2tab_constants=>version. "#EC NOTEXT
     write: / 'Please upgrade text2tab'. "#EC NOTEXT
     return.
   endif.

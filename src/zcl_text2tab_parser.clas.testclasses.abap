@@ -110,6 +110,20 @@ class lcl_text2tab_parser_test definition for testing
       end of ty_dummy_with_nonflat.
 
 
+    types:
+      begin of ty_deep_sub,
+        id  type i,
+        sub type string,
+      end of ty_deep_sub,
+      tt_deep_sub type standard table of ty_deep_sub with key id,
+      begin of ty_deep,
+        field1     type i,
+        field2     type i,
+        deep_struc type ty_deep_sub,
+        deep_tab   type tt_deep_sub,
+      end of ty_deep,
+      tt_deep     type standard table of ty_deep with key field1.
+
 * ================
   private section.
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
@@ -139,6 +153,8 @@ class lcl_text2tab_parser_test definition for testing
     methods parse_typeless for testing.
     methods with_renames for testing.
     methods adopt_renames for testing.
+
+    methods deep_structures for testing.
 
 * ==== HELPERS ===
 
@@ -1204,6 +1220,94 @@ class lcl_text2tab_parser_test implementation.
     ls_exp-tdate = '20190101'.
     ls_exp-tchar = 'AAA'.
     cl_abap_unit_assert=>assert_equals( act = ls_dummy exp = ls_exp ).
+
+  endmethod.
+
+  method deep_structures.
+
+    data lx type ref to zcx_text2tab_error.
+    data lt_exp type tt_deep.
+    data lt_sub type tt_deep_sub.
+    data l_input type string.
+    data lt_header_exp type standard table of string.
+
+    field-symbols <i> like line of lt_exp.
+    field-symbols <j> like line of <i>-deep_tab.
+
+    " Fill expected data
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 1.
+    <i>-field2         = 111.
+    <i>-deep_struc-id  = 111.
+    <i>-deep_struc-sub = 'Ones'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'Ones'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'One one one'.
+
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 2.
+    <i>-field2         = 222.
+    <i>-deep_struc-id  = 222.
+    <i>-deep_struc-sub = 'Twos'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 222.
+    <j>-sub = 'Twos'.
+
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 3.
+    <i>-field2         = 333.
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 4.
+    <i>-field2         = 444.
+
+    " Sub
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'Ones'.
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'One one one'.
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 222.
+    <j>-sub = 'Twos'.
+
+    " Header
+    append 'FIELD1' to lt_header_exp.
+    append 'FIELD2' to lt_header_exp.
+    append 'DEEP_STRUC' to lt_header_exp.
+    append 'DEEP_TAB' to lt_header_exp.
+
+    " Input
+    l_input = 'FIELD1\tFIELD2\tDEEP_STRUC\tDEEP_TAB\n'
+            && '1\t111\t@ext[id=@field1]\t@ext[id=@field1]\n'   " Test ref to field in current tab
+            && '2\t222\t@ext[id=222]\t@ext[id=222]\n'           " Test fixed value
+            && '3\t333\t@ext[id=@field1]\t@ext[id=@field1]\n'   " Test empty ext source
+            && '3\t333\t\t\n'.                                  " Test empty ref
+    replace all occurrences of '\t' in l_input with c_tab.
+    replace all occurrences of '\n' in l_input with c_lf.
+
+    " Run
+
+    data lt_act type tt_deep.
+    data lt_header_act  type standard table of string.
+
+    try.
+      o = zcl_text2tab_parser=>create( lt_exp ).
+      o->parse(
+        exporting
+          i_data        = l_input
+          "ii_deep_supplier TODO
+        importing
+          e_container   = lt_act
+          e_head_fields = lt_header_act ).
+      cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
 
   endmethod.
 

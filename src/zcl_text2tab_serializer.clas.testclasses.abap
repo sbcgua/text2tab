@@ -185,6 +185,7 @@ class lcl_text2tab_serializer_test implementation.
       test_field TFLOAT '1.00'     '1'.
       test_field TFLOAT '1.10'     '1.1'.
       test_field TFLOAT '1231.10'  '1231.1'.
+      test_field TFLOAT '-1231.10' '-1231.1'.
 
       o->mv_decimal_sep = ','.
       test_field TFLOAT '1.10'     '1,1'.
@@ -192,6 +193,7 @@ class lcl_text2tab_serializer_test implementation.
       test_field TFLOAT '1.123456' '1,123'.
 
       test_field TDECIMAL  '1.12'       '1,12'.
+      test_field TDECIMAL  '-1.12'      '-1,12'.
       test_field TDECIMAL  '1111.12'    '1111,12'.
       test_field TALPHA    '0000100000' '100000'.
       test_field TINTEGER  3333         '3333'.

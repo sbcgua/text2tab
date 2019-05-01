@@ -301,6 +301,10 @@ method serialize_field.
       if mv_decimal_sep <> '.'.
         replace first occurrence of '.' in l_tmp with mv_decimal_sep.
       endif.
+      replace first occurrence of '-' in l_tmp with ''.
+      if sy-subrc = 0.
+        concatenate '-' l_tmp into l_tmp.
+      endif.
       r_out = l_tmp.
 
     when cl_abap_typedescr=>typekind_float. " Float

@@ -67,7 +67,7 @@ end-of-definition.
 * Test Class definition
 **********************************************************************
 
-class lcl_text2tab_parser_test definition for testing
+class ltcl_text2tab_parser_test definition for testing
   final risk level harmless duration short.
 
 * ================
@@ -170,15 +170,36 @@ class lcl_text2tab_parser_test definition for testing
         e_dummy_string type string
         e_map          type int4_table.
 
-endclass.       "lcl_test_data_parser
+endclass.
 
-class zcl_text2tab_parser definition local friends lcl_text2tab_parser_test.
+class zcl_text2tab_parser definition local friends ltcl_text2tab_parser_test.
+
+class lcl_deep_helper definition final for testing.
+  public section.
+    interfaces zif_text2tab_deep_provider.
+    methods constructor
+      importing
+        tab type ltcl_text2tab_parser_test=>tt_deep_sub.
+    data mt_tab type ltcl_text2tab_parser_test=>tt_deep_sub.
+endclass.
+
+class lcl_deep_helper implementation.
+
+  method constructor.
+    mt_tab = tab.
+  endmethod.
+
+  method zif_text2tab_deep_provider~select.
+  endmethod.
+
+endclass.
+
 
 **********************************************************************
 * Implementation
 **********************************************************************
 
-class lcl_text2tab_parser_test implementation.
+class ltcl_text2tab_parser_test implementation.
 
   method setup.
     o = zcl_text2tab_parser=>create( c_dummy ).

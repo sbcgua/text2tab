@@ -168,7 +168,7 @@ private section.
   methods RAISE_ERROR
     importing
       !MSG type STRING
-      !CODE type CHAR2 optional
+      !CODE type zcx_text2tab_error=>ty_rc optional
     raising
       ZCX_TEXT2TAB_ERROR .
   class-methods BREAK_TO_LINES
@@ -977,10 +977,13 @@ method RAISE_ERROR.
 
   raise exception type zcx_text2tab_error
     exporting
-      methname = |{ sys_call-eventname }|
-      msg      = msg
-      code     = code
-      location = l_location.
+      methname  = |{ sys_call-eventname }|
+      msg       = msg
+      code      = code
+      field     = mv_current_field
+      line      = mv_line_index
+      structure = l_struc
+      location  = l_location.
 
 endmethod.  "raise_error
 ENDCLASS.

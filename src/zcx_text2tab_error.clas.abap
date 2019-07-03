@@ -8,6 +8,9 @@ public section.
 
   interfaces IF_T100_MESSAGE .
 
+  types:
+    TY_RC type c length 2 .
+
   constants:
     begin of ZCX_TEXT2TAB_ERROR,
       msgid type symsgid value 'SY',
@@ -19,8 +22,11 @@ public section.
     end of ZCX_TEXT2TAB_ERROR .
   data METHNAME type STRING read-only .
   data MSG type STRING read-only .
-  data CODE type CHAR2 read-only .
+  data CODE type TY_RC read-only .
   data LOCATION type STRING read-only .
+  data LINE type I read-only .
+  data FIELD type STRING read-only .
+  data STRUCTURE type STRING read-only .
 
   methods CONSTRUCTOR
     importing
@@ -28,14 +34,20 @@ public section.
       !PREVIOUS like PREVIOUS optional
       !METHNAME type STRING optional
       !MSG type STRING optional
-      !CODE type CHAR2 optional
-      !LOCATION type STRING optional .
+      !CODE type TY_RC optional
+      !LOCATION type STRING optional
+      !LINE type I optional
+      !FIELD type STRING optional
+      !STRUCTURE type STRING optional .
   class-methods RAISE
     importing
       !MSG type STRING
-      !CODE type CHAR2 optional
+      !CODE type TY_RC optional
       !LOCATION type STRING optional
       !METHNAME type STRING optional
+      !LINE type I optional
+      !FIELD type STRING optional
+      !STRUCTURE type STRING optional
     raising
       ZCX_TEXT2TAB_ERROR .
 protected section.
@@ -47,7 +59,7 @@ ENDCLASS.
 CLASS ZCX_TEXT2TAB_ERROR IMPLEMENTATION.
 
 
-method CONSTRUCTOR ##ADT_SUPPRESS_GENERATION.
+method CONSTRUCTOR.
 CALL METHOD SUPER->CONSTRUCTOR
 EXPORTING
 PREVIOUS = PREVIOUS
@@ -56,6 +68,9 @@ me->METHNAME = METHNAME .
 me->MSG = MSG .
 me->CODE = CODE .
 me->LOCATION = LOCATION .
+me->LINE = LINE .
+me->FIELD = FIELD .
+me->STRUCTURE = STRUCTURE .
 clear me->textid.
 if textid is initial.
   IF_T100_MESSAGE~T100KEY = ZCX_TEXT2TAB_ERROR .
@@ -71,6 +86,9 @@ METHOD raise.
       msg  = msg
       code = code
       methname = methname
+      line = line
+      field = field
+      structure = structure
       location = location.
 ENDMETHOD.
 ENDCLASS.

@@ -7,8 +7,17 @@ class zcl_text2tab_parser definition
     type-pools abap .
 
     types:
+      ty_amount_format type c length 2.
+    types:
+      ty_date_format type c length 4.
+    types:
+      ty_begin_comment type c length 1.
+    types:
+      tt_field_map type standard table of i with default key.
+
+    types:
       begin of ty_field_name_map,
-        from type char40,
+        from type string,
         to   type abap_compname,
       end of ty_field_name_map .
     types:
@@ -23,9 +32,9 @@ class zcl_text2tab_parser definition
     class-methods create
       importing
         !i_pattern type any         " target structure or table
-        !i_amount_format type char2 optional
-        !i_date_format type char4 optional
-        !i_begin_comment type char1 optional
+        !i_amount_format type ty_amount_format optional
+        !i_date_format type ty_date_format optional
+        !i_begin_comment type ty_begin_comment optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
@@ -54,13 +63,13 @@ class zcl_text2tab_parser definition
   protected section.
   private section.
 
-    data mv_amount_format type char2 .
-    data mv_date_format type char4 .
+    data mv_amount_format type ty_amount_format .
+    data mv_date_format type ty_date_format .
     data mo_struc_descr type ref to cl_abap_structdescr .
     data mv_current_field type string .
-    data mv_line_index type sy-tabix .
+    data mv_line_index type i .
     data mv_is_typeless type abap_bool .
-    data mv_begin_comment type char1 .
+    data mv_begin_comment type ty_begin_comment .
     class zcl_text2tab_utils definition load .
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
 
@@ -97,7 +106,7 @@ class zcl_text2tab_parser definition
         !i_rename_map type th_field_name_map
       changing
         !ct_data type string_table
-        !ct_map type int4_table
+        !ct_map type tt_field_map
         !ct_head_fields type string_table
       raising
         zcx_text2tab_error .
@@ -114,14 +123,14 @@ class zcl_text2tab_parser definition
         !i_strict type abap_bool
         !i_rename_map type th_field_name_map
       exporting
-        !et_map type int4_table
+        !et_map type tt_field_map
         !et_head_fields type string_table
       raising
         zcx_text2tab_error .
     methods parse_data
       importing
         !it_data type string_table
-        !it_map type int4_table
+        !it_map type tt_field_map
       exporting
         !e_container type any
       raising
@@ -129,7 +138,7 @@ class zcl_text2tab_parser definition
     methods parse_line
       importing
         !i_dataline type string
-        !it_map type int4_table
+        !it_map type tt_field_map
       exporting
         !es_container type any
       raising
@@ -174,7 +183,7 @@ class zcl_text2tab_parser definition
     class-methods break_to_lines
       importing
         !i_text type string
-        !i_begin_comment type char1
+        !i_begin_comment type ty_begin_comment
       returning
         value(rt_tab) type string_table .
 ENDCLASS.
@@ -528,9 +537,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_offs    type i,
           l_home    type i,
           l_pad     type i,
-          l_stencil type numc4,
-          l_rawdate type char8,
-          l_charset type char11 value '0123456789',
+          l_stencil type n length 4,
+          l_rawdate type c length 8,
+          l_charset type c length 11 value '0123456789',
           l_sep     type c.
 
     clear e_field.
@@ -797,7 +806,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_tab_cnt      type i,
           l_field_value  type string,
           ls_component   like line of mt_components,
-          l_index        type int4.
+          l_index        type i.
 
     field-symbols <field> type any.
 
@@ -853,7 +862,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     data:
           lt_data      type string_table,
-          lt_map       type int4_table,
+          lt_map       type tt_field_map,
           ls_component like line of mt_components.
 
     clear: e_container, e_head_fields.
@@ -901,7 +910,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse_typeless.
     data lt_data type string_table.
-    data lt_map type int4_table.
+    data lt_map type tt_field_map.
     field-symbols <f> like line of e_head_fields.
 
     lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).

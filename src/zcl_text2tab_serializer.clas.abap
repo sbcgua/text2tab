@@ -5,6 +5,9 @@ class zcl_text2tab_serializer definition
 
   public section.
 
+    types:
+      ty_decimal_sep type c length 1.
+
     type-pools abap .
     class cl_abap_char_utilities definition load .
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
@@ -20,8 +23,8 @@ class zcl_text2tab_serializer definition
         zcx_text2tab_error .
     class-methods create
       importing
-        !i_decimal_sep type char1 optional
-        !i_date_format type char4 optional
+        !i_decimal_sep type ty_decimal_sep optional
+        !i_date_format type zcl_text2tab_parser=>ty_date_format optional
         !i_max_frac_digits type i optional
         !i_use_lf type abap_bool default abap_false
       returning
@@ -31,12 +34,12 @@ class zcl_text2tab_serializer definition
   protected section.
   private section.
 
-    data mv_decimal_sep type char1 .
-    data mv_date_format type char4 .
+    data mv_decimal_sep type ty_decimal_sep .
+    data mv_date_format type zcl_text2tab_parser=>ty_date_format .
     data mv_line_sep type string .
     data mv_max_frac_digits type i .
     data mv_current_field type string .
-    data mv_line_index type sy-tabix .
+    data mv_line_index type i .
 
     class zcl_text2tab_utils definition load .
     methods serialize_field
@@ -58,7 +61,7 @@ class zcl_text2tab_serializer definition
     class-methods serialize_date
       importing
         !i_date type datum
-        !iv_date_format type char4
+        !iv_date_format type zcl_text2tab_parser=>ty_date_format
       returning
         value(r_out) type string .
     class-methods validate_components
@@ -95,7 +98,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       return.
     endif.
 
-    data l_tmp type char40. " Potential bug, but string is padded at the end
+    data l_tmp type c length 40. " Potential bug, but string is padded at the end
     call function l_fm_name
       exporting
         input  = i_in
@@ -260,7 +263,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
   method serialize_field.
     data:
-          l_tmp type char40.
+          l_tmp type c length 40.
 
     case is_component-type_kind.
 

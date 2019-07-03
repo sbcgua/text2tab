@@ -23,7 +23,7 @@ class ZCL_TEXT2TAB_UTILS definition
         value(r_yes) type abap_bool .
     class-methods validate_date_format_spec
       importing
-        !i_date_format type char4
+        !i_date_format type zcl_text2tab_parser=>ty_date_format
       raising
         zcx_text2tab_error .
     class-methods describe_struct
@@ -57,9 +57,9 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
     types:
       begin of ty_version,
-        major type numc4,
-        minor type numc4,
-        patch type numc4,
+        major type n length 4,
+        minor type n length 4,
+        patch type n length 4,
       end of ty_version.
 
     data ls_cur_ver type ty_version.

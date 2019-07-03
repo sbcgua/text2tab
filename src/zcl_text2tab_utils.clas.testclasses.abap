@@ -9,7 +9,8 @@ class lcl_text2tab_utils_test definition
 * ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
-    methods describe_struct for testing.
+    methods describe_struct for testing raising zcx_text2tab_error.
+    methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
 
 endclass.
@@ -19,7 +20,6 @@ endclass.
 **********************************************************************
 
 class lcl_text2tab_utils_test implementation.
-
 
   method validate_date_format_spec.
     data:
@@ -38,13 +38,12 @@ class lcl_text2tab_utils_test implementation.
           lv_date_format = 'DMM-'.
       endcase.
 
-      clear lx.
       try.
         zcl_text2tab_utils=>validate_date_format_spec( lv_date_format ).
+        cl_abap_unit_assert=>fail( ).
       catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'UD' ). " Unsupported date format
       endtry.
-      cl_abap_unit_assert=>assert_not_initial( act = lx ).
     enddo.
 
   endmethod.      "validate_date_format_spec
@@ -78,12 +77,8 @@ class lcl_text2tab_utils_test implementation.
     data lx type ref to zcx_text2tab_error.
     field-symbols <c> like line of lt_descr.
 
-    try.
-      ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
-      lt_descr = zcl_text2tab_utils=>describe_struct( ld_struc ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( ).
-    endtry.
+    ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    lt_descr = zcl_text2tab_utils=>describe_struct( i_struc = ld_struc i_ignore_nonflat = abap_false ).
 
     cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 1 ).
     read table lt_descr assigning <c> index 1.
@@ -91,6 +86,7 @@ class lcl_text2tab_utils_test implementation.
     cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = 'ALPHA' ).
     cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 10 ).
 
+    " Test 2: fail on non-flat components
     types:
       begin of lty_dummy2,
         tstruc type lty_dummy,
@@ -99,11 +95,43 @@ class lcl_text2tab_utils_test implementation.
 
     try.
       ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy2 ).
-      lt_descr = zcl_text2tab_utils=>describe_struct( ld_struc ).
+      lt_descr = zcl_text2tab_utils=>describe_struct( i_struc = ld_struc i_ignore_nonflat = abap_false ).
+      cl_abap_unit_assert=>fail( ).
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'SF' ).
     endtry.
-    cl_abap_unit_assert=>assert_not_initial( lx ).
+
+  endmethod.
+
+  method describe_struct_ignoring.
+
+    types:
+      begin of lty_dummy,
+        talpha type veri_alpha,
+        tstruc type abap_compdescr, " Deep
+      end of lty_dummy.
+
+    data ld_struc type ref to cl_abap_structdescr.
+    data ls_dummy type lty_dummy.
+    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    field-symbols <c> like line of lt_descr.
+
+    ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    lt_descr = zcl_text2tab_utils=>describe_struct( i_struc = ld_struc i_ignore_nonflat = abap_true ).
+
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 2 ).
+
+    read table lt_descr assigning <c> index 1.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = 'ALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 10 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_false ).
+
+    read table lt_descr assigning <c> index 2.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TSTRUC' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = '' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_true ).
 
   endmethod.
 

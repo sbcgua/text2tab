@@ -11,6 +11,7 @@ class ZCL_TEXT2TAB_UTILS definition
         types:
         edit_mask type abap_editmask,
         output_length type i,
+        ignore type abap_bool,
       end of ty_comp_descr .
     types:
       tt_comp_descr type standard table of ty_comp_descr with default key .
@@ -28,7 +29,8 @@ class ZCL_TEXT2TAB_UTILS definition
         zcx_text2tab_error .
     class-methods describe_struct
       importing
-        !id_struc type ref to cl_abap_structdescr
+        !i_struc type ref to cl_abap_structdescr
+        !i_ignore_nonflat type abap_bool
       returning
         value(rt_descr) type tt_comp_descr
       raising
@@ -87,24 +89,28 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method describe_struct.
 
-    field-symbols <c> like line of id_struc->components.
+    field-symbols <c> like line of i_struc->components.
     field-symbols <descr> like line of rt_descr.
-    data lo_ed type ref to cl_abap_elemdescr.
+    data lo_data    type ref to cl_abap_datadescr.
+    data lo_element type ref to cl_abap_elemdescr.
 
-    try.
-      loop at id_struc->components assigning <c>.
-        append initial line to rt_descr assigning <descr>.
-        move-corresponding <c> to <descr>.
-        lo_ed ?= id_struc->get_component_type( <c>-name ).
-        <descr>-output_length = lo_ed->output_length.
-        <descr>-edit_mask     = lo_ed->edit_mask.
+    loop at i_struc->components assigning <c>.
+      append initial line to rt_descr assigning <descr>.
+      move-corresponding <c> to <descr>.
+      lo_data = i_struc->get_component_type( <c>-name ).
+      if lo_data->kind = cl_abap_typedescr=>kind_elem.
+        lo_element ?= lo_data.
+        <descr>-output_length = lo_element->output_length.
+        <descr>-edit_mask     = lo_element->edit_mask.
         shift <descr>-edit_mask left deleting leading '='.
-      endloop.
-    catch cx_sy_move_cast_error.
-      zcx_text2tab_error=>raise(
-        msg = 'Structure must be flat' "#EC NOTEXT
-        code = 'SF' ).
-    endtry.
+      elseif i_ignore_nonflat = abap_true.
+        <descr>-ignore = abap_true.
+      else.
+        zcx_text2tab_error=>raise(
+          msg = 'Structure must be flat' "#EC NOTEXT
+          code = 'SF' ).
+      endif.
+    endloop.
 
   endmethod.
 

@@ -32,9 +32,10 @@ class zcl_text2tab_parser definition
     class-methods create
       importing
         !i_pattern type any         " target structure or table
-        !i_amount_format type ty_amount_format optional
-        !i_date_format type ty_date_format optional
-        !i_begin_comment type ty_begin_comment optional
+        !i_ignore_nonflat type abap_bool default abap_false
+        !i_amount_format  type ty_amount_format optional
+        !i_date_format    type ty_date_format optional
+        !i_begin_comment  type ty_begin_comment optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
@@ -64,6 +65,7 @@ class zcl_text2tab_parser definition
   private section.
 
     data mv_amount_format type ty_amount_format .
+    data mv_ignore_nonflat type abap_bool .
     data mv_date_format type ty_date_format .
     data mo_struc_descr type ref to cl_abap_structdescr .
     data mv_current_field type string .
@@ -310,10 +312,13 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     create object ro_parser.
 
-    ro_parser->mo_struc_descr   = get_safe_struc_descr( i_pattern ).
-    ro_parser->mt_components    = zcl_text2tab_utils=>describe_struct( ro_parser->mo_struc_descr ).
-    ro_parser->mv_amount_format = ' ,'.   " Defaults
-    ro_parser->mv_date_format   = 'DMY.'. " Defaults
+    ro_parser->mv_amount_format  = ' ,'.   " Defaults
+    ro_parser->mv_date_format    = 'DMY.'. " Defaults
+    ro_parser->mv_ignore_nonflat = i_ignore_nonflat.
+    ro_parser->mo_struc_descr    = get_safe_struc_descr( i_pattern ).
+    ro_parser->mt_components     = zcl_text2tab_utils=>describe_struct(
+      i_struc          = ro_parser->mo_struc_descr
+      i_ignore_nonflat = i_ignore_nonflat ).
 
     " Not empty param and not empty decimal separator
     if not ( i_amount_format is initial or i_amount_format+1(1) is initial ).
@@ -424,6 +429,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     " Compare columns names and make map
+    field-symbols <component> like line of mt_components.
     loop at et_head_fields assigning <field>.
       if <field> is initial. " Check empty fields
         raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
@@ -433,9 +439,13 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
       endif.
       if mv_is_typeless = abap_false.
-        read table mt_components with key name = <field> transporting no fields.
+        read table mt_components with key name = <field> assigning <component>.
         if sy-subrc is initial.
-          append sy-tabix to et_map.
+          if <component>-ignore = abap_false.
+            append sy-tabix to et_map.
+          else.
+            raise_error( msg = |Cannot map to ignored field { <field> }| code = 'IG' ). "#EC NOTEXT
+          endif.
         else.
           raise_error( msg = |Field { <field> } not found in structure| code = 'MC' ). "#EC NOTEXT
         endif.
@@ -945,7 +955,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     field-symbols <tab> type any.
     assign e_container->* to <tab>.
     mo_struc_descr = ld_struc. "TODO: hack, maybe improve
-    mt_components = zcl_text2tab_utils=>describe_struct( mo_struc_descr ).
+    mt_components = zcl_text2tab_utils=>describe_struct( i_struc = mo_struc_descr i_ignore_nonflat = abap_false ).
     parse_data(
       exporting
         it_data = lt_data

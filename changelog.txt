@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.2.5, 2019-07-03
+------------------
++ ignore non-flat fields option e.g. technical fields like alv colorcol
+
 v2.2.4, 2019-01-25
 ------------------
 ! `version` constant moved to zif_text2tab_constants

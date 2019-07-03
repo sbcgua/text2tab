@@ -9,12 +9,12 @@ Version: v2.2.4 ([changelog](./changelog.txt))
 
 Text2tab is an utility to parse TAB-delimited text into an internal table of an arbitrary flat structure.
 
-- support "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
+- supports "unstrict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
 - supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order.
 - supports loading into a structure (the first data line of the text is parsed). 
-- support *typeless* parsing, when the data is not checked against existing structure but dynamically create as a table with string fields.
-- support specifying date and amount formats
-- support on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
+- supports *typeless* parsing, when the data is not checked against existing structure but dynamically create as a table with string fields.
+- supports specifying date and amount formats
+- supports on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
 
 And vice versa - serialize flat table or structure to text.
 
@@ -124,6 +124,27 @@ zcl_text2tab_parser=>create( lt_container )->parse(
 
 ```
 
+## Other parsing options and features
+
+### Ignore non-flat fields
+
+Sometimes your structure contain technical non-flat fields which are not supposed to be in source data but present in the target structure. In example, color settings for ALV. It would be cumbersome to create a separate structure just for data. You can specify `i_ignore_nonflat = abap_true` during parser creation so that non-flat components are ignored. The parser will not throw `Structure must be flat` error. However, it will still check that ignored fields are not in the source data.
+
+E.g. target structure is `'DATE,CHAR,COLORCOL'`, where `colorcol` is a structure. The parser will accept and parse data like
+
+```
+DATE        CHAR
+01.01.2019  ABC
+```
+
+But will fail on
+
+```
+DATE        CHAR       COLORCOL
+01.01.2019  ABC        123
+```
+
+
 ## Typeless parsing
 
 You can also create an instance that does not validate type against some existing type structure. Instead it generates the table dynamically, where each field if the line is unconverted string.
@@ -184,7 +205,7 @@ The char '*' must have the first position in the text line.  Otherwise it isn't 
 
 ## Error message redefinition
 
-The exception class - `zcx_text2tab_error` - exposes `struc`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:
+The exception class - `zcx_text2tab_error` - exposes `structure`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:
 
 ```abap
   ...

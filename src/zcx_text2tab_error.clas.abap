@@ -80,7 +80,7 @@ endif.
 endmethod.
 
 
-METHOD raise.
+method raise.
   raise exception type zcx_text2tab_error
     exporting
       msg  = msg
@@ -90,5 +90,5 @@ METHOD raise.
       field = field
       structure = structure
       location = location.
-ENDMETHOD.
+endmethod.
 ENDCLASS.

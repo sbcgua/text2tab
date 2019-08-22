@@ -15,16 +15,6 @@ class zcl_text2tab_parser definition
     types:
       tt_field_map type standard table of i with default key.
 
-    types:
-      begin of ty_field_name_map,
-        from type string,
-        to   type abap_compname,
-      end of ty_field_name_map .
-    types:
-      tt_field_name_map type standard table of ty_field_name_map with key from .
-    types:
-      th_field_name_map type hashed table of ty_field_name_map with unique key from .
-
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
@@ -82,19 +72,12 @@ class zcl_text2tab_parser definition
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
     data mi_deep_provider type ref to zif_text2tab_deep_provider .
 
-    class-methods adopt_renames
-      importing
-        !i_rename_fields type any
-      returning
-        value(r_rename_map) type tt_field_name_map
-      raising
-        zcx_text2tab_error .
     methods parse_typefull
       importing
         !i_data type string
         !i_strict type abap_bool default abap_true
         !i_has_head type abap_bool default abap_true
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !e_container type any
         !e_head_fields type string_table
@@ -103,7 +86,7 @@ class zcl_text2tab_parser definition
     methods parse_typeless
       importing
         !i_data type string
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !e_container type ref to data
         !e_head_fields type string_table
@@ -112,7 +95,7 @@ class zcl_text2tab_parser definition
     methods parse_head_line
       importing
         !i_strict type abap_bool
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       changing
         !ct_data type string_table
         !ct_map type tt_field_map
@@ -123,7 +106,7 @@ class zcl_text2tab_parser definition
       importing
         !i_header type string
         !i_strict type abap_bool
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !et_map type tt_field_map
         !et_head_fields type string_table
@@ -187,54 +170,6 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
-
-
-  method adopt_renames.
-    data lo_type type ref to cl_abap_typedescr.
-    data lo_ref_type type ref to cl_abap_typedescr.
-    data ls_rename like line of r_rename_map.
-
-    if i_rename_fields is initial.
-      return.
-    endif.
-
-    lo_type = cl_abap_typedescr=>describe_by_data( i_rename_fields ).
-    lo_ref_type = cl_abap_typedescr=>describe_by_data( r_rename_map ).
-
-    if lo_type->type_kind = cl_abap_typedescr=>typekind_table and lo_type->absolute_name = lo_ref_type->absolute_name.
-      field-symbols <tab> type standard table.
-      assign i_rename_fields to <tab>.
-      loop at <tab> into ls_rename.
-        ls_rename-from = to_upper( ls_rename-from ).
-        ls_rename-to   = to_upper( ls_rename-to ).
-        append ls_rename to r_rename_map.
-      endloop.
-    elseif lo_type->type_kind = cl_abap_typedescr=>typekind_char or lo_type->type_kind = cl_abap_typedescr=>typekind_string.
-      data lt_renames type string_table.
-      field-symbols <str> type string.
-      split i_rename_fields at ';' into table lt_renames.
-      delete lt_renames where table_line is initial.
-      loop at lt_renames assigning <str>.
-        clear ls_rename.
-        <str> = to_upper( <str> ).
-        split <str> at ':' into ls_rename-from ls_rename-to.
-        if ls_rename-from is initial or ls_rename-to is initial.
-          zcx_text2tab_error=>raise(
-            methname = 'adopt_renames'
-            msg      = 'Wrong rename pair'
-            code     = 'WR' ). "#EC NOTEXT
-        endif.
-        append ls_rename to r_rename_map.
-      endloop.
-    else.
-      zcx_text2tab_error=>raise(
-        methname = 'adopt_renames'
-        msg      = 'Wrong rename fields type'
-        code     = 'WY' ). "#EC NOTEXT
-    endif.
-
-  endmethod.
-
 
   method apply_conv_exit.
 
@@ -394,8 +329,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse.
 
-    data lt_rename_map type th_field_name_map.
-    lt_rename_map = adopt_renames( i_rename_fields ).
+    data lt_rename_map type zcl_text2tab_utils=>th_field_name_map.
+    lt_rename_map = zcl_text2tab_utils=>build_rename_map( i_rename_fields ).
 
     if mv_is_typeless = abap_true.
       if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.

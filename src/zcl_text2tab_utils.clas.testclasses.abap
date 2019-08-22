@@ -18,6 +18,7 @@ class lcl_text2tab_utils_test definition
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
     methods break_to_lines for testing.
+    methods build_rename_map for testing.
 
     methods parse_deep_address for testing raising zcx_text2tab_error.
     methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
@@ -28,6 +29,65 @@ endclass.
 **********************************************************************
 
 class lcl_text2tab_utils_test implementation.
+
+  method build_rename_map.
+    data lx type ref to zcx_text2tab_error.
+
+    try.
+      clear lx.
+      zcl_text2tab_utils=>build_rename_map( 1234 ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WY' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    try.
+      clear lx.
+      zcl_text2tab_utils=>build_rename_map( 'abc' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WR' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    data lt_fields  type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_map_act type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_map_exp type zcl_text2tab_utils=>tt_field_name_map.
+    field-symbols <map> like line of lt_map_exp.
+
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field'.
+    <map>-to   = 'tstring'.
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field2'.
+    <map>-to   = 'tstring2'.
+
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD'.
+    <map>-to   = 'TSTRING'.
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD2'.
+    <map>-to   = 'TSTRING2'.
+
+    " Table based
+    try.
+      lt_map_act = zcl_text2tab_utils=>build_rename_map( lt_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
+    " string based
+    data lv_fields type string.
+    lv_fields = 'some_field:tstring;some_field2:tstring2;;'.
+
+    try.
+      lt_map_act = zcl_text2tab_utils=>build_rename_map( lv_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
+  endmethod.
 
   method break_to_lines.
     data:

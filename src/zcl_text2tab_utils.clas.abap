@@ -26,6 +26,15 @@ class ZCL_TEXT2TAB_UTILS definition
         ref_field type abap_compname, " at target (currently processed) table
         key_value type string,
       end of ty_deep_address.
+    types:
+      begin of ty_field_name_map,
+        from type string,
+        to   type abap_compname,
+      end of ty_field_name_map .
+    types:
+      tt_field_name_map type standard table of ty_field_name_map with key from .
+    types:
+      th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
     type-pools abap .
     class-methods function_exists
@@ -80,6 +89,13 @@ class ZCL_TEXT2TAB_UTILS definition
         value(ro_struc_descr) type ref to cl_abap_structdescr
       raising
         zcx_text2tab_error .
+    class-methods build_rename_map
+      importing
+        !i_rename_fields type any
+      returning
+        value(r_rename_map) type tt_field_name_map
+      raising
+        zcx_text2tab_error .
 
   protected section.
   private section.
@@ -92,6 +108,52 @@ ENDCLASS.
 
 
 CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
+
+  method build_rename_map.
+    data lo_type type ref to cl_abap_typedescr.
+    data lo_ref_type type ref to cl_abap_typedescr.
+    data ls_rename like line of r_rename_map.
+
+    if i_rename_fields is initial.
+      return.
+    endif.
+
+    lo_type = cl_abap_typedescr=>describe_by_data( i_rename_fields ).
+    lo_ref_type = cl_abap_typedescr=>describe_by_data( r_rename_map ).
+
+    if lo_type->type_kind = cl_abap_typedescr=>typekind_table and lo_type->absolute_name = lo_ref_type->absolute_name.
+      field-symbols <tab> type standard table.
+      assign i_rename_fields to <tab>.
+      loop at <tab> into ls_rename.
+        ls_rename-from = to_upper( ls_rename-from ).
+        ls_rename-to   = to_upper( ls_rename-to ).
+        append ls_rename to r_rename_map.
+      endloop.
+    elseif lo_type->type_kind = cl_abap_typedescr=>typekind_char or lo_type->type_kind = cl_abap_typedescr=>typekind_string.
+      data lt_renames type string_table.
+      field-symbols <str> type string.
+      split i_rename_fields at ';' into table lt_renames.
+      delete lt_renames where table_line is initial.
+      loop at lt_renames assigning <str>.
+        clear ls_rename.
+        <str> = to_upper( <str> ).
+        split <str> at ':' into ls_rename-from ls_rename-to.
+        if ls_rename-from is initial or ls_rename-to is initial.
+          zcx_text2tab_error=>raise(
+            methname = 'adopt_renames'
+            msg      = 'Wrong rename pair'
+            code     = 'WR' ). "#EC NOTEXT
+        endif.
+        append ls_rename to r_rename_map.
+      endloop.
+    else.
+      zcx_text2tab_error=>raise(
+        methname = 'adopt_renames'
+        msg      = 'Wrong rename fields type'
+        code     = 'WY' ). "#EC NOTEXT
+    endif.
+
+  endmethod.
 
   method break_to_lines.
     data:

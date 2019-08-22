@@ -150,7 +150,6 @@ class ltcl_text2tab_parser_test definition for testing
 
     methods parse_typeless for testing.
     methods with_renames for testing.
-    methods adopt_renames for testing.
 
     methods deep_structures for testing.
 
@@ -648,7 +647,7 @@ class ltcl_text2tab_parser_test implementation.
           l_exp_code    type char2,
           l_act_map     type int4_table,
           l_exp_map     type int4_table,
-          l_ren_map     type zcl_text2tab_parser=>th_field_name_map,
+          l_ren_map     type zcl_text2tab_utils=>th_field_name_map,
           l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
 
@@ -1021,7 +1020,7 @@ class ltcl_text2tab_parser_test implementation.
     split lv_dummy_head at c_tab into table lt_header_exp.
 
     l_string = replace( val = l_string sub = 'TSTRING' with = 'SOME_FIELD' ).
-    data lt_map type zcl_text2tab_parser=>tt_field_name_map.
+    data lt_map type zcl_text2tab_utils=>tt_field_name_map.
     field-symbols <map> like line of lt_map.
     append initial line to lt_map assigning <map>.
     <map>-from = 'some_field'.
@@ -1089,65 +1088,6 @@ class ltcl_text2tab_parser_test implementation.
 
   endmethod.
 
-  method adopt_renames.
-    data lx type ref to zcx_text2tab_error.
-
-    try.
-      clear lx.
-      zcl_text2tab_parser=>adopt_renames( 1234 ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WY' ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-    try.
-      clear lx.
-      zcl_text2tab_parser=>adopt_renames( 'abc' ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WR' ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-    data lt_fields type zcl_text2tab_parser=>tt_field_name_map.
-    data lt_map_act type zcl_text2tab_parser=>tt_field_name_map.
-    data lt_map_exp type zcl_text2tab_parser=>tt_field_name_map.
-    field-symbols <map> like line of lt_map_exp.
-
-    append initial line to lt_fields assigning <map>.
-    <map>-from = 'some_field'.
-    <map>-to   = 'tstring'.
-    append initial line to lt_fields assigning <map>.
-    <map>-from = 'some_field2'.
-    <map>-to   = 'tstring2'.
-
-    append initial line to lt_map_exp assigning <map>.
-    <map>-from = 'SOME_FIELD'.
-    <map>-to   = 'TSTRING'.
-    append initial line to lt_map_exp assigning <map>.
-    <map>-from = 'SOME_FIELD2'.
-    <map>-to   = 'TSTRING2'.
-
-    " Table based
-    try.
-      lt_map_act = zcl_text2tab_parser=>adopt_renames( lt_fields ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
-
-    " string based
-    data lv_fields type string.
-    lv_fields = 'some_field:tstring;some_field2:tstring2;;'.
-
-    try.
-      lt_map_act = zcl_text2tab_parser=>adopt_renames( lv_fields ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
-
-  endmethod.
-
   method map_head_structure_w_ignores.
 
     data ls_dummy type ty_dummy_with_nonflat.
@@ -1158,7 +1098,7 @@ class ltcl_text2tab_parser_test implementation.
       i_ignore_nonflat = abap_true ).
 
     data:
-      lt_ren_map type zcl_text2tab_parser=>th_field_name_map,
+      lt_ren_map type zcl_text2tab_utils=>th_field_name_map,
       lt_act_map type zcl_text2tab_parser=>tt_field_map,
       lt_exp_map type zcl_text2tab_parser=>tt_field_map,
       lx         type ref to zcx_text2tab_error.

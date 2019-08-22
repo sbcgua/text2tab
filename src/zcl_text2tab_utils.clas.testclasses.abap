@@ -16,6 +16,7 @@ class lcl_text2tab_utils_test definition
     methods get_safe_struc_descr for testing.
     methods describe_struct for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
+    methods describe_struct_deep for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
     methods break_to_lines for testing.
     methods build_rename_map for testing.
@@ -257,6 +258,38 @@ class lcl_text2tab_utils_test implementation.
 
   endmethod.
 
+  method describe_struct_deep.
+
+    types:
+      begin of lty_dummy,
+        talpha type veri_alpha,
+        tstruc type abap_compdescr, " Deep
+      end of lty_dummy.
+
+    data ld_struc type ref to cl_abap_structdescr.
+    data ls_dummy type lty_dummy.
+    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    field-symbols <c> like line of lt_descr.
+
+    ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    lt_descr = zcl_text2tab_utils=>describe_struct( i_struc = ld_struc i_is_deep = abap_true ).
+
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 2 ).
+
+    read table lt_descr assigning <c> index 1.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = 'ALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 10 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_false ).
+
+    read table lt_descr assigning <c> index 2.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TSTRUC' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = '' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_false ).
+
+  endmethod.
+
   method check_version_fits.
     cl_abap_unit_assert=>assert_true(
       zcl_text2tab_utils=>check_version_fits(
@@ -336,13 +369,13 @@ class lcl_text2tab_utils_test implementation.
 
     ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=@headid]' ).
     cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'id' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = 'headid' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'ID' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = 'HEADID' ).
     cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '' ).
 
     ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=12345]' ).
     cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
-    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'id' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'ID' ).
     cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = '' ).
     cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '12345' ).
 

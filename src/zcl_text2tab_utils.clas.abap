@@ -50,6 +50,7 @@ class ZCL_TEXT2TAB_UTILS definition
     class-methods describe_struct
       importing
         !i_struc type ref to cl_abap_structdescr
+        !i_is_deep type abap_bool default abap_false
         !i_ignore_nonflat type abap_bool default abap_false
       returning
         value(rt_descr) type tt_comp_descr
@@ -109,6 +110,40 @@ ENDCLASS.
 
 CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
+
+  method break_to_lines.
+    data:
+      l_found type i,
+      l_break type string value c_crlf.
+    field-symbols: <line> type string.
+
+    " Detect line break
+    l_found = find( val = i_text sub = c_crlf ).
+    if l_found < 0.
+      l_found = find( val = i_text sub = c_lf ).
+      if l_found >= 0.
+        l_break = c_lf.
+      endif.
+    endif.
+
+    split i_text at l_break into table rt_tab.
+
+    if i_begin_comment <> space.
+      loop at rt_tab assigning <line>.
+        try.
+            if <line>+0(1) = i_begin_comment.
+              delete rt_tab index sy-tabix.
+            endif.
+          catch cx_sy_range_out_of_bounds.
+            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+            delete rt_tab index sy-tabix.
+        endtry.
+      endloop.
+    endif.
+
+  endmethod.
+
+
   method build_rename_map.
     data lo_type type ref to cl_abap_typedescr.
     data lo_ref_type type ref to cl_abap_typedescr.
@@ -155,37 +190,6 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   endmethod.
 
-  method break_to_lines.
-    data:
-      l_found type i,
-      l_break type string value c_crlf.
-    field-symbols: <line> type string.
-
-    " Detect line break
-    l_found = find( val = i_text sub = c_crlf ).
-    if l_found < 0.
-      l_found = find( val = i_text sub = c_lf ).
-      if l_found >= 0.
-        l_break = c_lf.
-      endif.
-    endif.
-
-    split i_text at l_break into table rt_tab.
-
-    if i_begin_comment <> space.
-      loop at rt_tab assigning <line>.
-        try.
-            if <line>+0(1) = i_begin_comment.
-              delete rt_tab index sy-tabix.
-            endif.
-          catch cx_sy_range_out_of_bounds.
-            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
-            delete rt_tab index sy-tabix.
-        endtry.
-      endloop.
-    endif.
-
-  endmethod.
 
   method check_version_fits.
 
@@ -226,6 +230,8 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     data lo_data    type ref to cl_abap_datadescr.
     data lo_element type ref to cl_abap_elemdescr.
 
+    assert not ( i_is_deep = abap_true and i_ignore_nonflat = abap_true ). " Cannot be set simultaneously
+
     loop at i_struc->components assigning <c>.
       append initial line to rt_descr assigning <descr>.
       move-corresponding <c> to <descr>.
@@ -237,6 +243,9 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
         shift <descr>-edit_mask left deleting leading '='.
       elseif i_ignore_nonflat = abap_true.
         <descr>-ignore = abap_true.
+      elseif i_is_deep = abap_true
+        and ( lo_data->kind = cl_abap_typedescr=>kind_struct or lo_data->kind = cl_abap_typedescr=>kind_table ).
+        " Just skip
       else.
         zcx_text2tab_error=>raise(
           msg = 'Structure must be flat' "#EC NOTEXT
@@ -272,6 +281,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     endif.
 
   endmethod.
+
 
   method get_safe_struc_descr.
 
@@ -345,7 +355,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
           code     = 'IA'. "#EC NOTEXT
     endif.
 
-    rs_parsed-key_field = substring( val = lv_tmp len = lv_offs ).
+    rs_parsed-key_field = to_upper( substring( val = lv_tmp len = lv_offs ) ).
     if strlen( rs_parsed-key_field ) = 0.
       raise exception type zcx_text2tab_error
         exporting
@@ -356,7 +366,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
     rs_parsed-key_value = substring( val = lv_tmp off = lv_offs + 1 ).
     if strlen( rs_parsed-key_value ) >= 2 and rs_parsed-key_value+0(1) = '@'.
-      rs_parsed-ref_field = substring( val = rs_parsed-key_value off = 1 ).
+      rs_parsed-ref_field = to_upper( substring( val = rs_parsed-key_value off = 1 ) ).
       clear rs_parsed-key_value.
     endif.
 

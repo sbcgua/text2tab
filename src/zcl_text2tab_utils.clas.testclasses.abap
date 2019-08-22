@@ -13,6 +13,8 @@ class lcl_text2tab_utils_test definition
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
 
+    methods parse_deep_address for testing raising zcx_text2tab_error.
+    methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
 endclass.
 
 **********************************************************************
@@ -164,6 +166,73 @@ class lcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v3.0.0' ) ).
+  endmethod.
+
+  method get_struc_field_value_by_name.
+
+    data lx type ref to zcx_text2tab_error.
+    data:
+      lv_a type string,
+      lv_b type d,
+      begin of ls_dummy,
+        a type string,
+        b type d,
+      end of ls_dummy.
+
+    ls_dummy-a = 'ABC'.
+    ls_dummy-b = '20190820'.
+
+    zcl_text2tab_utils=>get_struc_field_value_by_name(
+      exporting
+        i_struc = ls_dummy
+        i_field_name = 'A'
+      importing
+        e_value = lv_a ).
+    cl_abap_unit_assert=>assert_equals( act = lv_a exp = 'ABC' ).
+
+    zcl_text2tab_utils=>get_struc_field_value_by_name(
+      exporting
+        i_struc = ls_dummy
+        i_field_name = 'B'
+      importing
+        e_value = lv_b ).
+    cl_abap_unit_assert=>assert_equals( act = lv_b exp = '20190820' ).
+
+    try.
+      zcl_text2tab_utils=>get_struc_field_value_by_name(
+        i_struc = ls_dummy
+        i_field_name = 'C' ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'FE' ).
+    endtry.
+
+  endmethod.
+
+  method parse_deep_address.
+
+    data ls_parsed type zcl_text2tab_utils=>ty_deep_address.
+    data lx type ref to zcx_text2tab_error.
+
+    ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=@headid]' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'id' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = 'headid' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '' ).
+
+    ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=12345]' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'id' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = '' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '12345' ).
+
+    try.
+      zcl_text2tab_utils=>parse_deep_address( 'XYZ' ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'IA' ).
+    endtry.
+
   endmethod.
 
 endclass.

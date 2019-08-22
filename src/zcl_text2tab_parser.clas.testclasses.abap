@@ -190,6 +190,25 @@ class lcl_deep_helper implementation.
   endmethod.
 
   method zif_text2tab_deep_provider~select.
+    data lv_id type i.
+    data lt_tab like mt_tab.
+    field-symbols <i> type any.
+
+    if i_address cs '222'. " Very straihgt but why not ? :)
+      lv_id = 222.
+    else.
+      lv_id = 111.
+    endif.
+
+    if cl_abap_typedescr=>describe_by_data( e_container )->kind = 'T'.
+      loop at mt_tab assigning <i> where id = lv_id.
+        append <i> to lt_tab.
+      endloop.
+      e_container = lt_tab.
+    else. " structure
+      read table mt_tab into e_container with key id = lv_id.
+    endif.
+
   endmethod.
 
 endclass.
@@ -1314,13 +1333,15 @@ class ltcl_text2tab_parser_test implementation.
 
     data lt_act type tt_deep.
     data lt_header_act  type standard table of string.
+    data lo_deep_provider type ref to lcl_deep_helper.
+    create object lo_deep_provider exporting tab = lt_sub.
 
     try.
       o = zcl_text2tab_parser=>create( lt_exp ).
       o->parse(
         exporting
           i_data        = l_input
-          "ii_deep_supplier TODO
+          "ii_deep_provider =
         importing
           e_container   = lt_act
           e_head_fields = lt_header_act ).

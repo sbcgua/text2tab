@@ -3,8 +3,8 @@ interface ZIF_TEXT2TAB_DEEP_PROVIDER
 
     methods select
       importing
-        i_address type string
-        i_cursor  type any
+        i_address type string " e.g. filename[key_field_name=123]
+        i_cursor  type any    " reference to currently processed data line to fetch field values
       exporting
         e_container type any.
 

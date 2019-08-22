@@ -15,6 +15,13 @@ class ZCL_TEXT2TAB_UTILS definition
       end of ty_comp_descr .
     types:
       tt_comp_descr type standard table of ty_comp_descr with default key .
+    types:
+      begin of ty_deep_address,
+        location  type string,
+        key_field type abap_compname, " at source table
+        ref_field type abap_compname, " at target (currently processed) table
+        key_value type string,
+      end of ty_deep_address.
 
     type-pools abap .
     class-methods function_exists
@@ -41,6 +48,22 @@ class ZCL_TEXT2TAB_UTILS definition
         !i_current_version type string
       returning
         value(r_fits) type abap_bool .
+    class-methods parse_deep_address
+      importing
+        !i_address type string
+      returning
+        value(rs_parsed) type ty_deep_address
+      raising
+        zcx_text2tab_error .
+
+    class-methods get_struc_field_value_by_name
+      importing
+        !i_struc type any
+        !i_field_name type abap_compname
+      exporting
+        !e_value type any
+      raising
+        zcx_text2tab_error .
 
   protected section.
   private section.
@@ -138,6 +161,16 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
       r_yes = abap_true.
       insert i_function_name into table gt_checked_fm_names.
     endif.
+
+  endmethod.
+
+
+  method get_struc_field_value_by_name.
+
+  endmethod.
+
+
+  method parse_deep_address.
 
   endmethod.
 

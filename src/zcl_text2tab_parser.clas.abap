@@ -486,8 +486,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           im_datfmdes = '4' " YYYY.MM.DD
         importing
           ex_datint   = e_field ).
-      catch cx_abap_datfm.
-        raise_error( msg = 'Date format unknown' code = 'DU' ). "#EC NOTEXT
+    catch cx_abap_datfm.
+      raise_error( msg = 'Date format unknown' code = 'DU' ). "#EC NOTEXT
     endtry.
 
   endmethod.

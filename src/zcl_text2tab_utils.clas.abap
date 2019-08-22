@@ -12,7 +12,7 @@ class ZCL_TEXT2TAB_UTILS definition
     types:
       begin of ty_comp_descr.
         include type abap_compdescr.
-        types:
+    types:
         edit_mask type abap_editmask,
         output_length type i,
         ignore type abap_bool,
@@ -131,12 +131,12 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     if i_begin_comment <> space.
       loop at rt_tab assigning <line>.
         try.
-            if <line>+0(1) = i_begin_comment.
-              delete rt_tab index sy-tabix.
-            endif.
-          catch cx_sy_range_out_of_bounds.
-            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+          if <line>+0(1) = i_begin_comment.
             delete rt_tab index sy-tabix.
+          endif.
+        catch cx_sy_range_out_of_bounds.
+          " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+          delete rt_tab index sy-tabix.
         endtry.
       endloop.
     endif.

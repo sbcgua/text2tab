@@ -18,56 +18,53 @@ class ZCX_W3MIME_ERROR definition
   final
   create public .
 
-public section.
+  public section.
 
-  interfaces IF_T100_MESSAGE .
+    interfaces IF_T100_MESSAGE .
 
-  constants:
-    begin of ZCX_W3MIME_ERROR,
-      msgid type symsgid value 'SY',
-      msgno type symsgno value '499',
-      attr1 type scx_attrname value 'MSG',
-      attr2 type scx_attrname value '',
-      attr3 type scx_attrname value '',
-      attr4 type scx_attrname value '',
-    end of ZCX_W3MIME_ERROR .
-  data MSG type STRING read-only .
+    constants:
+      begin of ZCX_W3MIME_ERROR,
+        msgid type symsgid value 'SY',
+        msgno type symsgno value '499',
+        attr1 type scx_attrname value 'MSG',
+        attr2 type scx_attrname value '',
+        attr3 type scx_attrname value '',
+        attr4 type scx_attrname value '',
+      end of ZCX_W3MIME_ERROR .
+    data MSG type STRING read-only .
 
-  methods CONSTRUCTOR
-    importing
-      !TEXTID like IF_T100_MESSAGE=>T100KEY optional
-      !PREVIOUS like PREVIOUS optional
-      !MSG type STRING optional .
-  class-methods RAISE
-    importing
-      !MSG type STRING
-    raising
-      ZCX_W3MIME_ERROR .
+    methods CONSTRUCTOR
+      importing
+        !TEXTID like IF_T100_MESSAGE=>T100KEY optional
+        !PREVIOUS like PREVIOUS optional
+        !MSG type STRING optional .
+    class-methods RAISE
+      importing
+        !MSG type STRING
+      raising
+        ZCX_W3MIME_ERROR .
 ENDCLASS.
 
 CLASS ZCX_W3MIME_ERROR IMPLEMENTATION.
 
-
-method CONSTRUCTOR.
-  CALL METHOD SUPER->CONSTRUCTOR
-  EXPORTING
-  PREVIOUS = PREVIOUS .
-  me->MSG = MSG .
-  clear me->textid.
-  if textid is initial.
-    IF_T100_MESSAGE~T100KEY = ZCX_W3MIME_ERROR .
-  else.
-    IF_T100_MESSAGE~T100KEY = TEXTID.
-  endif.
-endmethod.
+  method CONSTRUCTOR.
+    super->constructor( previous = previous ).
+    me->msg = msg .
+    clear me->textid.
+    if textid is initial.
+      IF_T100_MESSAGE~T100KEY = ZCX_W3MIME_ERROR .
+    else.
+      IF_T100_MESSAGE~T100KEY = TEXTID.
+    endif.
+  endmethod.
 
 
-method raise.
-  raise exception type zcx_w3mime_error
-    exporting
-      textid = zcx_w3mime_error
-      msg    = msg.
-endmethod.
+  method raise.
+    raise exception type zcx_w3mime_error
+      exporting
+        textid = zcx_w3mime_error
+        msg    = msg.
+  endmethod.
 ENDCLASS.
 
 **********************************************************************
@@ -78,79 +75,79 @@ class ZCL_W3MIME_FS definition
   final
   create public .
 
-public section.
+  public section.
 
-  types:
-    tt_files type standard table of file_info with key filename .
+    types:
+      tt_files type standard table of file_info with key filename .
 
-  class-data C_SEP type CHAR1 read-only .
+    class-data C_SEP type CHAR1 read-only .
 
-  class-methods WRITE_FILE
-    importing
-      !IV_FILENAME type STRING
-      !IV_SIZE type I
-    changing
-      !CT_DATA type LVC_T_MIME
-    raising
-      ZCX_W3MIME_ERROR .
-  class-methods WRITE_FILE_X
-    importing
-      !IV_FILENAME type STRING
-      !IV_DATA type XSTRING
-    raising
-      ZCX_W3MIME_ERROR .
-  class-methods CLASS_CONSTRUCTOR .
+    class-methods WRITE_FILE
+      importing
+        !IV_FILENAME type STRING
+        !IV_SIZE type I
+      changing
+        !CT_DATA type LVC_T_MIME
+      raising
+        ZCX_W3MIME_ERROR .
+    class-methods WRITE_FILE_X
+      importing
+        !IV_FILENAME type STRING
+        !IV_DATA type XSTRING
+      raising
+        ZCX_W3MIME_ERROR .
+    class-methods CLASS_CONSTRUCTOR .
 ENDCLASS.
 
 CLASS ZCL_W3MIME_FS IMPLEMENTATION.
 
-method class_constructor.
-  cl_gui_frontend_services=>get_file_separator( changing file_separator = c_sep exceptions others = 4 ).
-  if sy-subrc is not initial.
-    c_sep = '\'. " Assume windows (eclipse ???)
-  endif.
-endmethod.
+  method class_constructor.
+    cl_gui_frontend_services=>get_file_separator( changing file_separator = c_sep exceptions others = 4 ).
+    if sy-subrc is not initial.
+      c_sep = '\'. " Assume windows (eclipse ???)
+    endif.
+  endmethod.
 
-method write_file.
+  method write_file.
 
-  cl_gui_frontend_services=>gui_download(
-    exporting
-      filename     = iv_filename
-      filetype     = 'BIN'
-      bin_filesize = iv_size
-    changing
-      data_tab   = ct_data
-    exceptions
-      others     = 1 ).
+    cl_gui_frontend_services=>gui_download(
+      exporting
+        filename     = iv_filename
+        filetype     = 'BIN'
+        bin_filesize = iv_size
+      changing
+        data_tab   = ct_data
+      exceptions
+        others     = 1 ).
 
-  if sy-subrc > 0.
-    zcx_w3mime_error=>raise( 'Cannot write file' ). "#EC NOTEXT
-  endif.
+    if sy-subrc > 0.
+      zcx_w3mime_error=>raise( 'Cannot write file' ). "#EC NOTEXT
+    endif.
 
-endmethod.  " write_file.
+  endmethod.  " write_file.
 
-method write_file_x.
+  method write_file_x.
 
-  data:
-        lt_data type lvc_t_mime,
-        lv_size type i.
+    data:
+          lt_data type lvc_t_mime,
+          lv_size type i.
 
-  call function 'SCMS_XSTRING_TO_BINARY'
-    exporting
-      buffer        = iv_data
-    importing
-      output_length = lv_size
-    tables
-      binary_tab    = lt_data.
+    call function 'SCMS_XSTRING_TO_BINARY'
+      exporting
+        buffer        = iv_data
+      importing
+        output_length = lv_size
+      tables
+        binary_tab    = lt_data.
 
-  write_file(
-    exporting
-      iv_filename = iv_filename
-      iv_size = lv_size
-    changing
-      ct_data = lt_data ).
+    write_file(
+      exporting
+        iv_filename = iv_filename
+        iv_size = lv_size
+      changing
+        ct_data = lt_data ).
 
-endmethod.  " write_file_x.
+  endmethod.  " write_file_x.
 ENDCLASS.
 
 **********************************************************************
@@ -161,162 +158,162 @@ class ZCL_W3MIME_ZIP_WRITER definition
   final
   create public .
 
-public section.
+  public section.
 
-  type-pools ABAP .
-  methods CONSTRUCTOR
-    importing
-      !IO_ZIP type ref to CL_ABAP_ZIP optional
-      !IV_ENCODING type ABAP_ENCODING optional .
-  methods ADD
-    importing
-      !IV_FILENAME type STRING
-      !IV_DATA type STRING .
-  methods ADDX
-    importing
-      !IV_FILENAME type STRING
-      !IV_XDATA type XSTRING .
-  methods GET_BLOB
-    returning
-      value(RV_BLOB) type XSTRING .
-  methods READ
-    importing
-      !IV_FILENAME type STRING
-    returning
-      value(RV_DATA) type STRING
-    raising
-      ZCX_W3MIME_ERROR .
-  methods READX
-    importing
-      !IV_FILENAME type STRING
-    returning
-      value(RV_XDATA) type XSTRING
-    raising
-      ZCX_W3MIME_ERROR .
-  methods HAS
-    importing
-      !IV_FILENAME type STRING
-    returning
-      value(R_YES) type ABAP_BOOL .
-  methods IS_DIRTY
-    returning
-      value(R_YES) type ABAP_BOOL .
-  methods DELETE
-    importing
-      !IV_FILENAME type STRING
-    raising
-      ZCX_W3MIME_ERROR .
-private section.
+    type-pools ABAP .
+    methods CONSTRUCTOR
+      importing
+        !IO_ZIP type ref to CL_ABAP_ZIP optional
+        !IV_ENCODING type ABAP_ENCODING optional .
+    methods ADD
+      importing
+        !IV_FILENAME type STRING
+        !IV_DATA type STRING .
+    methods ADDX
+      importing
+        !IV_FILENAME type STRING
+        !IV_XDATA type XSTRING .
+    methods GET_BLOB
+      returning
+        value(RV_BLOB) type XSTRING .
+    methods READ
+      importing
+        !IV_FILENAME type STRING
+      returning
+        value(RV_DATA) type STRING
+      raising
+        ZCX_W3MIME_ERROR .
+    methods READX
+      importing
+        !IV_FILENAME type STRING
+      returning
+        value(RV_XDATA) type XSTRING
+      raising
+        ZCX_W3MIME_ERROR .
+    methods HAS
+      importing
+        !IV_FILENAME type STRING
+      returning
+        value(R_YES) type ABAP_BOOL .
+    methods IS_DIRTY
+      returning
+        value(R_YES) type ABAP_BOOL .
+    methods DELETE
+      importing
+        !IV_FILENAME type STRING
+      raising
+        ZCX_W3MIME_ERROR .
+  private section.
 
-  data MV_IS_DIRTY type ABAP_BOOL .
-  data MO_ZIP type ref to CL_ABAP_ZIP .
-  data MO_CONV_OUT type ref to CL_ABAP_CONV_OUT_CE .
-  data MO_CONV_IN type ref to CL_ABAP_CONV_IN_CE .
-  type-pools ABAP .
-  data MV_ENCODING type ABAP_ENCODING .
+    data MV_IS_DIRTY type ABAP_BOOL .
+    data MO_ZIP type ref to CL_ABAP_ZIP .
+    data MO_CONV_OUT type ref to CL_ABAP_CONV_OUT_CE .
+    data MO_CONV_IN type ref to CL_ABAP_CONV_IN_CE .
+    type-pools ABAP .
+    data MV_ENCODING type ABAP_ENCODING .
 ENDCLASS.
 
 
 
 CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
 
-method add.
-  data lv_xdata type xstring.
-  mo_conv_out->convert(
-    exporting data = iv_data
-    importing buffer = lv_xdata ).
+  method add.
+    data lv_xdata type xstring.
+    mo_conv_out->convert(
+      exporting data = iv_data
+      importing buffer = lv_xdata ).
 
-  addx(
-    iv_filename = iv_filename
-    iv_xdata    = lv_xdata ).
-endmethod.  " add.
+    addx(
+      iv_filename = iv_filename
+      iv_xdata    = lv_xdata ).
+  endmethod.  " add.
 
-method addx.
-  mo_zip->delete(
-    exporting
-      name = iv_filename
-    exceptions others = 1 ). " ignore exceptions
+  method addx.
+    mo_zip->delete(
+      exporting
+        name = iv_filename
+      exceptions others = 1 ). " ignore exceptions
 
-  mo_zip->add( name = iv_filename content = iv_xdata ).
-  mv_is_dirty = abap_true.
-endmethod.  " addx.
+    mo_zip->add( name = iv_filename content = iv_xdata ).
+    mv_is_dirty = abap_true.
+  endmethod.  " addx.
 
-method constructor.
-  if io_zip is bound.
-    mo_zip = io_zip.
-  else.
-    create object mo_zip.
-  endif.
+  method constructor.
+    if io_zip is bound.
+      mo_zip = io_zip.
+    else.
+      create object mo_zip.
+    endif.
 
-  if iv_encoding is not initial.
-    mv_encoding = iv_encoding.
-  else.
-    mv_encoding = '4110'. " UTF8
-  endif.
+    if iv_encoding is not initial.
+      mv_encoding = iv_encoding.
+    else.
+      mv_encoding = '4110'. " UTF8
+    endif.
 
-  mo_conv_out = cl_abap_conv_out_ce=>create( encoding = mv_encoding ).
-  mo_conv_in  = cl_abap_conv_in_ce=>create( encoding = mv_encoding ).
-endmethod.  " constructor.
+    mo_conv_out = cl_abap_conv_out_ce=>create( encoding = mv_encoding ).
+    mo_conv_in  = cl_abap_conv_in_ce=>create( encoding = mv_encoding ).
+  endmethod.  " constructor.
 
-method delete.
-  mo_zip->delete( exporting name = iv_filename exceptions others = 4 ).
-  if sy-subrc is not initial.
-    zcx_w3mime_error=>raise( 'delete failed' ). "#EC NOTEXT
-  endif.
-  mv_is_dirty = abap_true.
-endmethod.
+  method delete.
+    mo_zip->delete( exporting name = iv_filename exceptions others = 4 ).
+    if sy-subrc is not initial.
+      zcx_w3mime_error=>raise( 'delete failed' ). "#EC NOTEXT
+    endif.
+    mv_is_dirty = abap_true.
+  endmethod.
 
-method get_blob.
-  rv_blob = mo_zip->save( ).
-  mv_is_dirty = abap_false.
-endmethod.  " get_blob
+  method get_blob.
+    rv_blob = mo_zip->save( ).
+    mv_is_dirty = abap_false.
+  endmethod.  " get_blob
 
-method HAS.
-  read table mo_zip->files with key name = iv_filename transporting no fields.
-  r_yes = boolc( sy-subrc is initial ).
-endmethod.
+  method HAS.
+    read table mo_zip->files with key name = iv_filename transporting no fields.
+    r_yes = boolc( sy-subrc is initial ).
+  endmethod.
 
-method is_dirty.
-  r_yes = mv_is_dirty.
-endmethod.
+  method is_dirty.
+    r_yes = mv_is_dirty.
+  endmethod.
 
-method READ.
-  data:
-        lv_xdata type xstring,
-        lx       type ref to cx_root.
+  method READ.
+    data:
+          lv_xdata type xstring,
+          lx       type ref to cx_root.
 
-  lv_xdata = readx( iv_filename ).
+    lv_xdata = readx( iv_filename ).
 
-  try.
-    mo_conv_in->convert( exporting input = lv_xdata importing data = rv_data ).
-  catch cx_root into lx.
-    zcx_w3mime_error=>raise( msg = 'Codepage conversion error' ). "#EC NOTEXT
-  endtry.
+    try.
+      mo_conv_in->convert( exporting input = lv_xdata importing data = rv_data ).
+    catch cx_root into lx.
+      zcx_w3mime_error=>raise( msg = 'Codepage conversion error' ). "#EC NOTEXT
+    endtry.
 
-endmethod.
+  endmethod.
 
-method READX.
+  method READX.
 
-  mo_zip->get(
-    exporting
-      name    = iv_filename
-    importing
-      content = rv_xdata
-    exceptions zip_index_error = 1 ).
+    mo_zip->get(
+      exporting
+        name    = iv_filename
+      importing
+        content = rv_xdata
+      exceptions zip_index_error = 1 ).
 
-  if sy-subrc is not initial.
-    zcx_w3mime_error=>raise( msg = |Cannot read { iv_filename }| ). "#EC NOTEXT
-  endif.
+    if sy-subrc is not initial.
+      zcx_w3mime_error=>raise( msg = |Cannot read { iv_filename }| ). "#EC NOTEXT
+    endif.
 
-  " Remove unicode signatures
-  case mv_encoding.
-    when '4110'. " UTF-8
-      shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_utf8 in byte mode.
-    when '4103'. " UTF-16LE
-      shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_little in byte mode.
-  endcase.
+    " Remove unicode signatures
+    case mv_encoding.
+      when '4110'. " UTF-8
+        shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_utf8 in byte mode.
+      when '4103'. " UTF-16LE
+        shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_little in byte mode.
+    endcase.
 
-endmethod.
+  endmethod.
 ENDCLASS.
 
 

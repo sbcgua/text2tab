@@ -8,9 +8,11 @@ Legend
 + : added
 - : removed
 
-v2.2.5, 2019-07-03
+v2.2.5, 2019-08-22
 ------------------
 + ignore non-flat fields option e.g. technical fields like alv colorcol
+* get back lost error information attributes: line, field, structure
+* reuse standard abap types
 
 v2.2.4, 2019-01-25
 ------------------

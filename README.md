@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/sbcgua/abap_data_parser.svg?branch=master)](https://travis-ci.org/sbcgua/abap_data_parser)
 
 TAB-delimited text parser and serializer for ABAP  
-Version: v2.2.4 ([changelog](./changelog.txt))
+Version: v2.2.5 ([changelog](./changelog.txt))
 
 ## Synopsis
 

@@ -29,6 +29,11 @@ class zcl_text2tab_parser definition
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
 
+    class-methods check_version_fits
+      importing
+        !i_required_version type string
+      returning
+        value(r_fits) type abap_bool .
     class-methods create
       importing
         !i_pattern type any         " target structure or table
@@ -56,16 +61,17 @@ class zcl_text2tab_parser definition
         !e_head_fields type string_table
       raising
         zcx_text2tab_error .
-    class-methods check_version_fits
+    methods set_deep_provider
       importing
-        !i_required_version type string
+        ii_provider type ref to zif_text2tab_deep_provider
       returning
-        value(r_fits) type abap_bool .
+        value(ro_self) type ref to zcl_text2tab_parser.
+
+
   protected section.
   private section.
 
     data mv_amount_format type ty_amount_format .
-    data mv_ignore_nonflat type abap_bool .
     data mv_date_format type ty_date_format .
     data mo_struc_descr type ref to cl_abap_structdescr .
     data mv_current_field type string .
@@ -74,6 +80,7 @@ class zcl_text2tab_parser definition
     data mv_begin_comment type ty_begin_comment .
     class zcl_text2tab_utils definition load .
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
+    data mi_deep_provider type ref to zif_text2tab_deep_provider .
 
     class-methods adopt_renames
       importing
@@ -314,7 +321,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     ro_parser->mv_amount_format  = ' ,'.   " Defaults
     ro_parser->mv_date_format    = 'DMY.'. " Defaults
-    ro_parser->mv_ignore_nonflat = i_ignore_nonflat.
     ro_parser->mo_struc_descr    = get_safe_struc_descr( i_pattern ).
     ro_parser->mt_components     = zcl_text2tab_utils=>describe_struct(
       i_struc          = ro_parser->mo_struc_descr
@@ -955,7 +961,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     field-symbols <tab> type any.
     assign e_container->* to <tab>.
     mo_struc_descr = ld_struc. "TODO: hack, maybe improve
-    mt_components = zcl_text2tab_utils=>describe_struct( i_struc = mo_struc_descr i_ignore_nonflat = abap_false ).
+    mt_components  = zcl_text2tab_utils=>describe_struct(
+      i_struc          = mo_struc_descr
+      i_ignore_nonflat = abap_false ).
     parse_data(
       exporting
         it_data = lt_data
@@ -1004,5 +1012,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         structure = l_struc
         location  = l_location.
 
+  endmethod.
+
+
+  method set_deep_provider.
+    mi_deep_provider = ii_provider.
+    ro_self = me.
   endmethod.
 ENDCLASS.

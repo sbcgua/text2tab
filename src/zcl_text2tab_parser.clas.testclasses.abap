@@ -1338,10 +1338,10 @@ class ltcl_text2tab_parser_test implementation.
 
     try.
       o = zcl_text2tab_parser=>create( lt_exp ).
+      o->set_deep_provider( lo_deep_provider ).
       o->parse(
         exporting
           i_data        = l_input
-          "ii_deep_provider =
         importing
           e_container   = lt_act
           e_head_fields = lt_header_act ).

@@ -13,6 +13,7 @@ class lcl_text2tab_utils_test definition
 * ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
+    methods get_safe_struc_descr for testing.
     methods describe_struct for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
@@ -53,6 +54,34 @@ class lcl_text2tab_utils_test implementation.
     cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
 
   endmethod.  " break_to_lines.
+
+  method get_safe_struc_descr.
+    data:
+          ls_dummy  type abap_compdescr,
+          lt_dummy  type standard table of abap_compdescr,
+          lo_td_exp type ref to cl_abap_structdescr,
+          lo_td_act type ref to cl_abap_structdescr,
+          lx        type ref to zcx_text2tab_error.
+
+    lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
+
+    try. " Positive
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( ls_dummy ).
+      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( lt_dummy ).
+      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    try. " Negative
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( 'ABC' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+  endmethod.  "get_safe_struc_descr
 
   method validate_date_format_spec.
     data:

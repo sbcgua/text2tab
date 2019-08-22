@@ -142,7 +142,6 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_field_unsupp    for testing.
     methods map_head_structure    for testing.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
-    methods get_safe_struc_descr  for testing.
 
     methods parse_line_negative   for testing.
     methods parse_data_empty_line for testing.
@@ -285,34 +284,6 @@ class ltcl_text2tab_parser_test implementation.
     enddo.
 
   endmethod.      "create
-
-  method get_safe_struc_descr.
-    data:
-          ls_dummy  type ty_dummy,
-          lt_dummy  type tt_dummy,
-          lo_td_exp type ref to cl_abap_structdescr,
-          lo_td_act type ref to cl_abap_structdescr,
-          lx        type ref to zcx_text2tab_error.
-
-    lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
-
-    try. " Positive
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( ls_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( lt_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-
-    try. " Negative
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( 'ABC' ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-  endmethod.  "get_safe_struc_descr
 
   method parse.
     data:

@@ -119,13 +119,6 @@ class zcl_text2tab_parser definition
         !ct_head_fields type string_table
       raising
         zcx_text2tab_error .
-    class-methods get_safe_struc_descr
-      importing
-        !i_pattern type any
-      returning
-        value(ro_struc_descr) type ref to cl_abap_structdescr
-      raising
-        zcx_text2tab_error .
     methods map_head_structure
       importing
         !i_header type string
@@ -282,7 +275,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     ro_parser->mv_amount_format  = ' ,'.   " Defaults
     ro_parser->mv_date_format    = 'DMY.'. " Defaults
-    ro_parser->mo_struc_descr    = get_safe_struc_descr( i_pattern ).
+    ro_parser->mo_struc_descr    = zcl_text2tab_utils=>get_safe_struc_descr( i_pattern ).
     ro_parser->mt_components     = zcl_text2tab_utils=>describe_struct(
       i_struc          = ro_parser->mo_struc_descr
       i_ignore_nonflat = i_ignore_nonflat ).
@@ -306,31 +299,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   method create_typeless.
     create object ro_parser.
     ro_parser->mv_is_typeless = abap_true.
-  endmethod.
-
-
-  method get_safe_struc_descr.
-
-    data:
-          lo_type_descr  type ref to cl_abap_typedescr,
-          lo_table_descr type ref to cl_abap_tabledescr.
-
-    " Identify structure type
-    lo_type_descr = cl_abap_typedescr=>describe_by_data( i_pattern ).
-    case lo_type_descr->kind.
-      when 'T'. " Table
-        lo_table_descr ?= lo_type_descr.
-        ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
-      when 'S'. " Structure
-        ro_struc_descr ?= lo_type_descr.
-      when others. " Not a table or structure ?
-        raise exception type zcx_text2tab_error
-          exporting
-            methname = 'GET_SAFE_STRUC_DESCR'
-            msg      = 'Table or structure patterns only' "#EC NOTEXT
-            code     = 'PE'.
-    endcase.
-
   endmethod.
 
 
@@ -851,7 +819,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     " Check container type
-    if mo_struc_descr->absolute_name <> get_safe_struc_descr( e_container )->absolute_name.
+    if mo_struc_descr->absolute_name <> zcl_text2tab_utils=>get_safe_struc_descr( e_container )->absolute_name.
       raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
     endif.
 

@@ -73,6 +73,13 @@ class ZCL_TEXT2TAB_UTILS definition
         !i_begin_comment type c
       returning
         value(rt_tab) type string_table .
+    class-methods get_safe_struc_descr
+      importing
+        !i_pattern type any
+      returning
+        value(ro_struc_descr) type ref to cl_abap_structdescr
+      raising
+        zcx_text2tab_error .
 
   protected section.
   private section.
@@ -201,6 +208,30 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
       r_yes = abap_true.
       insert i_function_name into table gt_checked_fm_names.
     endif.
+
+  endmethod.
+
+  method get_safe_struc_descr.
+
+    data:
+          lo_type_descr  type ref to cl_abap_typedescr,
+          lo_table_descr type ref to cl_abap_tabledescr.
+
+    " Identify structure type
+    lo_type_descr = cl_abap_typedescr=>describe_by_data( i_pattern ).
+    case lo_type_descr->kind.
+      when 'T'. " Table
+        lo_table_descr ?= lo_type_descr.
+        ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
+      when 'S'. " Structure
+        ro_struc_descr ?= lo_type_descr.
+      when others. " Not a table or structure ?
+        raise exception type zcx_text2tab_error
+          exporting
+            methname = 'GET_SAFE_STRUC_DESCR'
+            msg      = 'Table or structure patterns only' "#EC NOTEXT
+            code     = 'PE'.
+    endcase.
 
   endmethod.
 

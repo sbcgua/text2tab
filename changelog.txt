@@ -8,6 +8,11 @@ Legend
 + : added
 - : removed
 
+v2.3.0, 2019-08-22
+------------------
++ support for deep parsing - structure and table fields, referencing an additional data source. Major feature - see readme.
+* moved some parser methods to utils
+
 v2.2.5, 2019-08-22
 ------------------
 + ignore non-flat fields option e.g. technical fields like alv colorcol

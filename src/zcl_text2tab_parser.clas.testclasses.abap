@@ -67,7 +67,7 @@ end-of-definition.
 * Test Class definition
 **********************************************************************
 
-class lcl_text2tab_parser_test definition for testing
+class ltcl_text2tab_parser_test definition for testing
   final risk level harmless duration short.
 
 * ================
@@ -110,6 +110,20 @@ class lcl_text2tab_parser_test definition for testing
       end of ty_dummy_with_nonflat.
 
 
+    types:
+      begin of ty_deep_sub,
+        id  type i,
+        sub type string,
+      end of ty_deep_sub,
+      tt_deep_sub type standard table of ty_deep_sub with key id,
+      begin of ty_deep,
+        field1     type i,
+        field2     type i,
+        deep_struc type ty_deep_sub,
+        deep_tab   type tt_deep_sub,
+      end of ty_deep,
+      tt_deep     type standard table of ty_deep with key field1.
+
 * ================
   private section.
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
@@ -128,8 +142,6 @@ class lcl_text2tab_parser_test definition for testing
     methods parse_field_unsupp    for testing.
     methods map_head_structure    for testing.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
-    methods get_safe_struc_descr  for testing.
-    methods break_to_lines        for testing.
 
     methods parse_line_negative   for testing.
     methods parse_data_empty_line for testing.
@@ -138,7 +150,8 @@ class lcl_text2tab_parser_test definition for testing
 
     methods parse_typeless for testing.
     methods with_renames for testing.
-    methods adopt_renames for testing.
+
+    methods deep_structures for testing.
 
 * ==== HELPERS ===
 
@@ -154,15 +167,56 @@ class lcl_text2tab_parser_test definition for testing
         e_dummy_string type string
         e_map          type int4_table.
 
-endclass.       "lcl_test_data_parser
+endclass.
 
-class zcl_text2tab_parser definition local friends lcl_text2tab_parser_test.
+class zcl_text2tab_parser definition local friends ltcl_text2tab_parser_test.
+
+class lcl_deep_helper definition final for testing.
+  public section.
+    interfaces zif_text2tab_deep_provider.
+    methods constructor
+      importing
+        tab type ltcl_text2tab_parser_test=>tt_deep_sub.
+    data mt_tab type ltcl_text2tab_parser_test=>tt_deep_sub.
+endclass.
+
+class lcl_deep_helper implementation.
+
+  method constructor.
+    mt_tab = tab.
+  endmethod.
+
+  method zif_text2tab_deep_provider~select.
+    data lv_id type i.
+    data lt_tab like mt_tab.
+    field-symbols <i> type any.
+
+    if i_address cs '222'. " Very straihgt but why not ? :)
+      lv_id = 222.
+    else.
+      assign component 'FIELD2' of structure i_cursor to <i>.
+      lv_id = <i>.
+    endif.
+
+    if cl_abap_typedescr=>describe_by_data( e_container )->kind = 'T'.
+      loop at mt_tab assigning <i> where id = lv_id.
+        append <i> to lt_tab.
+      endloop.
+      e_container = lt_tab.
+    else. " structure
+      read table mt_tab into e_container with key id = lv_id.
+    endif.
+
+  endmethod.
+
+endclass.
+
 
 **********************************************************************
 * Implementation
 **********************************************************************
 
-class lcl_text2tab_parser_test implementation.
+class ltcl_text2tab_parser_test implementation.
 
   method setup.
     o = zcl_text2tab_parser=>create( c_dummy ).
@@ -230,60 +284,6 @@ class lcl_text2tab_parser_test implementation.
     enddo.
 
   endmethod.      "create
-
-  method break_to_lines.
-    data:
-          lt_act type string_table,
-          lt_exp type string_table.
-
-    append 'line1' to lt_exp.
-    append 'line2' to lt_exp.
-
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_crlf && 'line2'
-      i_begin_comment = space ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_lf && 'line2'
-      i_begin_comment = space ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-
-    " with comment line
-    clear lt_exp.
-    append 'not a comment 1' to lt_exp.
-    append 'not a comment 2' to lt_exp.
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text =
-      '*a comment' && c_lf && 'not a comment 1' && c_lf && 'not a comment 2' && c_lf
-      && cl_abap_char_utilities=>newline i_begin_comment = '*' ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-
-  endmethod.  " break_to_lines.
-
-  method get_safe_struc_descr.
-    data:
-          ls_dummy  type ty_dummy,
-          lt_dummy  type tt_dummy,
-          lo_td_exp type ref to cl_abap_structdescr,
-          lo_td_act type ref to cl_abap_structdescr,
-          lx        type ref to zcx_text2tab_error.
-
-    lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
-
-    try. " Positive
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( ls_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( lt_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-
-    try. " Negative
-      lo_td_act = zcl_text2tab_parser=>get_safe_struc_descr( 'ABC' ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-  endmethod.  "get_safe_struc_descr
 
   method parse.
     data:
@@ -648,7 +648,7 @@ class lcl_text2tab_parser_test implementation.
           l_exp_code    type char2,
           l_act_map     type int4_table,
           l_exp_map     type int4_table,
-          l_ren_map     type zcl_text2tab_parser=>th_field_name_map,
+          l_ren_map     type zcl_text2tab_utils=>th_field_name_map,
           l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
 
@@ -1021,7 +1021,7 @@ class lcl_text2tab_parser_test implementation.
     split lv_dummy_head at c_tab into table lt_header_exp.
 
     l_string = replace( val = l_string sub = 'TSTRING' with = 'SOME_FIELD' ).
-    data lt_map type zcl_text2tab_parser=>tt_field_name_map.
+    data lt_map type zcl_text2tab_utils=>tt_field_name_map.
     field-symbols <map> like line of lt_map.
     append initial line to lt_map assigning <map>.
     <map>-from = 'some_field'.
@@ -1089,65 +1089,6 @@ class lcl_text2tab_parser_test implementation.
 
   endmethod.
 
-  method adopt_renames.
-    data lx type ref to zcx_text2tab_error.
-
-    try.
-      clear lx.
-      zcl_text2tab_parser=>adopt_renames( 1234 ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WY' ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-    try.
-      clear lx.
-      zcl_text2tab_parser=>adopt_renames( 'abc' ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WR' ).
-    endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
-
-    data lt_fields type zcl_text2tab_parser=>tt_field_name_map.
-    data lt_map_act type zcl_text2tab_parser=>tt_field_name_map.
-    data lt_map_exp type zcl_text2tab_parser=>tt_field_name_map.
-    field-symbols <map> like line of lt_map_exp.
-
-    append initial line to lt_fields assigning <map>.
-    <map>-from = 'some_field'.
-    <map>-to   = 'tstring'.
-    append initial line to lt_fields assigning <map>.
-    <map>-from = 'some_field2'.
-    <map>-to   = 'tstring2'.
-
-    append initial line to lt_map_exp assigning <map>.
-    <map>-from = 'SOME_FIELD'.
-    <map>-to   = 'TSTRING'.
-    append initial line to lt_map_exp assigning <map>.
-    <map>-from = 'SOME_FIELD2'.
-    <map>-to   = 'TSTRING2'.
-
-    " Table based
-    try.
-      lt_map_act = zcl_text2tab_parser=>adopt_renames( lt_fields ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
-
-    " string based
-    data lv_fields type string.
-    lv_fields = 'some_field:tstring;some_field2:tstring2;;'.
-
-    try.
-      lt_map_act = zcl_text2tab_parser=>adopt_renames( lv_fields ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
-    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
-
-  endmethod.
-
   method map_head_structure_w_ignores.
 
     data ls_dummy type ty_dummy_with_nonflat.
@@ -1158,7 +1099,7 @@ class lcl_text2tab_parser_test implementation.
       i_ignore_nonflat = abap_true ).
 
     data:
-      lt_ren_map type zcl_text2tab_parser=>th_field_name_map,
+      lt_ren_map type zcl_text2tab_utils=>th_field_name_map,
       lt_act_map type zcl_text2tab_parser=>tt_field_map,
       lt_exp_map type zcl_text2tab_parser=>tt_field_map,
       lx         type ref to zcx_text2tab_error.
@@ -1204,6 +1145,97 @@ class lcl_text2tab_parser_test implementation.
     ls_exp-tdate = '20190101'.
     ls_exp-tchar = 'AAA'.
     cl_abap_unit_assert=>assert_equals( act = ls_dummy exp = ls_exp ).
+
+  endmethod.
+
+  method deep_structures.
+
+    data lx type ref to zcx_text2tab_error.
+    data lt_exp type tt_deep.
+    data lt_sub type tt_deep_sub.
+    data l_input type string.
+    data lt_header_exp type standard table of string.
+
+    field-symbols <i> like line of lt_exp.
+    field-symbols <j> like line of <i>-deep_tab.
+
+    " Fill expected data
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 1.
+    <i>-field2         = 111.
+    <i>-deep_struc-id  = 111.
+    <i>-deep_struc-sub = 'Ones'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'Ones'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'One one one'.
+
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 2.
+    <i>-field2         = 222.
+    <i>-deep_struc-id  = 222.
+    <i>-deep_struc-sub = 'Twos'.
+    append initial line to <i>-deep_tab assigning <j>.
+    <j>-id  = 222.
+    <j>-sub = 'Twos'.
+
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 3.
+    <i>-field2         = 333.
+    append initial line to lt_exp assigning <i>.
+    <i>-field1         = 4.
+    <i>-field2         = 444.
+
+    " Sub
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'Ones'.
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 111.
+    <j>-sub = 'One one one'.
+    append initial line to lt_sub assigning <j>.
+    <j>-id  = 222.
+    <j>-sub = 'Twos'.
+
+    " Header
+    append 'FIELD1' to lt_header_exp.
+    append 'FIELD2' to lt_header_exp.
+    append 'DEEP_STRUC' to lt_header_exp.
+    append 'DEEP_TAB' to lt_header_exp.
+
+    " Input
+    l_input = 'FIELD1\tFIELD2\tDEEP_STRUC\tDEEP_TAB\n'
+            && '1\t111\t@ext[id=@field2]\t@ext[id=@field2]\n'   " Test ref to field in current tab
+            && '2\t222\t@ext[id=222]\t@ext[id=222]\n'           " Test fixed value
+            && '3\t333\t@ext[id=@field2]\t@ext[id=@field2]\n'   " Test empty ext source
+            && '4\t444\t\t\n'.                                  " Test empty ref
+    replace all occurrences of '\t' in l_input with c_tab.
+    replace all occurrences of '\n' in l_input with c_lf.
+
+    " Run
+
+    data lt_act type tt_deep.
+    data lt_header_act  type standard table of string.
+    data lo_deep_provider type ref to lcl_deep_helper.
+    create object lo_deep_provider exporting tab = lt_sub.
+
+    try.
+      o = zcl_text2tab_parser=>create(
+        i_pattern = lt_exp
+        i_deep_provider = lo_deep_provider ).
+      o->parse(
+        exporting
+          i_data        = l_input
+        importing
+          e_container   = lt_act
+          e_head_fields = lt_header_act ).
+      cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
 
   endmethod.
 

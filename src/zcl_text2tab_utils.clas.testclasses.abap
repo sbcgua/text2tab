@@ -6,13 +6,23 @@ class lcl_text2tab_utils_test definition
 
   private section.
 
+    constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
+    constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants c_lf    like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+
 * ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
+    methods get_safe_struc_descr for testing.
     methods describe_struct for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
+    methods describe_struct_deep for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
+    methods break_to_lines for testing.
+    methods build_rename_map for testing.
 
+    methods parse_deep_address for testing raising zcx_text2tab_error.
+    methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
 endclass.
 
 **********************************************************************
@@ -20,6 +30,119 @@ endclass.
 **********************************************************************
 
 class lcl_text2tab_utils_test implementation.
+
+  method build_rename_map.
+    data lx type ref to zcx_text2tab_error.
+
+    try.
+      clear lx.
+      zcl_text2tab_utils=>build_rename_map( 1234 ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WY' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    try.
+      clear lx.
+      zcl_text2tab_utils=>build_rename_map( 'abc' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'WR' ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    data lt_fields  type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_map_act type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_map_exp type zcl_text2tab_utils=>tt_field_name_map.
+    field-symbols <map> like line of lt_map_exp.
+
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field'.
+    <map>-to   = 'tstring'.
+    append initial line to lt_fields assigning <map>.
+    <map>-from = 'some_field2'.
+    <map>-to   = 'tstring2'.
+
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD'.
+    <map>-to   = 'TSTRING'.
+    append initial line to lt_map_exp assigning <map>.
+    <map>-from = 'SOME_FIELD2'.
+    <map>-to   = 'TSTRING2'.
+
+    " Table based
+    try.
+      lt_map_act = zcl_text2tab_utils=>build_rename_map( lt_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
+    " string based
+    data lv_fields type string.
+    lv_fields = 'some_field:tstring;some_field2:tstring2;;'.
+
+    try.
+      lt_map_act = zcl_text2tab_utils=>build_rename_map( lv_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
+  endmethod.
+
+  method break_to_lines.
+    data:
+          lt_act type string_table,
+          lt_exp type string_table.
+
+    append 'line1' to lt_exp.
+    append 'line2' to lt_exp.
+
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text = 'line1' && c_crlf && 'line2'
+      i_begin_comment = space ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text = 'line1' && c_lf && 'line2'
+      i_begin_comment = space ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+    " with comment line
+    clear lt_exp.
+    append 'not a comment 1' to lt_exp.
+    append 'not a comment 2' to lt_exp.
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text =
+      '*a comment' && c_lf && 'not a comment 1' && c_lf && 'not a comment 2' && c_lf
+      && cl_abap_char_utilities=>newline i_begin_comment = '*' ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+  endmethod.  " break_to_lines.
+
+  method get_safe_struc_descr.
+    data:
+          ls_dummy  type abap_compdescr,
+          lt_dummy  type standard table of abap_compdescr,
+          lo_td_exp type ref to cl_abap_structdescr,
+          lo_td_act type ref to cl_abap_structdescr,
+          lx        type ref to zcx_text2tab_error.
+
+    lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
+
+    try. " Positive
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( ls_dummy ).
+      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( lt_dummy ).
+      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+
+    try. " Negative
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( 'ABC' ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
+    endtry.
+    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+  endmethod.  "get_safe_struc_descr
 
   method validate_date_format_spec.
     data:
@@ -135,6 +258,38 @@ class lcl_text2tab_utils_test implementation.
 
   endmethod.
 
+  method describe_struct_deep.
+
+    types:
+      begin of lty_dummy,
+        talpha type veri_alpha,
+        tstruc type abap_compdescr, " Deep
+      end of lty_dummy.
+
+    data ld_struc type ref to cl_abap_structdescr.
+    data ls_dummy type lty_dummy.
+    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    field-symbols <c> like line of lt_descr.
+
+    ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    lt_descr = zcl_text2tab_utils=>describe_struct( i_struc = ld_struc i_is_deep = abap_true ).
+
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 2 ).
+
+    read table lt_descr assigning <c> index 1.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = 'ALPHA' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 10 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_false ).
+
+    read table lt_descr assigning <c> index 2.
+    cl_abap_unit_assert=>assert_equals( act = <c>-name exp = 'TSTRUC' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-edit_mask exp = '' ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-output_length exp = 0 ).
+    cl_abap_unit_assert=>assert_equals( act = <c>-ignore exp = abap_false ).
+
+  endmethod.
+
   method check_version_fits.
     cl_abap_unit_assert=>assert_true(
       zcl_text2tab_utils=>check_version_fits(
@@ -164,6 +319,73 @@ class lcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v3.0.0' ) ).
+  endmethod.
+
+  method get_struc_field_value_by_name.
+
+    data lx type ref to zcx_text2tab_error.
+    data:
+      lv_a type string,
+      lv_b type d,
+      begin of ls_dummy,
+        a type string,
+        b type d,
+      end of ls_dummy.
+
+    ls_dummy-a = 'ABC'.
+    ls_dummy-b = '20190820'.
+
+    zcl_text2tab_utils=>get_struc_field_value_by_name(
+      exporting
+        i_struc = ls_dummy
+        i_field_name = 'A'
+      importing
+        e_value = lv_a ).
+    cl_abap_unit_assert=>assert_equals( act = lv_a exp = 'ABC' ).
+
+    zcl_text2tab_utils=>get_struc_field_value_by_name(
+      exporting
+        i_struc = ls_dummy
+        i_field_name = 'B'
+      importing
+        e_value = lv_b ).
+    cl_abap_unit_assert=>assert_equals( act = lv_b exp = '20190820' ).
+
+    try.
+      zcl_text2tab_utils=>get_struc_field_value_by_name(
+        i_struc = ls_dummy
+        i_field_name = 'C' ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'FN' ).
+    endtry.
+
+  endmethod.
+
+  method parse_deep_address.
+
+    data ls_parsed type zcl_text2tab_utils=>ty_deep_address.
+    data lx type ref to zcx_text2tab_error.
+
+    ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=@headid]' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'ID' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = 'HEADID' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '' ).
+
+    ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=12345]' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-location  exp = 'filename' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_field exp = 'ID' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-ref_field exp = '' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_parsed-key_value exp = '12345' ).
+
+    try.
+      zcl_text2tab_utils=>parse_deep_address( 'XYZ' ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'IA' ).
+    endtry.
+
   endmethod.
 
 endclass.

@@ -15,20 +15,15 @@ class zcl_text2tab_parser definition
     types:
       tt_field_map type standard table of i with default key.
 
-    types:
-      begin of ty_field_name_map,
-        from type string,
-        to   type abap_compname,
-      end of ty_field_name_map .
-    types:
-      tt_field_name_map type standard table of ty_field_name_map with key from .
-    types:
-      th_field_name_map type hashed table of ty_field_name_map with unique key from .
-
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
 
+    class-methods check_version_fits
+      importing
+        !i_required_version type string
+      returning
+        value(r_fits) type abap_bool .
     class-methods create
       importing
         !i_pattern type any         " target structure or table
@@ -36,6 +31,7 @@ class zcl_text2tab_parser definition
         !i_amount_format  type ty_amount_format optional
         !i_date_format    type ty_date_format optional
         !i_begin_comment  type ty_begin_comment optional
+        !i_deep_provider  type ref to zif_text2tab_deep_provider optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
@@ -56,16 +52,11 @@ class zcl_text2tab_parser definition
         !e_head_fields type string_table
       raising
         zcx_text2tab_error .
-    class-methods check_version_fits
-      importing
-        !i_required_version type string
-      returning
-        value(r_fits) type abap_bool .
+
   protected section.
   private section.
 
     data mv_amount_format type ty_amount_format .
-    data mv_ignore_nonflat type abap_bool .
     data mv_date_format type ty_date_format .
     data mo_struc_descr type ref to cl_abap_structdescr .
     data mv_current_field type string .
@@ -74,20 +65,14 @@ class zcl_text2tab_parser definition
     data mv_begin_comment type ty_begin_comment .
     class zcl_text2tab_utils definition load .
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
+    data mi_deep_provider type ref to zif_text2tab_deep_provider .
 
-    class-methods adopt_renames
-      importing
-        !i_rename_fields type any
-      returning
-        value(r_rename_map) type tt_field_name_map
-      raising
-        zcx_text2tab_error .
     methods parse_typefull
       importing
         !i_data type string
         !i_strict type abap_bool default abap_true
         !i_has_head type abap_bool default abap_true
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !e_container type any
         !e_head_fields type string_table
@@ -96,7 +81,7 @@ class zcl_text2tab_parser definition
     methods parse_typeless
       importing
         !i_data type string
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !e_container type ref to data
         !e_head_fields type string_table
@@ -105,25 +90,18 @@ class zcl_text2tab_parser definition
     methods parse_head_line
       importing
         !i_strict type abap_bool
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       changing
         !ct_data type string_table
         !ct_map type tt_field_map
         !ct_head_fields type string_table
       raising
         zcx_text2tab_error .
-    class-methods get_safe_struc_descr
-      importing
-        !i_pattern type any
-      returning
-        value(ro_struc_descr) type ref to cl_abap_structdescr
-      raising
-        zcx_text2tab_error .
     methods map_head_structure
       importing
         !i_header type string
         !i_strict type abap_bool
-        !i_rename_map type th_field_name_map
+        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !et_map type tt_field_map
         !et_head_fields type string_table
@@ -182,64 +160,11 @@ class zcl_text2tab_parser definition
         !code type zcx_text2tab_error=>ty_rc optional
       raising
         zcx_text2tab_error .
-    class-methods break_to_lines
-      importing
-        !i_text type string
-        !i_begin_comment type ty_begin_comment
-      returning
-        value(rt_tab) type string_table .
 ENDCLASS.
 
 
 
 CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
-
-
-  method adopt_renames.
-    data lo_type type ref to cl_abap_typedescr.
-    data lo_ref_type type ref to cl_abap_typedescr.
-    data ls_rename like line of r_rename_map.
-
-    if i_rename_fields is initial.
-      return.
-    endif.
-
-    lo_type = cl_abap_typedescr=>describe_by_data( i_rename_fields ).
-    lo_ref_type = cl_abap_typedescr=>describe_by_data( r_rename_map ).
-
-    if lo_type->type_kind = cl_abap_typedescr=>typekind_table and lo_type->absolute_name = lo_ref_type->absolute_name.
-      field-symbols <tab> type standard table.
-      assign i_rename_fields to <tab>.
-      loop at <tab> into ls_rename.
-        ls_rename-from = to_upper( ls_rename-from ).
-        ls_rename-to   = to_upper( ls_rename-to ).
-        append ls_rename to r_rename_map.
-      endloop.
-    elseif lo_type->type_kind = cl_abap_typedescr=>typekind_char or lo_type->type_kind = cl_abap_typedescr=>typekind_string.
-      data lt_renames type string_table.
-      field-symbols <str> type string.
-      split i_rename_fields at ';' into table lt_renames.
-      delete lt_renames where table_line is initial.
-      loop at lt_renames assigning <str>.
-        clear ls_rename.
-        <str> = to_upper( <str> ).
-        split <str> at ':' into ls_rename-from ls_rename-to.
-        if ls_rename-from is initial or ls_rename-to is initial.
-          zcx_text2tab_error=>raise(
-            methname = 'adopt_renames'
-            msg      = 'Wrong rename pair'
-            code     = 'WR' ). "#EC NOTEXT
-        endif.
-        append ls_rename to r_rename_map.
-      endloop.
-    else.
-      zcx_text2tab_error=>raise(
-        methname = 'adopt_renames'
-        msg      = 'Wrong rename fields type'
-        code     = 'WY' ). "#EC NOTEXT
-    endif.
-
-  endmethod.
 
 
   method apply_conv_exit.
@@ -266,39 +191,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   endmethod.
 
 
-  method break_to_lines.
-    data:
-      l_found type i,
-      l_break type string value c_crlf.
-    field-symbols: <line> type string.
-
-    " Detect line break
-    l_found = find( val = i_text sub = c_crlf ).
-    if l_found < 0.
-      l_found = find( val = i_text sub = c_lf ).
-      if l_found >= 0.
-        l_break = c_lf.
-      endif.
-    endif.
-
-    split i_text at l_break into table rt_tab.
-
-    if i_begin_comment <> space.
-      loop at rt_tab assigning <line>.
-        try.
-            if <line>+0(1) = i_begin_comment.
-              delete rt_tab index sy-tabix.
-            endif.
-          catch cx_sy_range_out_of_bounds.
-            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
-            delete rt_tab index sy-tabix.
-        endtry.
-      endloop.
-    endif.
-
-  endmethod.
-
-
   method check_version_fits.
 
     r_fits = zcl_text2tab_utils=>check_version_fits(
@@ -314,10 +206,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     ro_parser->mv_amount_format  = ' ,'.   " Defaults
     ro_parser->mv_date_format    = 'DMY.'. " Defaults
-    ro_parser->mv_ignore_nonflat = i_ignore_nonflat.
-    ro_parser->mo_struc_descr    = get_safe_struc_descr( i_pattern ).
+    ro_parser->mo_struc_descr    = zcl_text2tab_utils=>get_safe_struc_descr( i_pattern ).
+    ro_parser->mi_deep_provider  = i_deep_provider.
     ro_parser->mt_components     = zcl_text2tab_utils=>describe_struct(
       i_struc          = ro_parser->mo_struc_descr
+      i_is_deep        = boolc( i_deep_provider is bound )
       i_ignore_nonflat = i_ignore_nonflat ).
 
     " Not empty param and not empty decimal separator
@@ -339,31 +232,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   method create_typeless.
     create object ro_parser.
     ro_parser->mv_is_typeless = abap_true.
-  endmethod.
-
-
-  method get_safe_struc_descr.
-
-    data:
-          lo_type_descr  type ref to cl_abap_typedescr,
-          lo_table_descr type ref to cl_abap_tabledescr.
-
-    " Identify structure type
-    lo_type_descr = cl_abap_typedescr=>describe_by_data( i_pattern ).
-    case lo_type_descr->kind.
-      when 'T'. " Table
-        lo_table_descr ?= lo_type_descr.
-        ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
-      when 'S'. " Structure
-        ro_struc_descr ?= lo_type_descr.
-      when others. " Not a table or structure ?
-        raise exception type zcx_text2tab_error
-          exporting
-            methname = 'GET_SAFE_STRUC_DESCR'
-            msg      = 'Table or structure patterns only' "#EC NOTEXT
-            code     = 'PE'.
-    endcase.
-
   endmethod.
 
 
@@ -459,8 +327,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse.
 
-    data lt_rename_map type th_field_name_map.
-    lt_rename_map = adopt_renames( i_rename_fields ).
+    data lt_rename_map type zcl_text2tab_utils=>th_field_name_map.
+    lt_rename_map = zcl_text2tab_utils=>build_rename_map( i_rename_fields ).
 
     if mv_is_typeless = abap_true.
       if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.
@@ -853,6 +721,22 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
       if mv_is_typeless = abap_true.
         <field> = l_field_value.
+      elseif ls_component-type_kind = cl_abap_typedescr=>typekind_struct1
+        or ls_component-type_kind = cl_abap_typedescr=>typekind_struct2
+        or ls_component-type_kind = cl_abap_typedescr=>typekind_table.
+
+        assert mi_deep_provider is bound.
+        if l_field_value is not initial.
+          mi_deep_provider->select(
+            exporting
+              i_address = l_field_value
+              i_cursor  = es_container
+            importing
+              e_container = <field> ).
+          " Potetial bug if key field is parsed AFTER deep field that references it
+          " option 1 - just demand key fields before deep ones - look like normal constrain
+          " option 2 - postpone parsing of deep fields till after all others were parsed
+        endif.
       else.
         me->parse_field(
           exporting
@@ -884,11 +768,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     " Check container type
-    if mo_struc_descr->absolute_name <> get_safe_struc_descr( e_container )->absolute_name.
+    if mo_struc_descr->absolute_name <> zcl_text2tab_utils=>get_safe_struc_descr( e_container )->absolute_name.
       raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
     endif.
 
-    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     if i_has_head = abap_true.
@@ -923,7 +807,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     data lt_map type tt_field_map.
     field-symbols <f> like line of e_head_fields.
 
-    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     parse_head_line(
@@ -955,7 +839,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     field-symbols <tab> type any.
     assign e_container->* to <tab>.
     mo_struc_descr = ld_struc. "TODO: hack, maybe improve
-    mt_components = zcl_text2tab_utils=>describe_struct( i_struc = mo_struc_descr i_ignore_nonflat = abap_false ).
+    mt_components  = zcl_text2tab_utils=>describe_struct(
+      i_struc          = mo_struc_descr
+      i_ignore_nonflat = abap_false ).
     parse_data(
       exporting
         it_data = lt_data

@@ -167,10 +167,65 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method get_struc_field_value_by_name.
 
+    field-symbols <val> type any.
+
+    assign component i_field_name of structure i_struc to <val>.
+    if sy-subrc <> 0.
+      raise exception type zcx_text2tab_error
+        exporting
+          methname = 'get_struc_field_value_by_name'
+          msg      = |Field { i_field_name } not found in {
+            cl_abap_typedescr=>describe_by_data( i_struc )->absolute_name }|
+          code     = 'FN'. "#EC NOTEXT
+    endif.
+
+    e_value = <val>. " Maybe catch move error ?
+
   endmethod.
 
 
   method parse_deep_address.
+
+    data lv_offs type i.
+    data lv_tmp type string.
+    data lv_len type i.
+
+    lv_len = strlen( i_address ).
+    find first occurrence of '[' in i_address match offset lv_offs.
+    if sy-subrc <> 0 or lv_len = 0 or substring( val = i_address off = lv_len - 1 ) <> ']'.
+      raise exception type zcx_text2tab_error
+        exporting
+          methname = 'get_struc_field_value_by_name'
+          msg      = |Incorrect data address to parse { i_address }|
+          code     = 'IA'. "#EC NOTEXT
+    endif.
+
+    rs_parsed-location = substring( val = i_address len = lv_offs ).
+    lv_tmp = substring( val = i_address off = lv_offs + 1 len = lv_len - lv_offs - 2 ).
+
+    find first occurrence of '=' in lv_tmp match offset lv_offs.
+    if sy-subrc <> 0.
+      raise exception type zcx_text2tab_error
+        exporting
+          methname = 'get_struc_field_value_by_name'
+          msg      = |Incorrect data address to parse { i_address }|
+          code     = 'IA'. "#EC NOTEXT
+    endif.
+
+    rs_parsed-key_field = substring( val = lv_tmp len = lv_offs ).
+    if strlen( rs_parsed-key_field ) = 0.
+      raise exception type zcx_text2tab_error
+        exporting
+          methname = 'get_struc_field_value_by_name'
+          msg      = |Incorrect data address to parse { i_address }|
+          code     = 'IA'. "#EC NOTEXT
+    endif.
+
+    rs_parsed-key_value = substring( val = lv_tmp off = lv_offs + 1 ).
+    if strlen( rs_parsed-key_value ) >= 2 and rs_parsed-key_value+0(1) = '@'.
+      rs_parsed-ref_field = substring( val = rs_parsed-key_value off = 1 ).
+      clear rs_parsed-key_value.
+    endif.
 
   endmethod.
 

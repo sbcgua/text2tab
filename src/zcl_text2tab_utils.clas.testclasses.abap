@@ -204,7 +204,7 @@ class lcl_text2tab_utils_test implementation.
         i_field_name = 'C' ).
       cl_abap_unit_assert=>fail( ).
     catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'FE' ).
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'FN' ).
     endtry.
 
   endmethod.

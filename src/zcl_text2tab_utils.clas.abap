@@ -30,7 +30,7 @@ class ZCL_TEXT2TAB_UTILS definition
     class-methods describe_struct
       importing
         !i_struc type ref to cl_abap_structdescr
-        !i_ignore_nonflat type abap_bool
+        !i_ignore_nonflat type abap_bool default abap_false
       returning
         value(rt_descr) type tt_comp_descr
       raising

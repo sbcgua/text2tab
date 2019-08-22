@@ -6,12 +6,17 @@ class lcl_text2tab_utils_test definition
 
   private section.
 
+    constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
+    constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants c_lf    like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+
 * ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
     methods describe_struct for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
+    methods break_to_lines for testing.
 
     methods parse_deep_address for testing raising zcx_text2tab_error.
     methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
@@ -22,6 +27,32 @@ endclass.
 **********************************************************************
 
 class lcl_text2tab_utils_test implementation.
+
+  method break_to_lines.
+    data:
+          lt_act type string_table,
+          lt_exp type string_table.
+
+    append 'line1' to lt_exp.
+    append 'line2' to lt_exp.
+
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text = 'line1' && c_crlf && 'line2'
+      i_begin_comment = space ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text = 'line1' && c_lf && 'line2'
+      i_begin_comment = space ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+    " with comment line
+    clear lt_exp.
+    append 'not a comment 1' to lt_exp.
+    append 'not a comment 2' to lt_exp.
+    lt_act = zcl_text2tab_utils=>break_to_lines( i_text =
+      '*a comment' && c_lf && 'not a comment 1' && c_lf && 'not a comment 2' && c_lf
+      && cl_abap_char_utilities=>newline i_begin_comment = '*' ).
+    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
+
+  endmethod.  " break_to_lines.
 
   method validate_date_format_spec.
     data:

@@ -5,6 +5,10 @@ class ZCL_TEXT2TAB_UTILS definition
 
   public section.
 
+    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
+    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
+    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
+
     types:
       begin of ty_comp_descr.
         include type abap_compdescr.
@@ -55,7 +59,6 @@ class ZCL_TEXT2TAB_UTILS definition
         value(rs_parsed) type ty_deep_address
       raising
         zcx_text2tab_error .
-
     class-methods get_struc_field_value_by_name
       importing
         !i_struc type any
@@ -64,6 +67,12 @@ class ZCL_TEXT2TAB_UTILS definition
         !e_value type any
       raising
         zcx_text2tab_error .
+    class-methods break_to_lines
+      importing
+        !i_text type string
+        !i_begin_comment type c
+      returning
+        value(rt_tab) type string_table .
 
   protected section.
   private section.
@@ -77,6 +86,37 @@ ENDCLASS.
 
 CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
+  method break_to_lines.
+    data:
+      l_found type i,
+      l_break type string value c_crlf.
+    field-symbols: <line> type string.
+
+    " Detect line break
+    l_found = find( val = i_text sub = c_crlf ).
+    if l_found < 0.
+      l_found = find( val = i_text sub = c_lf ).
+      if l_found >= 0.
+        l_break = c_lf.
+      endif.
+    endif.
+
+    split i_text at l_break into table rt_tab.
+
+    if i_begin_comment <> space.
+      loop at rt_tab assigning <line>.
+        try.
+            if <line>+0(1) = i_begin_comment.
+              delete rt_tab index sy-tabix.
+            endif.
+          catch cx_sy_range_out_of_bounds.
+            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
+            delete rt_tab index sy-tabix.
+        endtry.
+      endloop.
+    endif.
+
+  endmethod.
 
   method check_version_fits.
 

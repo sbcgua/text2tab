@@ -189,12 +189,6 @@ class zcl_text2tab_parser definition
         !code type zcx_text2tab_error=>ty_rc optional
       raising
         zcx_text2tab_error .
-    class-methods break_to_lines
-      importing
-        !i_text type string
-        !i_begin_comment type ty_begin_comment
-      returning
-        value(rt_tab) type string_table .
 ENDCLASS.
 
 
@@ -268,39 +262,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     if sy-subrc <> 0.
       raise_error( msg = 'Conversion exit failed' code = 'EF' ). "#EC NOTEXT
-    endif.
-
-  endmethod.
-
-
-  method break_to_lines.
-    data:
-      l_found type i,
-      l_break type string value c_crlf.
-    field-symbols: <line> type string.
-
-    " Detect line break
-    l_found = find( val = i_text sub = c_crlf ).
-    if l_found < 0.
-      l_found = find( val = i_text sub = c_lf ).
-      if l_found >= 0.
-        l_break = c_lf.
-      endif.
-    endif.
-
-    split i_text at l_break into table rt_tab.
-
-    if i_begin_comment <> space.
-      loop at rt_tab assigning <line>.
-        try.
-            if <line>+0(1) = i_begin_comment.
-              delete rt_tab index sy-tabix.
-            endif.
-          catch cx_sy_range_out_of_bounds.
-            " if the row only consist of a linefeed. Some text editors add always a line feed at the end of the document
-            delete rt_tab index sy-tabix.
-        endtry.
-      endloop.
     endif.
 
   endmethod.
@@ -894,7 +855,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
     endif.
 
-    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     if i_has_head = abap_true.
@@ -929,7 +890,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     data lt_map type tt_field_map.
     field-symbols <f> like line of e_head_fields.
 
-    lt_data = break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     parse_head_line(

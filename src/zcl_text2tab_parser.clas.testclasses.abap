@@ -143,7 +143,6 @@ class ltcl_text2tab_parser_test definition for testing
     methods map_head_structure    for testing.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
     methods get_safe_struc_descr  for testing.
-    methods break_to_lines        for testing.
 
     methods parse_line_negative   for testing.
     methods parse_data_empty_line for testing.
@@ -286,32 +285,6 @@ class ltcl_text2tab_parser_test implementation.
     enddo.
 
   endmethod.      "create
-
-  method break_to_lines.
-    data:
-          lt_act type string_table,
-          lt_exp type string_table.
-
-    append 'line1' to lt_exp.
-    append 'line2' to lt_exp.
-
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_crlf && 'line2'
-      i_begin_comment = space ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text = 'line1' && c_lf && 'line2'
-      i_begin_comment = space ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-
-    " with comment line
-    clear lt_exp.
-    append 'not a comment 1' to lt_exp.
-    append 'not a comment 2' to lt_exp.
-    lt_act = zcl_text2tab_parser=>break_to_lines( i_text =
-      '*a comment' && c_lf && 'not a comment 1' && c_lf && 'not a comment 2' && c_lf
-      && cl_abap_char_utilities=>newline i_begin_comment = '*' ).
-    cl_abap_unit_assert=>assert_equals( act = lt_act exp = lt_exp ).
-
-  endmethod.  " break_to_lines.
 
   method get_safe_struc_descr.
     data:

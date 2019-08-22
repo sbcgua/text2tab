@@ -1,5 +1,8 @@
 {  
-  "version": "v702",
+  "global": {
+    "version": "v702",
+    "applyUnspecifiedRules": false
+  },
   "rules": {  
     "7bit_ascii":{  
       "enabled": true
@@ -8,7 +11,8 @@
       "enabled": true
     },
     "functional_writing":{  
-      "enabled": true
+      "enabled": true,
+      "ignoreExceptions": true
     },
     "line_length":{  
       "enabled": true,
@@ -30,7 +34,8 @@
       "enabled": true
     },
     "line_only_punc":{  
-      "enabled": true
+      "enabled": true,
+      "ignoreExceptions": true
     },
     "obsolete_statement":{  
       "enabled": true
@@ -55,7 +60,9 @@
       "enabled": false
     },
     "indentation":{  
-      "enabled": true
+      "enabled": true,
+      "alignTryCatch": true,
+      "ignoreExceptions": true
     }
    }
 }

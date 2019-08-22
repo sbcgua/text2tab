@@ -5,7 +5,8 @@ notifications:
   email: false
 before_script:
   - npm install -g abaplint
-script: abaplint *.abap
+script: 
+  - abaplint src/*
 branches:
   only: 
     - master

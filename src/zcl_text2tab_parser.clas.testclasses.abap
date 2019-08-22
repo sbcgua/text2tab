@@ -194,7 +194,8 @@ class lcl_deep_helper implementation.
     if i_address cs '222'. " Very straihgt but why not ? :)
       lv_id = 222.
     else.
-      lv_id = 111.
+      assign component 'FIELD2' of structure i_cursor to <i>.
+      lv_id = <i>.
     endif.
 
     if cl_abap_typedescr=>describe_by_data( e_container )->kind = 'T'.
@@ -1206,10 +1207,10 @@ class ltcl_text2tab_parser_test implementation.
 
     " Input
     l_input = 'FIELD1\tFIELD2\tDEEP_STRUC\tDEEP_TAB\n'
-            && '1\t111\t@ext[id=@field1]\t@ext[id=@field1]\n'   " Test ref to field in current tab
+            && '1\t111\t@ext[id=@field2]\t@ext[id=@field2]\n'   " Test ref to field in current tab
             && '2\t222\t@ext[id=222]\t@ext[id=222]\n'           " Test fixed value
-            && '3\t333\t@ext[id=@field1]\t@ext[id=@field1]\n'   " Test empty ext source
-            && '3\t333\t\t\n'.                                  " Test empty ref
+            && '3\t333\t@ext[id=@field2]\t@ext[id=@field2]\n'   " Test empty ext source
+            && '4\t444\t\t\n'.                                  " Test empty ref
     replace all occurrences of '\t' in l_input with c_tab.
     replace all occurrences of '\n' in l_input with c_lf.
 
@@ -1221,8 +1222,9 @@ class ltcl_text2tab_parser_test implementation.
     create object lo_deep_provider exporting tab = lt_sub.
 
     try.
-      o = zcl_text2tab_parser=>create( lt_exp ).
-      o->set_deep_provider( lo_deep_provider ).
+      o = zcl_text2tab_parser=>create(
+        i_pattern = lt_exp
+        i_deep_provider = lo_deep_provider ).
       o->parse(
         exporting
           i_data        = l_input

@@ -31,6 +31,7 @@ class zcl_text2tab_parser definition
         !i_amount_format  type ty_amount_format optional
         !i_date_format    type ty_date_format optional
         !i_begin_comment  type ty_begin_comment optional
+        !i_deep_provider  type ref to zif_text2tab_deep_provider optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
@@ -51,12 +52,6 @@ class zcl_text2tab_parser definition
         !e_head_fields type string_table
       raising
         zcx_text2tab_error .
-    methods set_deep_provider
-      importing
-        ii_provider type ref to zif_text2tab_deep_provider
-      returning
-        value(ro_self) type ref to zcl_text2tab_parser.
-
 
   protected section.
   private section.
@@ -171,6 +166,7 @@ ENDCLASS.
 
 CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
+
   method apply_conv_exit.
 
     data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
@@ -211,8 +207,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     ro_parser->mv_amount_format  = ' ,'.   " Defaults
     ro_parser->mv_date_format    = 'DMY.'. " Defaults
     ro_parser->mo_struc_descr    = zcl_text2tab_utils=>get_safe_struc_descr( i_pattern ).
+    ro_parser->mi_deep_provider  = i_deep_provider.
     ro_parser->mt_components     = zcl_text2tab_utils=>describe_struct(
       i_struc          = ro_parser->mo_struc_descr
+      i_is_deep        = boolc( i_deep_provider is bound )
       i_ignore_nonflat = i_ignore_nonflat ).
 
     " Not empty param and not empty decimal separator
@@ -723,6 +721,22 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
       if mv_is_typeless = abap_true.
         <field> = l_field_value.
+      elseif ls_component-type_kind = cl_abap_typedescr=>typekind_struct1
+        or ls_component-type_kind = cl_abap_typedescr=>typekind_struct2
+        or ls_component-type_kind = cl_abap_typedescr=>typekind_table.
+
+        assert mi_deep_provider is bound.
+        if l_field_value is not initial.
+          mi_deep_provider->select(
+            exporting
+              i_address = l_field_value
+              i_cursor  = es_container
+            importing
+              e_container = <field> ).
+          " Potetial bug if key field is parsed AFTER deep field that references it
+          " option 1 - just demand key fields before deep ones - look like normal constrain
+          " option 2 - postpone parsing of deep fields till after all others were parsed
+        endif.
       else.
         me->parse_field(
           exporting
@@ -876,11 +890,5 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         structure = l_struc
         location  = l_location.
 
-  endmethod.
-
-
-  method set_deep_provider.
-    mi_deep_provider = ii_provider.
-    ro_self = me.
   endmethod.
 ENDCLASS.

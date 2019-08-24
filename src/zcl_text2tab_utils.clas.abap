@@ -338,7 +338,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     if sy-subrc <> 0 or lv_len = 0 or substring( val = i_address off = lv_len - 1 ) <> ']'.
       raise exception type zcx_text2tab_error
         exporting
-          methname = 'get_struc_field_value_by_name'
+          methname = 'parse_deep_address'
           msg      = |Incorrect data address to parse { i_address }|
           code     = 'IA'. "#EC NOTEXT
     endif.
@@ -350,7 +350,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     if sy-subrc <> 0.
       raise exception type zcx_text2tab_error
         exporting
-          methname = 'get_struc_field_value_by_name'
+          methname = 'parse_deep_address'
           msg      = |Incorrect data address to parse { i_address }|
           code     = 'IA'. "#EC NOTEXT
     endif.
@@ -359,7 +359,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     if strlen( rs_parsed-key_field ) = 0.
       raise exception type zcx_text2tab_error
         exporting
-          methname = 'get_struc_field_value_by_name'
+          methname = 'parse_deep_address'
           msg      = |Incorrect data address to parse { i_address }|
           code     = 'IA'. "#EC NOTEXT
     endif.

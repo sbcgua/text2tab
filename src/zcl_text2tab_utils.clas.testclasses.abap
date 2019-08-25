@@ -13,13 +13,14 @@ class lcl_text2tab_utils_test definition
 * ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
-    methods get_safe_struc_descr for testing.
+    methods get_safe_struc_descr for testing raising zcx_text2tab_error.
     methods describe_struct for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods describe_struct_deep for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
     methods break_to_lines for testing.
     methods build_rename_map for testing.
+    methods create_standard_table_of for testing raising zcx_text2tab_error.
 
     methods parse_deep_address for testing raising zcx_text2tab_error.
     methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
@@ -126,21 +127,33 @@ class lcl_text2tab_utils_test implementation.
 
     lo_td_exp ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
 
-    try. " Positive
-      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( ls_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( lt_dummy ).
-      cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    " Positive
+    lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( ls_dummy ).
+    cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+    lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( lt_dummy ).
+    cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
 
-    try. " Negative
+    " Positive with class
+    lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( lo_td_exp ).
+    cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+    lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( cl_abap_tabledescr=>create( lo_td_exp ) ).
+    cl_abap_unit_assert=>assert_equals( act = lo_td_act->absolute_name exp = lo_td_exp->absolute_name ).
+
+    " Negative
+    try.
       lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( 'ABC' ).
+      cl_abap_unit_assert=>fail( ).
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
     endtry.
-    cl_abap_unit_assert=>assert_not_initial( act = lx ).
+
+    " Negative with class
+    try.
+      lo_td_act = zcl_text2tab_utils=>get_safe_struc_descr( me ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( exp = 'PE' act = lx->code ).
+    endtry.
 
   endmethod.  "get_safe_struc_descr
 
@@ -385,6 +398,40 @@ class lcl_text2tab_utils_test implementation.
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'IA' ).
     endtry.
+
+  endmethod.
+
+  method create_standard_table_of.
+
+    types:
+      begin of lty_dummy,
+        a type c length 1,
+        b type i,
+      end of lty_dummy.
+
+    data ls_dummy type lty_dummy.
+    data lt_dummy type hashed table of lty_dummy with unique key a.
+    data lr_dref type ref to data.
+    data lo_type type ref to cl_abap_typedescr.
+    data lo_ttype type ref to cl_abap_tabledescr.
+
+    lr_dref = zcl_text2tab_utils=>create_standard_table_of( ls_dummy ).
+    lo_type = cl_abap_typedescr=>describe_by_data_ref( lr_dref ).
+    cl_abap_unit_assert=>assert_equals( act = lo_type->kind exp = cl_abap_typedescr=>kind_table ).
+    lo_ttype ?= lo_type.
+    cl_abap_unit_assert=>assert_equals( act = lo_ttype->table_kind exp = cl_abap_tabledescr=>tablekind_std ).
+
+    lr_dref = zcl_text2tab_utils=>create_standard_table_of( lt_dummy ).
+    lo_type = cl_abap_typedescr=>describe_by_data_ref( lr_dref ).
+    cl_abap_unit_assert=>assert_equals( act = lo_type->kind exp = cl_abap_typedescr=>kind_table ).
+    lo_ttype ?= lo_type.
+    cl_abap_unit_assert=>assert_equals( act = lo_ttype->table_kind exp = cl_abap_tabledescr=>tablekind_std ).
+
+    lr_dref = zcl_text2tab_utils=>create_standard_table_of( cl_abap_typedescr=>describe_by_data( ls_dummy ) ).
+    lo_type = cl_abap_typedescr=>describe_by_data_ref( lr_dref ).
+    cl_abap_unit_assert=>assert_equals( act = lo_type->kind exp = cl_abap_typedescr=>kind_table ).
+    lo_ttype ?= lo_type.
+    cl_abap_unit_assert=>assert_equals( act = lo_ttype->table_kind exp = cl_abap_tabledescr=>tablekind_std ).
 
   endmethod.
 

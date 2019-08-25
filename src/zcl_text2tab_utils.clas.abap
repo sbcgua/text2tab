@@ -97,6 +97,13 @@ class ZCL_TEXT2TAB_UTILS definition
         value(r_rename_map) type tt_field_name_map
       raising
         zcx_text2tab_error .
+    class-methods create_standard_table_of
+      importing
+        i_pattern type any
+      returning
+        value(rr_dref) type ref to data
+      raising
+        zcx_text2tab_error .
 
   protected section.
   private section.
@@ -223,6 +230,18 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
   endmethod.
 
 
+  method create_standard_table_of.
+
+    data lo_struc_type type ref to cl_abap_structdescr.
+    data lo_table_type type ref to cl_abap_tabledescr.
+
+    lo_struc_type = zcl_text2tab_utils=>get_safe_struc_descr( i_pattern ).
+    lo_table_type = cl_abap_tabledescr=>create( lo_struc_type ).
+    create data rr_dref type handle lo_table_type.
+
+  endmethod.
+
+
   method describe_struct.
 
     field-symbols <c> like line of i_struc->components.
@@ -291,17 +310,37 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
     " Identify structure type
     lo_type_descr = cl_abap_typedescr=>describe_by_data( i_pattern ).
+
+    if lo_type_descr->type_kind = cl_abap_typedescr=>typekind_oref.
+      lo_type_descr = cl_abap_typedescr=>describe_by_object_ref( i_pattern ).
+
+      if lo_type_descr->absolute_name = '\CLASS=CL_ABAP_STRUCTDESCR'.
+        ro_struc_descr ?= i_pattern.
+      elseif lo_type_descr->absolute_name = '\CLASS=CL_ABAP_TABLEDESCR'.
+        lo_table_descr ?= i_pattern.
+        ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
+      else.
+        raise exception type zcx_text2tab_error
+          exporting
+            methname = 'GET_SAFE_STRUC_DESCR'
+            msg      = 'Table, structure or data descriptor patterns only' "#EC NOTEXT
+            code     = 'PE'.
+      endif.
+
+      return.
+    endif.
+
     case lo_type_descr->kind.
-      when 'T'. " Table
+      when cl_abap_typedescr=>kind_table.
         lo_table_descr ?= lo_type_descr.
         ro_struc_descr ?= lo_table_descr->get_table_line_type( ).
-      when 'S'. " Structure
+      when cl_abap_typedescr=>kind_struct.
         ro_struc_descr ?= lo_type_descr.
       when others. " Not a table or structure ?
         raise exception type zcx_text2tab_error
           exporting
             methname = 'GET_SAFE_STRUC_DESCR'
-            msg      = 'Table or structure patterns only' "#EC NOTEXT
+            msg      = 'Table, structure or data descriptor patterns only' "#EC NOTEXT
             code     = 'PE'.
     endcase.
 

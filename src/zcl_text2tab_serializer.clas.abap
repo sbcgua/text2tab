@@ -165,8 +165,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
     if ld_type->kind = cl_abap_typedescr=>kind_struct.
       ld_struc ?= ld_type.
-      ld_table = cl_abap_tabledescr=>create( ld_struc ).
-      create data lr_datatab type handle ld_table.
+      lr_datatab = zcl_text2tab_utils=>create_standard_table_of( ld_type ).
       assign lr_datatab->* to <data>.
       insert i_data into table <data>.
     else.
@@ -178,7 +177,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     validate_components( ld_struc ).
 
     " serialize header / collect in string table
-    data lt_lines  type string_table.
+    data lt_lines type string_table.
     serialize_header(
       exporting
         id_struc = ld_struc

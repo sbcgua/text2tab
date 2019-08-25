@@ -823,7 +823,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     data lt_components type abap_component_tab.
     data ls_comp like line of lt_components.
     data ld_struc type ref to cl_abap_structdescr.
-    data ld_table type ref to cl_abap_tabledescr.
 
     ls_comp-type ?= cl_abap_typedescr=>describe_by_name( 'STRING' ).
     loop at e_head_fields assigning <f>.
@@ -831,9 +830,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       append ls_comp to lt_components.
     endloop.
 
-    ld_struc = cl_abap_structdescr=>create( lt_components ).
-    ld_table = cl_abap_tabledescr=>create( ld_struc ).
-    create data e_container type handle ld_table.
+    ld_struc    = cl_abap_structdescr=>create( lt_components ).
+    e_container = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
 
     " parse remaining data into the structure
     field-symbols <tab> type any.

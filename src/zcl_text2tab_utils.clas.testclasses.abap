@@ -308,6 +308,7 @@ class lcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v2.2.2' ) ).
+
     cl_abap_unit_assert=>assert_true(
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
@@ -316,6 +317,24 @@ class lcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v1.0.0' ) ).
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.3.0'
+        i_required_version = 'v2.2.5' ) ).
+
+    cl_abap_unit_assert=>assert_false(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.1.2'
+        i_required_version = 'v2.2.2' ) ).
+    cl_abap_unit_assert=>assert_false(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v1.0.0'
+        i_required_version = 'v2.2.2' ) ).
+    cl_abap_unit_assert=>assert_false(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.2.5'
+        i_required_version = 'v2.3.0' ) ).
+
     cl_abap_unit_assert=>assert_false(
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
@@ -332,6 +351,24 @@ class lcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.2.2'
         i_required_version = 'v3.0.0' ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.2.3'
+        i_required_version = 'v2.2.2' ) ).
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.2.30'
+        i_required_version = 'v2.2.2' ) ).
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.3.1'
+        i_required_version = 'v2.2.2' ) ).
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v3.0.0'
+        i_required_version = 'v2.2.2' ) ).
+
   endmethod.
 
   method get_struc_field_value_by_name.

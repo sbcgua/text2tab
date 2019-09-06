@@ -219,12 +219,8 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     shift lv_buf left deleting leading 'v'.
     split lv_buf at '.' into ls_req_ver-major ls_req_ver-minor ls_req_ver-patch.
 
-    if ls_req_ver-major <= ls_cur_ver-major.
-      if ls_req_ver-minor <= ls_cur_ver-minor.
-        if ls_req_ver-patch <= ls_cur_ver-patch.
-          r_fits = abap_true.
-        endif.
-      endif.
+    if ls_req_ver <= ls_cur_ver.
+      r_fits = abap_true.
     endif.
 
   endmethod.

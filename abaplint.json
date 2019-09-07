@@ -1,7 +1,14 @@
 {  
   "global": {
-    "version": "v702",
+    "files": "/src/**/*.*",
     "applyUnspecifiedRules": false
+  },
+  "dependencies": [],
+  "syntax": {
+    "version": "v702",
+    "errorNamespace": "^(Z|Y)",
+    "globalConstants": [],
+    "globalMacros": []
   },
   "rules": {  
     "7bit_ascii":{  

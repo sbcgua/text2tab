@@ -592,9 +592,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         endif.
 
         try .
-            e_field = l_unquoted.
-          catch cx_sy_conversion_no_raw cx_sy_conversion_error.
-            sy-subrc = 4.
+          e_field = l_unquoted.
+        catch cx_sy_conversion_no_raw cx_sy_conversion_error.
+          sy-subrc = 4.
         endtry.
 
       when others.

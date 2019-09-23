@@ -86,6 +86,10 @@ class ltcl_text2tab_parser_test definition for testing
         tinteger type i,
         tfloat   type float,
       end of ty_dummy,
+      begin of ty_dummy_with_time,
+        tchar(8),
+        ttime    type t,
+      end of ty_dummy_with_time,
       tt_dummy type standard table of ty_dummy with default key,
       begin of ty_dummy_str,
         mandt    type string,
@@ -147,6 +151,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_data_empty_line for testing.
     methods parse_negative        for testing.
     methods parse                 for testing.
+    methods parse_time for testing raising zcx_text2tab_error.
 
     methods parse_typeless for testing.
     methods with_renames for testing.
@@ -166,6 +171,12 @@ class ltcl_text2tab_parser_test definition for testing
         e_dummy_header type string
         e_dummy_string type string
         e_map          type int4_table.
+    methods get_dummy_data_with_time
+      exporting
+        e_exp_result        type ty_dummy_with_time
+        e_with_valid_time   type string
+        e_with_invalid_time type string.
+
 
 endclass.
 
@@ -388,6 +399,42 @@ class ltcl_text2tab_parser_test implementation.
     endtry.
 
   endmethod.  "parse
+
+  method parse_time.
+    data: l_exp_result        type ty_dummy_with_time,
+          l_act_result        type ty_dummy_with_time,
+          l_with_valid_time   type string,
+          l_with_invalid_time type string,
+          cut                 type ref to zcl_text2tab_parser.
+
+    get_dummy_data_with_time(
+      importing
+        e_exp_result = l_exp_result
+        e_with_valid_time = l_with_valid_time
+        e_with_invalid_time = l_with_invalid_time ).
+
+    cut = zcl_text2tab_parser=>create( l_exp_result ).
+
+    " not successfull parsing
+    try.
+      cut->parse( 
+          exporting 
+            i_data = l_with_invalid_time
+          importing 
+            e_container = l_act_result ).
+        cl_abap_unit_assert=>fail( msg = 'no exception when given invalid time' ).
+    ##no_handler
+    catch zcx_text2tab_error.
+    endtry.
+
+    " successfull parsing
+    cut->parse( exporting i_data = l_with_valid_time
+      importing e_container = l_act_result ).
+
+    cl_abap_unit_assert=>assert_equals( exp = l_exp_result
+      act = l_act_result msg = 'parsing should be sucessfull with correct time' ).
+
+  endmethod.
 
   method parse_negative.
 

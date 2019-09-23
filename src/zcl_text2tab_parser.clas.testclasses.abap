@@ -425,7 +425,7 @@ class ltcl_text2tab_parser_test implementation.
           e_container = l_act_result ).
       cl_abap_unit_assert=>fail( msg = |no exception when given invalid time| ).
     catch zcx_text2tab_error into l_exc_expected.
-      cl_abap_unit_assert=>assert_equals( 
+      cl_abap_unit_assert=>assert_equals(
         exp = 'IT'
         act = l_exc_expected->code
         msg = |should throw exception-code IT on invalid time| ).

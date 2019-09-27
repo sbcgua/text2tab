@@ -774,7 +774,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         plausibility_check_failed = 2
         wrong_format_in_input     = 4.
     if sy-subrc <> 0.
-      raise_error( msg = |{ i_value } is not a valid time| ).
+      raise_error( msg = |{ i_value } is not a valid time| code = 'IT' ).
     endif.
 
   endmethod.

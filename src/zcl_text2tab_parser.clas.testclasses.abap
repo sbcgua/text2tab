@@ -86,6 +86,10 @@ class ltcl_text2tab_parser_test definition for testing
         tinteger type i,
         tfloat   type float,
       end of ty_dummy,
+      begin of ty_dummy_with_time,
+        tchar(8),
+        ttime    type t,
+      end of ty_dummy_with_time,
       tt_dummy type standard table of ty_dummy with default key,
       begin of ty_dummy_str,
         mandt    type string,
@@ -147,6 +151,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_data_empty_line for testing.
     methods parse_negative        for testing.
     methods parse                 for testing.
+    methods parse_time for testing raising zcx_text2tab_error.
 
     methods parse_typeless for testing.
     methods with_renames for testing.
@@ -166,6 +171,12 @@ class ltcl_text2tab_parser_test definition for testing
         e_dummy_header type string
         e_dummy_string type string
         e_map          type int4_table.
+    methods get_dummy_data_with_time
+      exporting
+        e_exp_result        type ty_dummy_with_time
+        e_with_valid_time   type string
+        e_with_invalid_time type string.
+
 
 endclass.
 
@@ -388,6 +399,51 @@ class ltcl_text2tab_parser_test implementation.
     endtry.
 
   endmethod.  "parse
+
+  method parse_time.
+    data: l_exp_result        type ty_dummy_with_time,
+          l_act_result        type ty_dummy_with_time,
+          l_with_valid_time   type string,
+          l_with_invalid_time type string,
+          cut                 type ref to zcl_text2tab_parser,
+          l_exc_expected      type ref to zcx_text2tab_error.
+
+    get_dummy_data_with_time(
+      importing
+        e_exp_result = l_exp_result
+        e_with_valid_time = l_with_valid_time
+        e_with_invalid_time = l_with_invalid_time ).
+
+    cut = zcl_text2tab_parser=>create( l_exp_result ).
+
+    " not successfull parsing
+    try.
+      cut->parse(
+        exporting
+          i_data = l_with_invalid_time
+        importing
+          e_container = l_act_result ).
+      cl_abap_unit_assert=>fail( msg = |no exception when given invalid time| ).
+    catch zcx_text2tab_error into l_exc_expected.
+      cl_abap_unit_assert=>assert_equals(
+        exp = 'IT'
+        act = l_exc_expected->code
+        msg = |should throw exception-code IT on invalid time| ).
+    endtry.
+
+    " successfull parsing
+    cut->parse(
+      exporting
+        i_data = l_with_valid_time
+      importing
+        e_container = l_act_result ).
+
+    cl_abap_unit_assert=>assert_equals(
+      exp = l_exp_result
+      act = l_act_result
+      msg = |parsing should be sucessfull with correct time| ).
+
+  endmethod.  "parse_time
 
   method parse_negative.
 
@@ -935,6 +991,26 @@ class ltcl_text2tab_parser_test implementation.
     e_dummy_header = l_string+0(l_offs).
 
   endmethod.       " get_dummy_data
+
+  method get_dummy_data_with_time.
+
+    e_with_valid_time = 'TCHAR\tTTIME\n'
+      && 'Trolo2\t08:30:00'.
+
+    replace all occurrences of '\t' in e_with_valid_time with c_tab.
+    replace all occurrences of '\n' in e_with_valid_time with c_crlf.
+
+    e_with_invalid_time = 'TCHAR\tTTIME\n'
+      && 'Trolo2\t88:30:00'.
+
+    replace all occurrences of '\t' in e_with_invalid_time with c_tab.
+    replace all occurrences of '\n' in e_with_invalid_time with c_crlf.
+
+    e_exp_result-tchar = 'Trolo2'.
+    e_exp_result-ttime = '083000'.
+
+  endmethod.       " get_dummy_data_with_time
+
 
   method parse_typeless.
     data:

@@ -146,6 +146,13 @@ class zcl_text2tab_parser definition
         !e_field type d
       raising
         zcx_text2tab_error .
+    methods parse_time
+      importing
+        !i_value type string
+      exporting
+        !e_field type t
+      raising
+        zcx_text2tab_error .
     methods apply_conv_exit
       importing
         !i_value type string
@@ -562,7 +569,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         endif.
 
       when cl_abap_typedescr=>typekind_time. " Time
-        e_field = l_unquoted.
+        parse_time(
+          exporting
+            i_value = l_unquoted
+          importing
+            e_field = e_field ).
 
       when cl_abap_typedescr=>typekind_num. " Numchar
         if is_component-output_length < strlen( l_unquoted ).
@@ -748,6 +759,23 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
       clear mv_current_field. " For error handling - field is not processed any more
     endloop.
+
+  endmethod.
+
+
+  method parse_time.
+
+    call function 'CONVERT_TIME_INPUT'
+      exporting
+        input                     = i_value
+      importing
+        output                    = e_field
+      exceptions
+        plausibility_check_failed = 2
+        wrong_format_in_input     = 4.
+    if sy-subrc <> 0.
+      raise_error( msg = |{ i_value } is not a valid time| code = 'IT' ).
+    endif.
 
   endmethod.
 

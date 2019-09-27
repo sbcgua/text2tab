@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.3.1, 2019-09-27
+------------------
++ support for time type parsing, thanks to @germanysources
+
 v2.3.0, 2019-08-22
 ------------------
 + support for deep parsing - structure and table fields, referencing an additional data source. Major feature - see readme.

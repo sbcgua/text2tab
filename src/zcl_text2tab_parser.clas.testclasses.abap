@@ -577,20 +577,22 @@ class ltcl_text2tab_parser_test implementation.
     test_parse_positive TNUMBER  '2015'            '2015'.
     test_parse_positive TINTEGER '123'             123.
     test_parse_positive TRAW     '8E'              '8E'.
-    test_parse_positive TFLOAT   '1.123456789'     '1.123456789'.
-    test_parse_positive TFLOAT   '"1.123456789"'   '1.123456789'. " Quoted data, issue#6
+    test_parse_positive TFLOAT   '1,123456789'     '1.123456789'.
+    test_parse_positive TFLOAT   '"1,123456789"'   '1.123456789'. " Quoted data, issue#6
     test_parse_positive TNUMBER  '"2015"'          '2015'.        " Quoted
 
     " Negative tests ******************************
     test_parse_negative TNUMBER  '20ha'      'PF'.
 
     " Decimal converion tests *********************
-    test_parse_positive TDECIMAL '1234.12'         '1234.12'. " Native ABAP format
-    test_parse_positive TDECIMAL '-1234.12'        '-1234.12'." Native ABAP format
+    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
+    test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
 
     " Different amount formats
     test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
     test_parse_positive TDECIMAL '1234,12'         '1234.12'.
+    test_parse_positive TDECIMAL '1234'            '1234'.
+    test_parse_positive TDECIMAL '1 234'           '1234'.
     test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
     test_parse_positive TDECIMAL '14,12'           '14.12'.
     test_parse_positive TDECIMAL '1 234 567,12'    '1234567.12'.
@@ -599,6 +601,7 @@ class ltcl_text2tab_parser_test implementation.
     test_parse_positive TDECIMAL '1234,12'         '1234.12'.
     test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
     test_parse_positive TDECIMAL '1.234,12'        '1234.12'.
+    test_parse_positive TDECIMAL '1.234'           '1234'.
     test_parse_positive TDECIMAL '14,12'           '14.12'.
     test_parse_positive TDECIMAL '1.234.567,12'    '1234567.12'.
 

@@ -621,44 +621,48 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     l_decimal_sep  = mv_amount_format+1(1).
     clear e_field.
 
-    try .
-      e_field = i_value. " Try native format first - xxxx.xx
-    catch cx_sy_arithmetic_error cx_sy_conversion_error.
+    if l_decimal_sep = '.'.
+      try .
+        e_field = i_value. " Try native format first - xxxx.xx
+        return. " if successful - just return it
+      catch cx_sy_arithmetic_error cx_sy_conversion_error.
+        " Ignore, continue with custom parsing
+      endtry.
+    endif.
 
-      l_tmp   = i_value.
-      l_regex = '^-?\d{1,3}(T\d{3})*(\D\d{1,C})?$'. "#EC NOTEXT
-      condense l_tmp no-gaps.
-      replace 'C' in l_regex with |{ i_decimals }|.
+    l_tmp   = i_value.
+    l_regex = '^-?\d{1,3}(T\d{3})*(\D\d{1,C})?$'. "#EC NOTEXT
+    condense l_tmp no-gaps.
+    replace 'C' in l_regex with |{ i_decimals }|.
 
-      " Validate number
-      find first occurrence of l_thousand_sep in l_tmp.
-      if sy-subrc is initial. " Found
-        replace 'T' in l_regex with l_thousand_sep.
-      else.
-        replace 'T' in l_regex with ''.
+    " Validate number
+    find first occurrence of l_thousand_sep in l_tmp.
+    if sy-subrc is initial. " Found
+      replace 'T' in l_regex with l_thousand_sep.
+    else.
+      replace 'T' in l_regex with ''.
+    endif.
+
+    replace 'D' in l_regex with l_decimal_sep.
+    find all occurrences of regex l_regex in l_tmp match count sy-tabix.
+
+    if sy-tabix = 1.
+      if not l_thousand_sep is initial.  " Remove thousand separators
+        replace all occurrences of l_thousand_sep in l_tmp with ''.
       endif.
 
-      replace 'D' in l_regex with l_decimal_sep.
-      find all occurrences of regex l_regex in l_tmp match count sy-tabix.
+      if l_decimal_sep <> '.'.           " Replace decimal separator
+        replace l_decimal_sep in l_tmp with '.'.
+      endif.
 
-      if sy-tabix = 1.
-        if not l_thousand_sep is initial.  " Remove thousand separators
-          replace all occurrences of l_thousand_sep in l_tmp with ''.
-        endif.
-
-        if l_decimal_sep <> '.'.           " Replace decimal separator
-          replace l_decimal_sep in l_tmp with '.'.
-        endif.
-
-        try. " Try converting again
-          e_field = l_tmp.
-        catch cx_sy_arithmetic_error cx_sy_conversion_error.
-          raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
-        endtry.
-      else. " Not matched
+      try. " Try converting again
+        e_field = l_tmp.
+      catch cx_sy_arithmetic_error cx_sy_conversion_error.
         raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
-      endif.
-    endtry.
+      endtry.
+    else. " Not matched
+      raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
+    endif.
 
   endmethod.
 

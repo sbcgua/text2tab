@@ -309,8 +309,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       if <field> is initial. " Check empty fields
         raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
       endif.
-      " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE
-      if strlen( <field> ) > abap_max_comp_name_ln or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789'.
+      " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, non-strict mode characters included
+      IF strlen( <field> ) > abap_max_comp_name_ln OR <field> CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
         raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
       endif.
       if mv_is_typeless = abap_false.

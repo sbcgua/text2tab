@@ -615,6 +615,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_decimal_sep  type c,
           l_thousand_sep type c,
           l_tmp          type string,
+          l_count        type string,
           l_regex        type string.
 
     l_thousand_sep = mv_amount_format+0(1).
@@ -631,8 +632,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     l_tmp   = i_value.
-    l_regex = '^-?\d{1,3}(T\d{3})*(\D\d{1,C})?$'. "#EC NOTEXT
     condense l_tmp no-gaps.
+    if l_tmp is initial.
+      return. " zero
+    endif.
+
+    l_regex = '^-?\d{1,3}(T\d{3})*(\D\d{1,C})?$'. "#EC NOTEXT
     replace 'C' in l_regex with |{ i_decimals }|.
 
     " Validate number
@@ -644,9 +649,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     replace 'D' in l_regex with l_decimal_sep.
-    find all occurrences of regex l_regex in l_tmp match count sy-tabix.
+    find all occurrences of regex l_regex in l_tmp match count l_count.
 
-    if sy-tabix = 1.
+    if l_count = 1.
       if not l_thousand_sep is initial.  " Remove thousand separators
         replace all occurrences of l_thousand_sep in l_tmp with ''.
       endif.

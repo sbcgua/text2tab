@@ -596,6 +596,10 @@ class ltcl_text2tab_parser_test implementation.
     test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
     test_parse_positive TDECIMAL '14,12'           '14.12'.
     test_parse_positive TDECIMAL '1 234 567,12'    '1234567.12'.
+    test_parse_positive TDECIMAL '0'               '0'.
+    test_parse_positive TDECIMAL '0,0'             '0'.
+    test_parse_positive TDECIMAL ''                '0'.
+    test_parse_positive TDECIMAL '15'              '15'.
 
     o->mv_amount_format = '.,'.
     test_parse_positive TDECIMAL '1234,12'         '1234.12'.

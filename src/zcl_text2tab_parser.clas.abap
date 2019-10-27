@@ -45,6 +45,7 @@ class zcl_text2tab_parser definition
       importing
         !i_data type string
         !i_strict type abap_bool default abap_true
+        !i_corresponding type abap_bool default abap_false
         !i_has_head type abap_bool default abap_true
         !i_rename_fields type any optional
       exporting
@@ -71,6 +72,7 @@ class zcl_text2tab_parser definition
       importing
         !i_data type string
         !i_strict type abap_bool default abap_true
+        !i_corresponding type abap_bool default abap_false
         !i_has_head type abap_bool default abap_true
         !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
@@ -356,6 +358,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           i_has_head   = i_has_head
           i_strict     = i_strict
           i_rename_map = lt_rename_map
+          i_corresponding = i_corresponding
         importing
           e_container   = e_container
           e_head_fields = e_head_fields ).
@@ -802,6 +805,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     " Validate params
     if i_has_head = abap_false and i_strict = abap_false.
       raise_error( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
+    endif.
+
+    if i_corresponding = abap_true and i_strict = abap_true.
+      raise_error( msg = 'Cannot be strict and corresponding' code = 'WP' ). "#EC NOTEXT
     endif.
 
     " Check container type

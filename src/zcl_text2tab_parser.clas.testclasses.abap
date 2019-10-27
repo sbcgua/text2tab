@@ -157,6 +157,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods with_renames for testing.
 
     methods deep_structures for testing.
+    methods parse_corresponding for testing.
 
 * ==== HELPERS ===
 
@@ -463,7 +464,7 @@ class ltcl_text2tab_parser_test implementation.
 
     get_dummy_data( importing e_dummy_string = l_string_bak ).
 
-    do 5 times.
+    do 6 times.
       clear lx.
       l_string = l_string_bak.
 
@@ -492,7 +493,7 @@ class ltcl_text2tab_parser_test implementation.
                 i_data      = l_string
               importing
                 e_container = dummy_tab_act ).
-          when 4. " Wrong params
+          when 4. " Wrong params: strict = false and has_head = false
             l_exp_code = 'WP'.
             o->parse(
               exporting
@@ -508,6 +509,15 @@ class ltcl_text2tab_parser_test implementation.
                 i_data      = l_string
               importing
                 e_container = wrong_struc ).
+          when 6. " Wrong params: strict = true and corresponding = true
+            l_exp_code = 'WP'.
+            o->parse(
+              exporting
+                i_data      = l_string
+                i_strict    = abap_true
+                i_corresponding = abap_true
+              importing
+                e_container = dummy_tab_act ).
         endcase.
 
       catch zcx_text2tab_error into lx.
@@ -1319,6 +1329,13 @@ class ltcl_text2tab_parser_test implementation.
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
+
+  endmethod.
+
+  method parse_corresponding.
+
+
+
 
   endmethod.
 

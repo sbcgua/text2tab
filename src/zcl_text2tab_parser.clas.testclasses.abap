@@ -91,6 +91,14 @@ class ltcl_text2tab_parser_test definition for testing
         ttime    type t,
       end of ty_dummy_with_time,
       tt_dummy type standard table of ty_dummy with default key,
+
+      begin of ty_dummy_corresponding,
+        tdate    type datum,
+        tchar    type c length 8,
+        _another type i,
+      end of ty_dummy_corresponding,
+      tt_dummy_corresponding type standard table of ty_dummy_corresponding with default key,
+
       begin of ty_dummy_str,
         mandt    type string,
         tdate    type string,
@@ -157,7 +165,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods with_renames for testing.
 
     methods deep_structures for testing.
-    methods parse_corresponding for testing.
+    methods parse_corresponding for testing raising zcx_text2tab_error.
 
 * ==== HELPERS ===
 
@@ -1334,8 +1342,34 @@ class ltcl_text2tab_parser_test implementation.
 
   method parse_corresponding.
 
+    data src_text type string.
+    data exp_base type tt_dummy.
+    data exp_tab type tt_dummy_corresponding.
+    data act_tab like exp_tab.
 
+    field-symbols <expb> like line of exp_base.
+    field-symbols <exp> like line of exp_tab.
 
+    get_dummy_data(
+      importing
+        e_dummy_tab = exp_base
+        e_dummy_string = src_text ).
+
+    loop at exp_base assigning <expb>.
+      append initial line to exp_tab assigning <exp>.
+      move-corresponding <expb> to <exp>.
+    endloop.
+
+    o->parse(
+      exporting
+        i_data          = src_text
+        i_corresponding = abap_true
+      importing
+        e_container = act_tab ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = act_tab
+      exp = exp_tab ).
 
   endmethod.
 

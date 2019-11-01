@@ -142,6 +142,7 @@ class ltcl_text2tab_parser_test definition for testing
     constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
     constants c_lf    like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
     constants c_dummy type ty_dummy value is initial.
+    constants c_dummy_corresponding type ty_dummy_corresponding value is initial.
 
 
     data o type ref to zcl_text2tab_parser.  "class under test
@@ -153,6 +154,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_field           for testing.
     methods parse_field_unsupp    for testing.
     methods map_head_structure    for testing.
+    methods map_head_structure_corresp for testing raising zcx_text2tab_error.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
 
     methods parse_line_negative   for testing.
@@ -179,6 +181,7 @@ class ltcl_text2tab_parser_test definition for testing
         e_dummy_tab_s  type tt_dummy_str
         e_dummy_header type string
         e_dummy_string type string
+        e_map_corresp  type int4_table
         e_map          type int4_table.
     methods get_dummy_data_with_time
       exporting
@@ -472,7 +475,7 @@ class ltcl_text2tab_parser_test implementation.
 
     get_dummy_data( importing e_dummy_string = l_string_bak ).
 
-    do 6 times.
+    do 7 times.
       clear lx.
       l_string = l_string_bak.
 
@@ -521,8 +524,18 @@ class ltcl_text2tab_parser_test implementation.
             l_exp_code = 'WP'.
             o->parse(
               exporting
-                i_data      = l_string
-                i_strict    = abap_true
+                i_data          = l_string
+                i_strict        = abap_true
+                i_corresponding = abap_true
+              importing
+                e_container = dummy_tab_act ).
+          when 7. " Wrong params: strict = true and has_head = false
+            l_exp_code = 'WP'.
+            o->parse(
+              exporting
+                i_data          = l_string
+                i_strict        = abap_false
+                i_has_head      = abap_false
                 i_corresponding = abap_true
               importing
                 e_container = dummy_tab_act ).
@@ -747,6 +760,7 @@ class ltcl_text2tab_parser_test implementation.
           i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_false
+          i_corresponding = abap_false
         importing
           et_map = l_act_map ).
     catch zcx_text2tab_error into lx.
@@ -765,6 +779,7 @@ class ltcl_text2tab_parser_test implementation.
           i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_false
+          i_corresponding = abap_false
         importing
           et_map = l_act_map ).
     catch zcx_text2tab_error into lx.
@@ -789,6 +804,7 @@ class ltcl_text2tab_parser_test implementation.
           i_rename_map = l_ren_map
           i_header     = l_header
           i_strict     = abap_true
+          i_corresponding = abap_false
         importing
           et_map = l_act_map ).
     catch zcx_text2tab_error into lx.
@@ -828,6 +844,7 @@ class ltcl_text2tab_parser_test implementation.
         o->map_head_structure(
           i_rename_map = l_ren_map
           i_header     = l_header
+          i_corresponding = abap_false
           i_strict     = abap_true ).
       catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals(
@@ -857,6 +874,7 @@ class ltcl_text2tab_parser_test implementation.
         o->map_head_structure(
           i_rename_map = l_ren_map
           i_header     = l_header
+          i_corresponding = abap_false
           i_strict     = abap_false ).
       catch zcx_text2tab_error into lx.
         cl_abap_unit_assert=>assert_equals(
@@ -871,6 +889,34 @@ class ltcl_text2tab_parser_test implementation.
 
 
   endmethod.     "map_head_structure
+
+  method map_head_structure_corresp.
+
+    data:
+          l_header      type string,
+          l_act_map     type int4_table,
+          l_exp_map     type int4_table,
+          l_ren_map     type zcl_text2tab_utils=>th_field_name_map.
+
+    get_dummy_data(
+      importing
+        e_map_corresp  = l_exp_map
+        e_dummy_header = l_header ).
+
+    o = zcl_text2tab_parser=>create( c_dummy_corresponding ).
+    o->map_head_structure(
+      exporting
+        i_rename_map = l_ren_map
+        i_header     = l_header
+        i_strict     = abap_false
+        i_corresponding = abap_true
+      importing
+        et_map = l_act_map ).
+    cl_abap_unit_assert=>assert_equals(
+      act = l_act_map
+      exp = l_exp_map ).
+
+  endmethod.
 
   method parse_line_negative.
     data:
@@ -980,17 +1026,30 @@ class ltcl_text2tab_parser_test implementation.
         append sy-index to e_map.
       enddo.
 
+      append -1 to e_map_corresp.
+      append  1 to e_map_corresp.
+      append  2 to e_map_corresp.
+      do 7 times.
+        append -1 to e_map_corresp.
+      enddo.
+
     else.
       l_string = 'TDATE\tTSTRING\tTCHAR\tTDECIMAL\tTNUMBER\n'
               && '01.01.2015\tString1\tTrololo1\t1234567,81\t2015\n'
               && '02.01.2016\tString2\tTrololo2\t1234567,82\t2016\n'
               && '03.01.2016\tString3\tTrololo3\t1234567,83\t2015\n' .
 
-      append '2' to e_map.
-      append '5' to e_map.
-      append '3' to e_map.
-      append '7' to e_map.
-      append '8' to e_map.
+      append 2 to e_map.
+      append 5 to e_map.
+      append 3 to e_map.
+      append 7 to e_map.
+      append 8 to e_map.
+
+      append  1 to e_map_corresp.
+      append -1 to e_map_corresp.
+      append  3 to e_map_corresp.
+      append -1 to e_map_corresp.
+      append -1 to e_map_corresp.
 
     endif.
 
@@ -1212,6 +1271,7 @@ class ltcl_text2tab_parser_test implementation.
       exporting
         i_rename_map = lt_ren_map
         i_header     = |TDATE{ c_tab }TCHAR|
+        i_corresponding = abap_false
         i_strict     = abap_false
       importing
         et_map = lt_act_map ).
@@ -1227,6 +1287,7 @@ class ltcl_text2tab_parser_test implementation.
         exporting
           i_rename_map = lt_ren_map
           i_header     = |TDATE{ c_tab }TCHAR{ c_tab }NONFLAT|
+          i_corresponding = abap_false
           i_strict     = abap_false
         importing
           et_map = lt_act_map ).
@@ -1360,10 +1421,12 @@ class ltcl_text2tab_parser_test implementation.
       move-corresponding <expb> to <exp>.
     endloop.
 
+    o = zcl_text2tab_parser=>create( c_dummy_corresponding ).
     o->parse(
       exporting
         i_data          = src_text
         i_corresponding = abap_true
+        i_strict        = abap_false
       importing
         e_container = act_tab ).
 

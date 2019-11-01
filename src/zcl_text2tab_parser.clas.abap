@@ -92,6 +92,7 @@ class zcl_text2tab_parser definition
     methods parse_head_line
       importing
         !i_strict type abap_bool
+        !i_corresponding type abap_bool
         !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       changing
         !ct_data type string_table
@@ -103,6 +104,7 @@ class zcl_text2tab_parser definition
       importing
         !i_header type string
         !i_strict type abap_bool
+        !i_corresponding type abap_bool
         !i_rename_map type zcl_text2tab_utils=>th_field_name_map
       exporting
         !et_map type tt_field_map
@@ -253,6 +255,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     clear: et_map, et_head_fields.
     assert not ( i_strict = abap_true and mv_is_typeless = abap_true ).
+    assert not ( i_strict = abap_true and i_corresponding = abap_true ).
 
     field-symbols <field> type string.
 
@@ -324,7 +327,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
             raise_error( msg = |Cannot map to ignored field { <field> }| code = 'IG' ). "#EC NOTEXT
           endif.
         else.
-          raise_error( msg = |Field { <field> } not found in structure| code = 'MC' ). "#EC NOTEXT
+          if i_corresponding = abap_true.
+            append -1 to et_map. " Skip this field later
+          else.
+            raise_error( msg = |Field { <field> } not found in structure| code = 'MC' ). "#EC NOTEXT
+          endif.
         endif.
       else.
         append sy-tabix to et_map. " direct map
@@ -688,9 +695,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     me->map_head_structure(
       exporting
-        i_rename_map = i_rename_map
-        i_header = to_upper( l_header_str )
-        i_strict = i_strict
+        i_rename_map    = i_rename_map
+        i_header        = to_upper( l_header_str )
+        i_strict        = i_strict
+        i_corresponding = i_corresponding
       importing
         et_map         = ct_map
         et_head_fields = ct_head_fields ).
@@ -727,7 +735,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     " Move data to table line
     loop at lt_fields into l_field_value.
-      read table it_map        into l_index      index sy-tabix. " Read map
+      read table it_map into l_index index sy-tabix. " Read map
+      if l_index = -1.
+        continue. " corresponding parsing
+      endif.
+
       read table mt_components into ls_component index l_index.  " Get component
       if sy-subrc is not initial.
         raise_error( 'No component found?!' ). "#EC NOTEXT
@@ -811,6 +823,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       raise_error( msg = 'Cannot be strict and corresponding' code = 'WP' ). "#EC NOTEXT
     endif.
 
+    if i_corresponding = abap_true and i_has_head = abap_false.
+      raise_error( msg = 'Cannot be strict and has no head line' code = 'WP' ). "#EC NOTEXT
+    endif.
+
     " Check container type
     if mo_struc_descr->absolute_name <> zcl_text2tab_utils=>get_safe_struc_descr( e_container )->absolute_name.
       raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
@@ -822,8 +838,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     if i_has_head = abap_true.
       parse_head_line(
         exporting
-          i_rename_map = i_rename_map
-          i_strict     = i_strict
+          i_rename_map    = i_rename_map
+          i_strict        = i_strict
+          i_corresponding = i_corresponding
         changing
           ct_data        = lt_data
           ct_head_fields = e_head_fields
@@ -856,8 +873,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     " Read and process header line
     parse_head_line(
       exporting
-        i_rename_map   = i_rename_map
-        i_strict       = abap_false
+        i_rename_map    = i_rename_map
+        i_strict        = abap_false
+        i_corresponding = abap_false
       changing
         ct_data        = lt_data
         ct_head_fields = e_head_fields

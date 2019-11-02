@@ -8,6 +8,13 @@ Legend
 + : added
 - : removed
 
+v2.3.2, 2019-11-02
+------------------
+* bug fix with parse_float
+! parse_float does not parse native format first (123.23 fails if number format declares another decimal separator)
+* better field name validation (thanks to @Huargh)
++ new feature: support for "corresponding" parsing
+
 v2.3.1, 2019-09-27
 ------------------
 + support for time type parsing, thanks to @germanysources

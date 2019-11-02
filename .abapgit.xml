@@ -14,7 +14,7 @@
     <item>/README.md</item>
     <item>/CONTRIBUTING.md</item>
     <item>/ci/</item>
-    <item>/deploy_key.enc</item>
+    <item>/deploy-key.enc</item>
    </IGNORE>
   </DATA>
  </asx:values>

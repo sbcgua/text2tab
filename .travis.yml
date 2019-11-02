@@ -20,4 +20,4 @@ env:
   global:
     - DEPLOY_VERSION_FILE="src/zif_text2tab_constants.intf.abap"
     - DEPLOY_VERSION_CONST="VERSION"
-    - ENCRYPTION_LABEL="b4232358baf1"
+    - ENCRYPTION_LABEL="4477a0b315a3"

@@ -57,7 +57,8 @@ class lcl_text2tab_serializer_test definition final
 
 * ==== TESTING ===
 
-    methods smoke_test for testing.
+    methods integrated for testing.
+    methods header_only for testing raising zcx_text2tab_error.
     methods serialize_date for testing.
     methods serialize_field for testing.
     methods negatives for testing.
@@ -71,7 +72,8 @@ class lcl_text2tab_serializer_test definition final
         e_dummy_struc     type ty_dummy
         e_dummy_tab       type tt_dummy
         e_dummy_struc_str type string
-        e_dummy_string    type string.
+        e_dummy_string    type string
+        e_dummy_header    type string.
 
 endclass.
 
@@ -92,7 +94,7 @@ class lcl_text2tab_serializer_test implementation.
     endtry.
   endmethod.      "setup
 
-  method smoke_test.
+  method integrated.
     data:
       lv_act       type string,
       lv_exp_struc type string,
@@ -119,6 +121,25 @@ class lcl_text2tab_serializer_test implementation.
     endtry.
   endmethod.
 
+  method header_only.
+
+    data lv_act type string.
+    data lv_exp_string type string.
+    data lt_tab       type tt_dummy.
+
+    get_dummy_data( importing
+      e_dummy_tab       = lt_tab
+      e_dummy_header    = lv_exp_string ).
+
+    lv_act = o->serialize(
+      i_data        = lt_tab
+      i_header_only = abap_true ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp_string ).
+
+  endmethod.
+
   method get_dummy_data.
 
     data l_offs    type i.
@@ -143,6 +164,7 @@ class lcl_text2tab_serializer_test implementation.
     e_dummy_string = l_string.
 
     l_offs = find( val = l_string sub = c_crlf ).
+    e_dummy_header = l_string+0(l_offs).
     l_offs = find( val = l_string sub = c_crlf off = l_offs + 1 ). " second crlf
     e_dummy_struc_str = l_string+0(l_offs).
 

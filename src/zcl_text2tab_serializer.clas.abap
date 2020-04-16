@@ -17,6 +17,7 @@ class zcl_text2tab_serializer definition
     methods serialize
       importing
         !i_data type any
+        !i_header_only type abap_bool default abap_false
       returning
         value(r_string) type string
       raising
@@ -185,12 +186,14 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         ct_lines = lt_lines ).
 
     " serialize data
-    serialize_data(
-      exporting
-        id_struc = ld_struc
-        i_data   = <data>
-      changing
-        ct_lines = lt_lines ).
+    if i_header_only = abap_false.
+      serialize_data(
+        exporting
+          id_struc = ld_struc
+          i_data   = <data>
+        changing
+          ct_lines = lt_lines ).
+    endif.
 
     r_string = concat_lines_of( table = lt_lines sep = mv_line_sep ).
 

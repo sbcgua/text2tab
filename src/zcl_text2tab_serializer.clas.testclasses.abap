@@ -48,7 +48,6 @@ class lcl_text2tab_serializer_test definition final
       end of ty_dummy,
       tt_dummy type standard table of ty_dummy with default key.
 
-* ================
   private section.
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
     constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
@@ -95,12 +94,12 @@ class lcl_text2tab_serializer_test implementation.
 
   method smoke_test.
     data:
-          lv_act       type string,
-          lv_exp_struc type string,
-          lv_exp_tab   type string,
-          lt_tab       type tt_dummy,
-          ls_struc     type ty_dummy,
-          lx type ref to zcx_text2tab_error.
+      lv_act       type string,
+      lv_exp_struc type string,
+      lv_exp_tab   type string,
+      lt_tab       type tt_dummy,
+      ls_struc     type ty_dummy,
+      lx type ref to zcx_text2tab_error.
 
     get_dummy_data( importing
       e_dummy_struc     = ls_struc
@@ -121,9 +120,9 @@ class lcl_text2tab_serializer_test implementation.
   endmethod.
 
   method get_dummy_data.
-    data:
-          l_offs    type i,
-          l_string  type string.
+
+    data l_offs    type i.
+    data l_string  type string.
 
     l_string = 'MANDT\tTDATE\tTCHAR\tTRAW\tTSTRING\tTALPHA\tTDECIMAL\tTNUMBER\tTINTEGER\tTFLOAT\n'
             && '\t01.01.2015\tTrololo1\t8A\tString1\t100000\t1234567.81\t2015\t1111\t1.12345\n'
@@ -164,12 +163,11 @@ class lcl_text2tab_serializer_test implementation.
   endmethod.
 
   method serialize_field.
-    data:
-          lx        type ref to zcx_text2tab_error,
-          l_act     type string,
-          ls_dummy  type ty_dummy,
-          ld_type   type ref to cl_abap_structdescr.
 
+    data lx        type ref to zcx_text2tab_error.
+    data l_act     type string.
+    data ls_dummy  type ty_dummy.
+    data ld_type   type ref to cl_abap_structdescr.
     data lt_components type zcl_text2tab_utils=>tt_comp_descr.
     data lv_meins type meins.
     data ls_comp like line of lt_components.
@@ -227,13 +225,13 @@ class lcl_text2tab_serializer_test implementation.
 
   method negatives.
     data:
-          lx        type ref to zcx_text2tab_error,
-          l_act     type string.
+      lx        type ref to zcx_text2tab_error,
+      l_act     type string.
     data:
-          begin of ls_deep,
-            str type string,
-            tab type tt_dummy,
-          end of ls_deep.
+      begin of ls_deep,
+        str type string,
+        tab type tt_dummy,
+      end of ls_deep.
 
     try.
       clear lx.
@@ -254,13 +252,11 @@ class lcl_text2tab_serializer_test implementation.
   endmethod.
 
   method create.
-    data:
-          lx        type ref to zcx_text2tab_error.
+    data lx type ref to zcx_text2tab_error.
 
     try.
       clear lx.
-      o = zcl_text2tab_serializer=>create(
-        i_date_format = 'YYM-' ).
+      o = zcl_text2tab_serializer=>create( i_date_format = 'YYM-' ).
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'UD' ).
     endtry.

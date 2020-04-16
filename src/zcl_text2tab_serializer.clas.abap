@@ -8,6 +8,13 @@ class zcl_text2tab_serializer definition
     types:
       ty_decimal_sep type c length 1.
 
+    types:
+      tt_fields_list type standard table of abap_compname with default key.
+
+    types:
+      ts_fields_list type sorted table of abap_compname with unique key table_line.
+
+
     type-pools abap .
     class cl_abap_char_utilities definition load .
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
@@ -18,6 +25,7 @@ class zcl_text2tab_serializer definition
       importing
         !i_data type any
         !i_header_only type abap_bool default abap_false
+        !i_fields_only type tt_fields_list optional
       returning
         value(r_string) type string
       raising
@@ -73,12 +81,14 @@ class zcl_text2tab_serializer definition
     class-methods serialize_header
       importing
         !id_struc type ref to cl_abap_structdescr
+        !i_fields_only type ts_fields_list optional
       changing
         !ct_lines type string_table .
     methods serialize_data
       importing
         !id_struc type ref to cl_abap_structdescr
         !i_data type any table
+        !i_fields_only type ts_fields_list optional
       changing
         !ct_lines type string_table
       raising
@@ -177,11 +187,15 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
     validate_components( ld_struc ).
 
+    data lt_fields_only_sorted type ts_fields_list.
+    lt_fields_only_sorted = i_fields_only.
+
     " serialize header / collect in string table
     data lt_lines type string_table.
     serialize_header(
       exporting
         id_struc = ld_struc
+        i_fields_only = lt_fields_only_sorted
       changing
         ct_lines = lt_lines ).
 
@@ -191,6 +205,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         exporting
           id_struc = ld_struc
           i_data   = <data>
+          i_fields_only = lt_fields_only_sorted
         changing
           ct_lines = lt_lines ).
     endif.
@@ -211,12 +226,20 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     field-symbols <c> like line of lt_components.
     lt_components = zcl_text2tab_utils=>describe_struct( id_struc ).
 
+    data lv_limit_fields type abap_bool.
+    lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
+
     " Serialization loop
     loop at i_data assigning <record>.
       mv_line_index = sy-tabix.
       clear lt_fields.
       loop at lt_components assigning <c>.
         assign component sy-tabix of structure <record> to <field>.
+        assert sy-subrc = 0.
+        if lv_limit_fields = abap_true.
+          read table i_fields_only transporting no fields with key table_line = <c>-name.
+          check sy-subrc = 0. " continue if not found
+        endif.
         mv_current_field = <c>-name.
         lv_buf = serialize_field(
           is_component = <c>
@@ -336,7 +359,14 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data lt_fields type string_table.
     field-symbols <c> like line of id_struc->components.
 
+    data lv_limit_fields type abap_bool.
+    lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
+
     loop at id_struc->components assigning <c>.
+      if lv_limit_fields = abap_true.
+        read table i_fields_only transporting no fields with key table_line = <c>-name.
+        check sy-subrc = 0. " continue if not found
+      endif.
       append <c>-name to lt_fields.
     endloop.
 

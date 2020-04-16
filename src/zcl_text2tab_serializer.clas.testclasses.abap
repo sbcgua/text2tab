@@ -59,6 +59,8 @@ class lcl_text2tab_serializer_test definition final
 
     methods integrated for testing.
     methods header_only for testing raising zcx_text2tab_error.
+    methods given_fields for testing raising zcx_text2tab_error.
+
     methods serialize_date for testing.
     methods serialize_field for testing.
     methods negatives for testing.
@@ -71,6 +73,8 @@ class lcl_text2tab_serializer_test definition final
       exporting
         e_dummy_struc     type ty_dummy
         e_dummy_tab       type tt_dummy
+        e_given_fields_list type zcl_text2tab_serializer=>tt_fields_list
+        e_given_fields_str type string
         e_dummy_struc_str type string
         e_dummy_string    type string
         e_dummy_header    type string.
@@ -140,6 +144,27 @@ class lcl_text2tab_serializer_test implementation.
 
   endmethod.
 
+  method given_fields.
+
+    data lv_act        type string.
+    data lv_exp_string type string.
+    data lt_tab        type tt_dummy.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    get_dummy_data( importing
+      e_dummy_tab         = lt_tab
+      e_given_fields_list = lt_fields_only
+      e_given_fields_str  = lv_exp_string ).
+
+    lv_act = o->serialize(
+      i_data        = lt_tab
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp_string ).
+
+  endmethod.
+
   method get_dummy_data.
 
     data l_offs    type i.
@@ -167,6 +192,18 @@ class lcl_text2tab_serializer_test implementation.
     e_dummy_header = l_string+0(l_offs).
     l_offs = find( val = l_string sub = c_crlf off = l_offs + 1 ). " second crlf
     e_dummy_struc_str = l_string+0(l_offs).
+
+    append 'TCHAR' to e_given_fields_list.
+    append 'TNUMBER' to e_given_fields_list.
+
+    e_given_fields_str =
+      'TCHAR\tTNUMBER\n' &&
+      'Trololo1\t2015\n' &&
+      'Trololo2\t2016\n' &&
+      'Trololo3\t2015' .
+
+    replace all occurrences of '\t' in e_given_fields_str with c_tab.
+    replace all occurrences of '\n' in e_given_fields_str with c_crlf.
 
   endmethod.       " get_dummy_data
 

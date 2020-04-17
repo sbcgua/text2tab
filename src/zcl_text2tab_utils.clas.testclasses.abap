@@ -15,6 +15,7 @@ class lcl_text2tab_utils_test definition
     methods function_exists for testing.
     methods get_safe_struc_descr for testing raising zcx_text2tab_error.
     methods describe_struct for testing raising zcx_text2tab_error.
+    methods describe_struct_with_descr for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods describe_struct_deep for testing raising zcx_text2tab_error.
     methods check_version_fits for testing.
@@ -236,6 +237,35 @@ class lcl_text2tab_utils_test implementation.
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'SF' ).
     endtry.
+
+  endmethod.
+
+  method describe_struct_with_descr.
+
+    types:
+      begin of lty_dummy,
+        mandt type mandt,
+        char  type c length 8,
+        date  type datum,
+      end of lty_dummy.
+
+    data ld_struc type ref to cl_abap_structdescr.
+    data ls_dummy type lty_dummy.
+    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    field-symbols <c> like line of lt_descr.
+
+    ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    lt_descr = zcl_text2tab_utils=>describe_struct(
+      i_struc      = ld_struc
+      i_with_descr = 'E' ).
+    cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 3 ).
+
+    read table lt_descr assigning <c> index 1.
+    cl_abap_unit_assert=>assert_equals( act = <c>-description exp = 'Client' ).
+    read table lt_descr assigning <c> index 2.
+    cl_abap_unit_assert=>assert_equals( act = <c>-description exp = '' ).
+    read table lt_descr assigning <c> index 3.
+    cl_abap_unit_assert=>assert_equals( act = <c>-description exp = 'Date' ).
 
   endmethod.
 

@@ -37,14 +37,14 @@ class lcl_text2tab_serializer_test definition final
       begin of ty_dummy,
         mandt    type mandt,
         tdate    type datum,
-        tchar    type char08,
-        traw     type thraw1,
+        tchar    type c length 8,
+        traw     type x length 1,
         tstring  type string,
         talpha   type veri_alpha,
         tdecimal type dmbtr,
-        tnumber  type numc4,
+        tnumber  type n length 4,
         tinteger type i,
-        tfloat   type float,
+        tfloat   type f,
       end of ty_dummy,
       tt_dummy type standard table of ty_dummy with default key.
 
@@ -60,6 +60,7 @@ class lcl_text2tab_serializer_test definition final
     methods integrated for testing.
     methods header_only for testing raising zcx_text2tab_error.
     methods given_fields for testing raising zcx_text2tab_error.
+    methods with_descr for testing raising zcx_text2tab_error.
 
     methods serialize_date for testing.
     methods serialize_field for testing.
@@ -71,13 +72,14 @@ class lcl_text2tab_serializer_test definition final
     methods setup.
     methods get_dummy_data
       exporting
-        e_dummy_struc     type ty_dummy
-        e_dummy_tab       type tt_dummy
-        e_given_fields_list type zcl_text2tab_serializer=>tt_fields_list
-        e_given_fields_str type string
-        e_dummy_struc_str type string
-        e_dummy_string    type string
-        e_dummy_header    type string.
+        e_dummy_struc         type ty_dummy
+        e_dummy_tab           type tt_dummy
+        e_given_fields_list   type zcl_text2tab_serializer=>tt_fields_list
+        e_given_fields_str    type string
+        e_dummy_struc_str     type string
+        e_dummy_string        type string
+        e_dummy_string_w_descr type string
+        e_dummy_header        type string.
 
 endclass.
 
@@ -156,6 +158,7 @@ class lcl_text2tab_serializer_test implementation.
       e_given_fields_list = lt_fields_only
       e_given_fields_str  = lv_exp_string ).
 
+    o = zcl_text2tab_serializer=>create( ).
     lv_act = o->serialize(
       i_data        = lt_tab
       i_fields_only = lt_fields_only ).
@@ -164,6 +167,29 @@ class lcl_text2tab_serializer_test implementation.
       exp = lv_exp_string ).
 
   endmethod.
+
+  method with_descr.
+
+    data lv_act        type string.
+    data lv_exp_string type string.
+    data lt_tab        type tt_dummy.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    get_dummy_data( importing
+      e_dummy_tab            = lt_tab
+      e_dummy_string_w_descr = lv_exp_string ).
+
+    o = zcl_text2tab_serializer=>create( ).
+    lv_act = o->serialize(
+      i_data             = lt_tab
+      i_add_header_descr = 'E' ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp_string ).
+
+  endmethod.
+
+**********************************************************************
 
   method get_dummy_data.
 
@@ -204,6 +230,16 @@ class lcl_text2tab_serializer_test implementation.
 
     replace all occurrences of '\t' in e_given_fields_str with c_tab.
     replace all occurrences of '\n' in e_given_fields_str with c_crlf.
+
+    e_dummy_string_w_descr =
+      'Client\tDate\t\t\t\tALPHA\tAmount in LC\t\t\t\n' &&
+      'MANDT\tTDATE\tTCHAR\tTRAW\tTSTRING\tTALPHA\tTDECIMAL\tTNUMBER\tTINTEGER\tTFLOAT\n' &&
+      '\t01.01.2015\tTrololo1\t8A\tString1\t100000\t1234567.81\t2015\t1111\t1.12345\n' &&
+      '\t02.01.2016\tTrololo2\t8B\tString2\t200000\t1234567.82\t2016\t2222\t1.1\n' &&
+      '\t03.01.2016\tTrololo3\t8C\tString3\t300000\t1234567.83\t2015\t3333\t1000' .
+
+    replace all occurrences of '\t' in e_dummy_string_w_descr with c_tab.
+    replace all occurrences of '\n' in e_dummy_string_w_descr with c_crlf.
 
   endmethod.       " get_dummy_data
 

@@ -16,6 +16,7 @@ class ZCL_TEXT2TAB_UTILS definition
         edit_mask type abap_editmask,
         output_length type i,
         ignore type abap_bool,
+        description type string,
       end of ty_comp_descr .
     types:
       tt_comp_descr type standard table of ty_comp_descr with default key .
@@ -52,6 +53,7 @@ class ZCL_TEXT2TAB_UTILS definition
         !i_struc type ref to cl_abap_structdescr
         !i_is_deep type abap_bool default abap_false
         !i_ignore_nonflat type abap_bool default abap_false
+        !i_with_descr type sy-langu optional
       returning
         value(rt_descr) type tt_comp_descr
       raising
@@ -244,6 +246,12 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     field-symbols <descr> like line of rt_descr.
     data lo_data    type ref to cl_abap_datadescr.
     data lo_element type ref to cl_abap_elemdescr.
+    data lv_descr_lang type sy-langu.
+
+    lv_descr_lang = i_with_descr.
+    if lv_descr_lang = zif_text2tab_constants=>c_descr_in_logon_lang.
+      lv_descr_lang = sy-langu.
+    endif.
 
     assert not ( i_is_deep = abap_true and i_ignore_nonflat = abap_true ). " Cannot be set simultaneously
 
@@ -256,6 +264,23 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
         <descr>-output_length = lo_element->output_length.
         <descr>-edit_mask     = lo_element->edit_mask.
         shift <descr>-edit_mask left deleting leading '='.
+
+        if lv_descr_lang is not initial and lo_data->is_ddic_type( ) = abap_true.
+          data lv_obj_name type ddobjname.
+          data ls_dtel type dd04v.
+          lv_obj_name = lo_data->get_relative_name( ).
+          call function 'DDIF_DTEL_GET'
+            exporting
+              name  = lv_obj_name
+              state = 'A'
+              langu = lv_descr_lang
+            importing
+              dd04v_wa = ls_dtel.
+          if sy-subrc = 0 and ls_dtel-scrtext_m is not initial.
+            <descr>-description = ls_dtel-scrtext_m.
+          endif.
+        endif.
+
       elseif i_ignore_nonflat = abap_true.
         <descr>-ignore = abap_true.
       elseif i_is_deep = abap_true

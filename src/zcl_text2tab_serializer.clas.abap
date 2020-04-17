@@ -26,6 +26,7 @@ class zcl_text2tab_serializer definition
         !i_data type any
         !i_header_only type abap_bool default abap_false
         !i_fields_only type tt_fields_list optional
+        !i_add_header_descr type sy-langu optional
       returning
         value(r_string) type string
       raising
@@ -80,13 +81,16 @@ class zcl_text2tab_serializer definition
         zcx_text2tab_error .
     class-methods serialize_header
       importing
-        !id_struc type ref to cl_abap_structdescr
+        !it_components type zcl_text2tab_utils=>tt_comp_descr
+*        !id_struc type ref to cl_abap_structdescr
         !i_fields_only type ts_fields_list optional
+        !i_add_header_descr type sy-langu optional
       changing
         !ct_lines type string_table .
     methods serialize_data
       importing
-        !id_struc type ref to cl_abap_structdescr
+        !it_components type zcl_text2tab_utils=>tt_comp_descr
+*        !id_struc type ref to cl_abap_structdescr
         !i_data type any table
         !i_fields_only type ts_fields_list optional
       changing
@@ -188,14 +192,21 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     validate_components( ld_struc ).
 
     data lt_fields_only_sorted type ts_fields_list.
+    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
+
     lt_fields_only_sorted = i_fields_only.
+    lt_components = zcl_text2tab_utils=>describe_struct(
+      i_struc      = ld_struc
+      i_with_descr = i_add_header_descr ).
 
     " serialize header / collect in string table
     data lt_lines type string_table.
     serialize_header(
       exporting
-        id_struc = ld_struc
-        i_fields_only = lt_fields_only_sorted
+        i_add_header_descr = i_add_header_descr
+        it_components      = lt_components
+*        id_struc      = ld_struc
+        i_fields_only      = lt_fields_only_sorted
       changing
         ct_lines = lt_lines ).
 
@@ -203,14 +214,17 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     if i_header_only = abap_false.
       serialize_data(
         exporting
-          id_struc = ld_struc
-          i_data   = <data>
+          it_components = lt_components
+*          id_struc      = ld_struc
+          i_data        = <data>
           i_fields_only = lt_fields_only_sorted
         changing
           ct_lines = lt_lines ).
     endif.
 
-    r_string = concat_lines_of( table = lt_lines sep = mv_line_sep ).
+    r_string = concat_lines_of(
+      table = lt_lines
+      sep   = mv_line_sep ).
 
   endmethod.
 
@@ -218,22 +232,19 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
   method serialize_data.
     data lt_fields type string_table.
     data lv_buf type string.
+    data lv_limit_fields type abap_bool.
 
     field-symbols <record> type any.
     field-symbols <field>  type any.
+    field-symbols <c> like line of it_components.
 
-    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
-    field-symbols <c> like line of lt_components.
-    lt_components = zcl_text2tab_utils=>describe_struct( id_struc ).
-
-    data lv_limit_fields type abap_bool.
     lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
 
     " Serialization loop
     loop at i_data assigning <record>.
       mv_line_index = sy-tabix.
       clear lt_fields.
-      loop at lt_components assigning <c>.
+      loop at it_components assigning <c>.
         assign component sy-tabix of structure <record> to <field>.
         assert sy-subrc = 0.
         if lv_limit_fields = abap_true.
@@ -357,21 +368,34 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
   method serialize_header.
     data lt_fields type string_table.
-    field-symbols <c> like line of id_struc->components.
-
+    data lt_fields_descr type string_table.
     data lv_limit_fields type abap_bool.
+    data lv_buf type string.
+    field-symbols <c> like line of it_components.
+
     lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
 
-    loop at id_struc->components assigning <c>.
+    loop at it_components assigning <c>.
       if lv_limit_fields = abap_true.
         read table i_fields_only transporting no fields with key table_line = <c>-name.
         check sy-subrc = 0. " continue if not found
       endif.
       append <c>-name to lt_fields.
+      if i_add_header_descr is not initial.
+        append <c>-description to lt_fields_descr.
+      endif.
     endloop.
 
-    data lv_buf type string.
-    lv_buf = concat_lines_of( table = lt_fields sep = zcl_text2tab_serializer=>c_tab ).
+    if i_add_header_descr is not initial.
+      lv_buf = concat_lines_of(
+        table = lt_fields_descr
+        sep   = zcl_text2tab_serializer=>c_tab ).
+      append lv_buf to ct_lines.
+    endif.
+
+    lv_buf = concat_lines_of(
+      table = lt_fields
+      sep   = zcl_text2tab_serializer=>c_tab ).
     append lv_buf to ct_lines.
 
   endmethod.

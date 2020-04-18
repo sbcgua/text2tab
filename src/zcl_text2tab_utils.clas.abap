@@ -246,12 +246,6 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     field-symbols <descr> like line of rt_descr.
     data lo_data    type ref to cl_abap_datadescr.
     data lo_element type ref to cl_abap_elemdescr.
-    data lv_descr_lang type sy-langu.
-
-    lv_descr_lang = i_with_descr.
-    if lv_descr_lang = zif_text2tab_constants=>c_descr_in_logon_lang.
-      lv_descr_lang = sy-langu.
-    endif.
 
     assert not ( i_is_deep = abap_true and i_ignore_nonflat = abap_true ). " Cannot be set simultaneously
 
@@ -265,7 +259,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
         <descr>-edit_mask     = lo_element->edit_mask.
         shift <descr>-edit_mask left deleting leading '='.
 
-        if lv_descr_lang is not initial and lo_data->is_ddic_type( ) = abap_true.
+        if i_with_descr is not initial and lo_data->is_ddic_type( ) = abap_true.
           data lv_obj_name type ddobjname.
           data ls_dtel type dd04v.
           lv_obj_name = lo_data->get_relative_name( ).
@@ -273,9 +267,11 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
             exporting
               name  = lv_obj_name
               state = 'A'
-              langu = lv_descr_lang
+              langu = i_with_descr
             importing
-              dd04v_wa = ls_dtel.
+              dd04v_wa = ls_dtel
+            exceptions
+              illegal_input = 1.
           if sy-subrc = 0 and ls_dtel-scrtext_m is not initial.
             <descr>-description = ls_dtel-scrtext_m.
           endif.

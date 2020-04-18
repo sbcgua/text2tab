@@ -179,10 +179,8 @@ class lcl_text2tab_serializer_test implementation.
       e_dummy_tab            = lt_tab
       e_dummy_string_w_descr = lv_exp_string ).
 
-    o = zcl_text2tab_serializer=>create( ).
-    lv_act = o->serialize(
-      i_data             = lt_tab
-      i_add_header_descr = 'E' ).
+    o = zcl_text2tab_serializer=>create( i_add_header_descr = 'E' ).
+    lv_act = o->serialize( i_data = lt_tab ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
       exp = lv_exp_string ).

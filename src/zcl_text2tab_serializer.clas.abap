@@ -26,7 +26,6 @@ class zcl_text2tab_serializer definition
         !i_data type any
         !i_header_only type abap_bool default abap_false
         !i_fields_only type tt_fields_list optional
-        !i_add_header_descr type sy-langu optional
       returning
         value(r_string) type string
       raising
@@ -37,6 +36,7 @@ class zcl_text2tab_serializer definition
         !i_date_format type zcl_text2tab_parser=>ty_date_format optional
         !i_max_frac_digits type i optional
         !i_use_lf type abap_bool default abap_false
+        !i_add_header_descr type sy-langu optional
       returning
         value(ro_serializer) type ref to zcl_text2tab_serializer
       raising
@@ -50,6 +50,7 @@ class zcl_text2tab_serializer definition
     data mv_max_frac_digits type i .
     data mv_current_field type string .
     data mv_line_index type i .
+    data mv_add_header_descr type sy-langu.
 
     class zcl_text2tab_utils definition load .
     methods serialize_field
@@ -79,18 +80,15 @@ class zcl_text2tab_serializer definition
         !id_struc type ref to cl_abap_structdescr
       raising
         zcx_text2tab_error .
-    class-methods serialize_header
+    methods serialize_header
       importing
         !it_components type zcl_text2tab_utils=>tt_comp_descr
-*        !id_struc type ref to cl_abap_structdescr
         !i_fields_only type ts_fields_list optional
-        !i_add_header_descr type sy-langu optional
       changing
         !ct_lines type string_table .
     methods serialize_data
       importing
         !it_components type zcl_text2tab_utils=>tt_comp_descr
-*        !id_struc type ref to cl_abap_structdescr
         !i_data type any table
         !i_fields_only type ts_fields_list optional
       changing
@@ -159,6 +157,9 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       zcl_text2tab_utils=>validate_date_format_spec( i_date_format ).
       ro_serializer->mv_date_format = i_date_format.
     endif.
+
+    ro_serializer->mv_add_header_descr = i_add_header_descr.
+
   endmethod.
 
 
@@ -197,15 +198,13 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     lt_fields_only_sorted = i_fields_only.
     lt_components = zcl_text2tab_utils=>describe_struct(
       i_struc      = ld_struc
-      i_with_descr = i_add_header_descr ).
+      i_with_descr = mv_add_header_descr ).
 
     " serialize header / collect in string table
     data lt_lines type string_table.
     serialize_header(
       exporting
-        i_add_header_descr = i_add_header_descr
         it_components      = lt_components
-*        id_struc      = ld_struc
         i_fields_only      = lt_fields_only_sorted
       changing
         ct_lines = lt_lines ).
@@ -215,7 +214,6 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       serialize_data(
         exporting
           it_components = lt_components
-*          id_struc      = ld_struc
           i_data        = <data>
           i_fields_only = lt_fields_only_sorted
         changing
@@ -381,12 +379,12 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         check sy-subrc = 0. " continue if not found
       endif.
       append <c>-name to lt_fields.
-      if i_add_header_descr is not initial.
+      if mv_add_header_descr is not initial.
         append <c>-description to lt_fields_descr.
       endif.
     endloop.
 
-    if i_add_header_descr is not initial.
+    if mv_add_header_descr is not initial.
       lv_buf = concat_lines_of(
         table = lt_fields_descr
         sep   = zcl_text2tab_serializer=>c_tab ).

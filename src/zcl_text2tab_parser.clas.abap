@@ -516,9 +516,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_len      type i.
 
     clear e_field.
-    if is_component-name = 'KPEIN'.
-      break developer.
-    endif.
+
     " Unquote field
     l_len = strlen( i_value ).
     if l_len >= 2

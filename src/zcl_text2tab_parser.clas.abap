@@ -516,7 +516,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_len      type i.
 
     clear e_field.
-
+    if is_component-name = 'KPEIN'.
+      break developer.
+    endif.
     " Unquote field
     l_len = strlen( i_value ).
     if l_len >= 2
@@ -648,7 +650,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     l_regex = '^-?\d{1,3}(T\d{3})*(\D\d{1,C})?$'. "#EC NOTEXT
-    replace 'C' in l_regex with |{ i_decimals }|.
+    if i_decimals > 0.
+      replace 'C' in l_regex with |{ i_decimals }|.
+    else.
+      replace '1,C' in l_regex with '0'.
+    endif.
 
     " Validate number
     find first occurrence of l_thousand_sep in l_tmp.

@@ -162,6 +162,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_negative        for testing.
     methods parse                 for testing.
     methods parse_time for testing raising zcx_text2tab_error.
+    methods parse_float for testing raising zcx_text2tab_error.
 
     methods parse_typeless for testing.
     methods with_renames for testing.
@@ -730,6 +731,32 @@ class ltcl_text2tab_parser_test implementation.
 
 
   endmethod.       "parse_field
+
+  method parse_float.
+
+    data lv_act type p length 6 decimals 2.
+
+    o->parse_float(
+      exporting
+        i_value = '1,23'
+        i_decimals = 2
+      importing
+        e_field = lv_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = '1.23' ).
+
+    o->parse_float(
+      exporting
+        i_value = '1'
+        i_decimals = 0
+      importing
+        e_field = lv_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = '1' ).
+
+  endmethod.
 
   method parse_field_unsupp.
 

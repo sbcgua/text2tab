@@ -181,6 +181,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   method apply_conv_exit.
 
     data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
+    data l_message type string.
 
     replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
     if zcl_text2tab_utils=>function_exists( l_fm_name ) = abap_false.
@@ -196,7 +197,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         others = 1.
 
     if sy-subrc <> 0.
-      raise_error( msg = 'Conversion exit failed' code = 'EF' ). "#EC NOTEXT
+      message id sy-msgid type sy-msgty number sy-msgno
+        with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into l_message.
+      raise_error( msg = l_message code = 'EF' ). "#EC NOTEXT
     endif.
 
   endmethod.

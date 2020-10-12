@@ -280,7 +280,8 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
       elseif i_ignore_nonflat = abap_true.
         <descr>-ignore = abap_true.
       elseif i_is_deep = abap_true
-        and ( lo_data->kind = cl_abap_typedescr=>kind_struct or lo_data->kind = cl_abap_typedescr=>kind_table ).
+        and ( lo_data->kind = cl_abap_typedescr=>kind_struct or lo_data->kind = cl_abap_typedescr=>kind_table
+        or lo_data->kind = cl_abap_typedescr=>kind_ref ).
         " Just skip
       else.
         zcx_text2tab_error=>raise(

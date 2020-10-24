@@ -1,4 +1,4 @@
-class lcl_text2tab_error_test definition final
+class ltcl_text2tab_error_test definition final
   for testing
   risk level harmless
   duration short.
@@ -7,7 +7,7 @@ class lcl_text2tab_error_test definition final
     methods smoke_test for testing.
 endclass.
 
-class lcl_text2tab_error_test implementation.
+class ltcl_text2tab_error_test implementation.
 
   method smoke_test.
     data lx type ref to zcx_text2tab_error.

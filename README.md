@@ -1,6 +1,6 @@
 # ABAP text2tab parser and serializer (ex. Abap data parser)
 
-[![Build Status](https://travis-ci.org/sbcgua/abap_data_parser.svg?branch=master)](https://travis-ci.org/sbcgua/abap_data_parser)
+![abaplint](https://github.com/sbcgua/text2tab/workflows/abaplint/badge.svg)
 ![Version](https://img.shields.io/github/v/tag/sbcgua/abap_data_parser.svg)
 
 TAB-delimited text parser and serializer for ABAP  

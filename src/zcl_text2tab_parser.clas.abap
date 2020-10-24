@@ -339,7 +339,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
       endif.
       " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, non-strict mode characters included
-      IF strlen( <field> ) > abap_max_comp_name_ln OR <field> CN 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
+      if strlen( <field> ) > abap_max_comp_name_ln or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
         raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
       endif.
       if mv_is_typeless = abap_false.
@@ -428,7 +428,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         raise_error( msg = 'Empty line cannot be parsed'  code = 'LE' ). "#EC NOTEXT
       endif.
 
-      me->parse_line(
+      parse_line(
         exporting
           i_dataline     = <dataline>
           it_map         = it_map
@@ -555,8 +555,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     " Parse depending on output type
     case is_component-type_kind.
       when cl_abap_typedescr=>typekind_date. " Date
-        parse_date( exporting  i_value = l_unquoted
-                    importing  e_field = e_field ).
+        parse_date(
+          exporting
+            i_value = l_unquoted
+          importing
+            e_field = e_field ).
 
       when cl_abap_typedescr=>typekind_char. " Char + Alpha
         if is_component-output_length < strlen( l_unquoted ).
@@ -566,7 +569,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         if is_component-edit_mask is initial.
           e_field = l_unquoted.
         else.
-          me->apply_conv_exit(
+          apply_conv_exit(
             exporting
               i_value    = l_unquoted
               i_convexit = is_component-edit_mask
@@ -721,7 +724,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
     endif.
 
-    me->map_head_structure(
+    map_head_structure(
       exporting
         i_rename_map    = i_rename_map
         i_header        = to_upper( l_header_str )
@@ -801,7 +804,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           " option 2 - postpone parsing of deep fields till after all others were parsed
         endif.
       else.
-        me->parse_field(
+        parse_field(
           exporting
             is_component = ls_component
             i_value      = l_field_value

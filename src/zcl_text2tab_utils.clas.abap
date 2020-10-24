@@ -233,7 +233,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     data lo_struc_type type ref to cl_abap_structdescr.
     data lo_table_type type ref to cl_abap_tabledescr.
 
-    lo_struc_type = zcl_text2tab_utils=>get_safe_struc_descr( i_pattern ).
+    lo_struc_type = get_safe_struc_descr( i_pattern ).
     lo_table_type = cl_abap_tabledescr=>create( lo_struc_type ).
     create data rr_dref type handle lo_table_type.
 
@@ -432,7 +432,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method validate_date_format_spec.
     if not i_date_format+3(1) co ' ./-' or not (
-      i_date_format+0(3)    = 'DMY'
+      i_date_format+0(3) = 'DMY'
       or i_date_format+0(3) = 'MDY'
       or i_date_format+0(3) = 'YMD' ).
       raise exception type zcx_text2tab_error

@@ -111,7 +111,7 @@
     },
     "global_class": true,
     "identical_form_names": true,
-    "if_in_if": true,
+    // "if_in_if": true,
     "implement_methods": true,
     "in_statement_indentation": false,
     "indentation": {
@@ -148,7 +148,9 @@
       "ignoreExceptions": true
     },
     "local_class_naming": {
-      "exclude": [],
+      "exclude": [
+        "ztext2tab_backup_example.prog.abap"
+      ],
       "patternKind": "required",
       "ignoreNames": [],
       "ignorePatterns": [],
@@ -173,7 +175,7 @@
       "exclude": [],
       "statements": 100,
       "errorWhenEmpty": true,
-      "ignoreTestClasses": false
+      "ignoreTestClasses": true
     },
     "method_parameter_names": {
       "exclude": [],

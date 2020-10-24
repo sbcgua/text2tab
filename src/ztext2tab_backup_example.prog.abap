@@ -13,48 +13,48 @@ report ztext2tab_backup_example.
 * ZCX_W3MIME_ERROR
 **********************************************************************
 
-class ZCX_W3MIME_ERROR definition
-  inheriting from CX_STATIC_CHECK
+class zcx_w3mime_error definition
+  inheriting from cx_static_check
   final
   create public .
 
   public section.
 
-    interfaces IF_T100_MESSAGE .
+    interfaces if_t100_message .
 
     constants:
-      begin of ZCX_W3MIME_ERROR,
+      begin of zcx_w3mime_error,
         msgid type symsgid value 'SY',
         msgno type symsgno value '499',
         attr1 type scx_attrname value 'MSG',
         attr2 type scx_attrname value '',
         attr3 type scx_attrname value '',
         attr4 type scx_attrname value '',
-      end of ZCX_W3MIME_ERROR .
-    data MSG type STRING read-only .
+      end of zcx_w3mime_error .
+    data msg type string read-only .
 
-    methods CONSTRUCTOR
+    methods constructor
       importing
-        !TEXTID like IF_T100_MESSAGE=>T100KEY optional
-        !PREVIOUS like PREVIOUS optional
-        !MSG type STRING optional .
-    class-methods RAISE
+        !textid like if_t100_message=>t100key optional
+        !previous like previous optional
+        !msg type string optional .
+    class-methods raise
       importing
-        !MSG type STRING
+        !msg type string
       raising
-        ZCX_W3MIME_ERROR .
-ENDCLASS.
+        zcx_w3mime_error .
+endclass.
 
-CLASS ZCX_W3MIME_ERROR IMPLEMENTATION.
+class ZCX_W3MIME_ERROR implementation.
 
-  method CONSTRUCTOR.
+  method constructor.
     super->constructor( previous = previous ).
     me->msg = msg .
     clear me->textid.
     if textid is initial.
-      IF_T100_MESSAGE~T100KEY = ZCX_W3MIME_ERROR .
+      if_t100_message~t100key = zcx_w3mime_error .
     else.
-      IF_T100_MESSAGE~T100KEY = TEXTID.
+      if_t100_message~t100key = textid.
     endif.
   endmethod.
 
@@ -65,13 +65,13 @@ CLASS ZCX_W3MIME_ERROR IMPLEMENTATION.
         textid = zcx_w3mime_error
         msg    = msg.
   endmethod.
-ENDCLASS.
+endclass.
 
 **********************************************************************
 * ZCL_W3MIME_FS
 **********************************************************************
 
-class ZCL_W3MIME_FS definition
+class zcl_w3mime_fs definition
   final
   create public .
 
@@ -80,26 +80,26 @@ class ZCL_W3MIME_FS definition
     types:
       tt_files type standard table of file_info with key filename .
 
-    class-data C_SEP type CHAR1 read-only .
+    class-data c_sep type char1 read-only .
 
-    class-methods WRITE_FILE
+    class-methods write_file
       importing
-        !IV_FILENAME type STRING
-        !IV_SIZE type I
+        !iv_filename type string
+        !iv_size type i
       changing
-        !CT_DATA type LVC_T_MIME
+        !ct_data type lvc_t_mime
       raising
-        ZCX_W3MIME_ERROR .
-    class-methods WRITE_FILE_X
+        zcx_w3mime_error .
+    class-methods write_file_x
       importing
-        !IV_FILENAME type STRING
-        !IV_DATA type XSTRING
+        !iv_filename type string
+        !iv_data type xstring
       raising
-        ZCX_W3MIME_ERROR .
-    class-methods CLASS_CONSTRUCTOR .
-ENDCLASS.
+        zcx_w3mime_error .
+    class-methods class_constructor .
+endclass.
 
-CLASS ZCL_W3MIME_FS IMPLEMENTATION.
+class ZCL_W3MIME_FS implementation.
 
   method class_constructor.
     cl_gui_frontend_services=>get_file_separator( changing file_separator = c_sep exceptions others = 4 ).
@@ -148,74 +148,74 @@ CLASS ZCL_W3MIME_FS IMPLEMENTATION.
         ct_data = lt_data ).
 
   endmethod.  " write_file_x.
-ENDCLASS.
+endclass.
 
 **********************************************************************
 * ZCL_W3MIME_ZIP_WRITER
 **********************************************************************
 
-class ZCL_W3MIME_ZIP_WRITER definition
+class zcl_w3mime_zip_writer definition
   final
   create public .
 
   public section.
 
-    type-pools ABAP .
-    methods CONSTRUCTOR
+    type-pools abap .
+    methods constructor
       importing
-        !IO_ZIP type ref to CL_ABAP_ZIP optional
-        !IV_ENCODING type ABAP_ENCODING optional .
-    methods ADD
+        !io_zip type ref to cl_abap_zip optional
+        !iv_encoding type abap_encoding optional .
+    methods add
       importing
-        !IV_FILENAME type STRING
-        !IV_DATA type STRING .
-    methods ADDX
+        !iv_filename type string
+        !iv_data type string .
+    methods addx
       importing
-        !IV_FILENAME type STRING
-        !IV_XDATA type XSTRING .
-    methods GET_BLOB
+        !iv_filename type string
+        !iv_xdata type xstring .
+    methods get_blob
       returning
-        value(RV_BLOB) type XSTRING .
-    methods READ
+        value(rv_blob) type xstring .
+    methods read
       importing
-        !IV_FILENAME type STRING
+        !iv_filename type string
       returning
-        value(RV_DATA) type STRING
+        value(rv_data) type string
       raising
-        ZCX_W3MIME_ERROR .
-    methods READX
+        zcx_w3mime_error .
+    methods readx
       importing
-        !IV_FILENAME type STRING
+        !iv_filename type string
       returning
-        value(RV_XDATA) type XSTRING
+        value(rv_xdata) type xstring
       raising
-        ZCX_W3MIME_ERROR .
-    methods HAS
+        zcx_w3mime_error .
+    methods has
       importing
-        !IV_FILENAME type STRING
+        !iv_filename type string
       returning
-        value(R_YES) type ABAP_BOOL .
-    methods IS_DIRTY
+        value(r_yes) type abap_bool .
+    methods is_dirty
       returning
-        value(R_YES) type ABAP_BOOL .
-    methods DELETE
+        value(r_yes) type abap_bool .
+    methods delete
       importing
-        !IV_FILENAME type STRING
+        !iv_filename type string
       raising
-        ZCX_W3MIME_ERROR .
+        zcx_w3mime_error .
   private section.
 
-    data MV_IS_DIRTY type ABAP_BOOL .
-    data MO_ZIP type ref to CL_ABAP_ZIP .
-    data MO_CONV_OUT type ref to CL_ABAP_CONV_OUT_CE .
-    data MO_CONV_IN type ref to CL_ABAP_CONV_IN_CE .
-    type-pools ABAP .
-    data MV_ENCODING type ABAP_ENCODING .
-ENDCLASS.
+    data mv_is_dirty type abap_bool .
+    data mo_zip type ref to cl_abap_zip .
+    data mo_conv_out type ref to cl_abap_conv_out_ce .
+    data mo_conv_in type ref to cl_abap_conv_in_ce .
+    type-pools abap .
+    data mv_encoding type abap_encoding .
+endclass.
 
 
 
-CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
+class zcl_w3mime_zip_writer implementation.
 
   method add.
     data lv_xdata type xstring.
@@ -268,7 +268,7 @@ CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
     mv_is_dirty = abap_false.
   endmethod.  " get_blob
 
-  method HAS.
+  method has.
     read table mo_zip->files with key name = iv_filename transporting no fields.
     r_yes = boolc( sy-subrc is initial ).
   endmethod.
@@ -277,7 +277,7 @@ CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
     r_yes = mv_is_dirty.
   endmethod.
 
-  method READ.
+  method read.
     data:
           lv_xdata type xstring,
           lx       type ref to cx_root.
@@ -292,7 +292,7 @@ CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
 
   endmethod.
 
-  method READX.
+  method readx.
 
     mo_zip->get(
       exporting
@@ -308,13 +308,13 @@ CLASS ZCL_W3MIME_ZIP_WRITER IMPLEMENTATION.
     " Remove unicode signatures
     case mv_encoding.
       when '4110'. " UTF-8
-        shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_utf8 in byte mode.
+        shift rv_xdata left deleting leading cl_abap_char_utilities=>byte_order_mark_utf8 in byte mode.
       when '4103'. " UTF-16LE
-        shift rv_xdata left deleting leading  cl_abap_char_utilities=>byte_order_mark_little in byte mode.
+        shift rv_xdata left deleting leading cl_abap_char_utilities=>byte_order_mark_little in byte mode.
     endcase.
 
   endmethod.
-ENDCLASS.
+endclass.
 
 
 **********************************************************************

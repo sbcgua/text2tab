@@ -387,13 +387,13 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     if mv_add_header_descr is not initial.
       lv_buf = concat_lines_of(
         table = lt_fields_descr
-        sep   = zcl_text2tab_serializer=>c_tab ).
+        sep   = c_tab ).
       append lv_buf to ct_lines.
     endif.
 
     lv_buf = concat_lines_of(
       table = lt_fields
-      sep   = zcl_text2tab_serializer=>c_tab ).
+      sep   = c_tab ).
     append lv_buf to ct_lines.
 
   endmethod.

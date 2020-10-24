@@ -91,14 +91,12 @@ class ltcl_text2tab_parser_test definition for testing
         ttime    type t,
       end of ty_dummy_with_time,
       tt_dummy type standard table of ty_dummy with default key,
-
       begin of ty_dummy_corresponding,
         tdate    type datum,
         tchar    type c length 8,
         _another type i,
       end of ty_dummy_corresponding,
       tt_dummy_corresponding type standard table of ty_dummy_corresponding with default key,
-
       begin of ty_dummy_str,
         mandt    type string,
         tdate    type string,
@@ -1056,8 +1054,8 @@ class ltcl_text2tab_parser_test implementation.
       enddo.
 
       append -1 to e_map_corresp.
-      append  1 to e_map_corresp.
-      append  2 to e_map_corresp.
+      append 1 to e_map_corresp.
+      append 2 to e_map_corresp.
       do 7 times.
         append -1 to e_map_corresp.
       enddo.
@@ -1074,9 +1072,9 @@ class ltcl_text2tab_parser_test implementation.
       append 7 to e_map.
       append 8 to e_map.
 
-      append  1 to e_map_corresp.
+      append 1 to e_map_corresp.
       append -1 to e_map_corresp.
-      append  3 to e_map_corresp.
+      append 3 to e_map_corresp.
       append -1 to e_map_corresp.
       append -1 to e_map_corresp.
 

@@ -9,6 +9,7 @@
     <item>/.gitignore</item>
     <item>/LICENSE</item>
     <item>/.travis.yml</item>
+    <item>/-.travis.yml</item>
     <item>/changelog.txt</item>
     <item>/abaplint.json</item>
     <item>/README.md</item>

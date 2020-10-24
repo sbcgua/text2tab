@@ -53,6 +53,11 @@ class zcl_text2tab_parser definition
         !e_head_fields type string_table
       raising
         zcx_text2tab_error .
+    methods ignore_conv_exit " Beta ! May be subject to change
+      importing
+        !i_convexit type abap_editmask
+      returning
+        value(ro_parser) type ref to zcl_text2tab_parser.
 
   protected section.
   private section.
@@ -64,6 +69,8 @@ class zcl_text2tab_parser definition
     data mv_line_index type i .
     data mv_is_typeless type abap_bool .
     data mv_begin_comment type ty_begin_comment .
+    data mt_ignore_exits type sorted table of abap_editmask with unique key table_line.
+
     class zcl_text2tab_utils definition load .
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
     data mi_deep_provider type ref to zif_text2tab_deep_provider .
@@ -183,6 +190,14 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
     data l_message type string.
 
+    if lines( mt_ignore_exits ) > 0.
+      read table mt_ignore_exits with key table_line = i_convexit transporting no fields.
+      if sy-subrc = 0.
+        e_field = i_value.
+        return.
+      endif.
+    endif.
+
     replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
     if zcl_text2tab_utils=>function_exists( l_fm_name ) = abap_false.
       raise_error( msg = 'Conversion exit not found' code = 'EM' ). "#EC NOTEXT
@@ -246,6 +261,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   method create_typeless.
     create object ro_parser.
     ro_parser->mv_is_typeless = abap_true.
+  endmethod.
+
+
+  method ignore_conv_exit.
+    insert i_convexit into table mt_ignore_exits.
+    ro_parser = me.
   endmethod.
 
 

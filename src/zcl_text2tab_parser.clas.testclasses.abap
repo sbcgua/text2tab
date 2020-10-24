@@ -163,12 +163,14 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse                 for testing.
     methods parse_time for testing raising zcx_text2tab_error.
     methods parse_float for testing raising zcx_text2tab_error.
+    methods parse_ignore_convexit for testing raising zcx_text2tab_error.
 
     methods parse_typeless for testing.
     methods with_renames for testing.
 
     methods deep_structures for testing.
     methods parse_corresponding for testing raising zcx_text2tab_error.
+
 
 * ==== HELPERS ===
 
@@ -1460,6 +1462,54 @@ class ltcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_equals(
       act = act_tab
       exp = exp_tab ).
+
+  endmethod.
+
+  method parse_ignore_convexit.
+
+    types:
+      begin of lty_dummy,
+        uom type msehi,
+      end of lty_dummy.
+
+    data lt_exp type table of lty_dummy.
+    data lt_act type table of lty_dummy.
+    data lv_src type string.
+
+    lv_src = 'UOM\nKG\nPC'. " => KG, ST
+    replace all occurrences of '\n' in lv_src with c_crlf.
+    " IMPORTANT !! PC -> ST may not present in all systems !
+    " If this method fails, probably just comment first part of the test (without ignore)
+
+    " Part 1 - no ignore
+    zcl_text2tab_parser=>create( lt_act )->parse(
+      exporting
+        i_data      = lv_src
+      importing
+        e_container = lt_act ).
+
+    clear lt_exp.
+    append 'KG' to lt_exp.
+    append 'ST' to lt_exp.
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
+
+    " Part 2 - ignore CUNIT
+    zcl_text2tab_parser=>create( lt_act )->ignore_conv_exit( 'CUNIT' )->parse(
+      exporting
+        i_data      = lv_src
+      importing
+        e_container = lt_act ).
+
+    clear lt_exp.
+    append 'KG' to lt_exp.
+    append 'PC' to lt_exp. " No conversion
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
 
   endmethod.
 

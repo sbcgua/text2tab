@@ -71,7 +71,6 @@ class zcl_text2tab_parser definition
     data mv_begin_comment type ty_begin_comment .
     data mt_ignore_exits type sorted table of abap_editmask with unique key table_line.
 
-    class zcl_text2tab_utils definition load .
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
     data mi_deep_provider type ref to zif_text2tab_deep_provider .
 
@@ -776,7 +775,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         raise_error( 'No component found?!' ). "#EC NOTEXT
       endif.
 
-      check ls_component-name ne 'MANDT'.   " Skip client fields
+      check ls_component-name <> 'MANDT'.   " Skip client fields
       mv_current_field = ls_component-name. " For error handling
 
       unassign <field>.

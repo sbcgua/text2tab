@@ -150,7 +150,6 @@ class ltcl_text2tab_parser_test definition for testing
     methods create                for testing.
     methods apply_conv_exit       for testing.
     methods parse_field           for testing.
-    methods parse_field_unsupp    for testing.
     methods map_head_structure    for testing.
     methods map_head_structure_corresp for testing raising zcx_text2tab_error.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
@@ -195,7 +194,7 @@ endclass.
 
 class zcl_text2tab_parser definition local friends ltcl_text2tab_parser_test.
 
-class lcl_deep_helper definition final for testing.
+class ltcl_deep_helper definition final for testing.
   public section.
     interfaces zif_text2tab_deep_provider.
     methods constructor
@@ -204,7 +203,7 @@ class lcl_deep_helper definition final for testing.
     data mt_tab type ltcl_text2tab_parser_test=>tt_deep_sub.
 endclass.
 
-class lcl_deep_helper implementation.
+class ltcl_deep_helper implementation.
 
   method constructor.
     mt_tab = tab.
@@ -757,10 +756,6 @@ class ltcl_text2tab_parser_test implementation.
       exp = '1' ).
 
   endmethod.
-
-  method parse_field_unsupp.
-
-  endmethod.       "parse_field_unsupp
 
   method map_head_structure.
     data:
@@ -1407,7 +1402,7 @@ class ltcl_text2tab_parser_test implementation.
 
     data lt_act type tt_deep.
     data lt_header_act  type standard table of string.
-    data lo_deep_provider type ref to lcl_deep_helper.
+    data lo_deep_provider type ref to ltcl_deep_helper.
     create object lo_deep_provider exporting tab = lt_sub.
 
     try.

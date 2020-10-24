@@ -1,4 +1,4 @@
-class lcl_text2tab_utils_test definition
+class ltcl_text2tab_utils_test definition
   for testing
   final
   risk level harmless
@@ -31,7 +31,7 @@ endclass.
 * Implementation
 **********************************************************************
 
-class lcl_text2tab_utils_test implementation.
+class ltcl_text2tab_utils_test implementation.
 
   method build_rename_map.
     data lx type ref to zcx_text2tab_error.

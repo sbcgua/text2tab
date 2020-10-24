@@ -32,7 +32,8 @@
       "statics": true,
       "systemCall": true,
       "defaultKey": false,
-      "break": true
+      "break": true,
+      "describeLines": true
     },
     "begin_end_names": true,
     "chain_mainly_declarations": true,
@@ -112,7 +113,12 @@
     "global_class": true,
     "identical_form_names": true,
     // "if_in_if": true,
-    "implement_methods": true,
+    "implement_methods": {
+      "exclude": [
+        "ztext2tab_backup_example.prog.abap",
+        "zcx_text2tab_error.clas.abap"
+      ]
+    },
     "in_statement_indentation": false,
     "indentation": {
       "exclude": [],
@@ -141,7 +147,7 @@
     "line_break_multiple_parameters": false,
     "line_length": {
       "exclude": [],
-      "length": 120
+      "length": 125
     },
     "line_only_punc": {
       "exclude": [],
@@ -200,7 +206,9 @@
       "logic": "less"
     },
     "no_public_attributes": {
-      "exclude": ["zcl_ajson.clas.testclasses.abap"],
+      "exclude": [
+        "zcl_text2tab_parser.clas.testclasses.abap"
+      ],
       "allowReadOnly": true
     },
     "object_naming": {
@@ -239,7 +247,10 @@
       "requested": true,
       "occurs": true,
       "setExtended": true,
-      "withHeaderLine": true
+      "withHeaderLine": true,
+      "fieldSymbolStructure": true,
+      "load": true,
+      "typePools": false
     },
     "parser_error": true,
     "prefer_inline": true,
@@ -261,10 +272,10 @@
       "omitMeInstanceCalls": true
     },
     "release_idoc": true,
-    "remove_descriptions": {
-      "exclude": [],
-      "ignoreExceptions": true
-    },
+    // "remove_descriptions": {
+    //   "exclude": [],
+    //   "ignoreExceptions": true
+    // },
     "rfc_error_handling": true,
     "selection_screen_naming": {
       "exclude": [],
@@ -292,14 +303,13 @@
     // },
     "sql_escape_host_variables": true,
     "start_at_tab": true,
-    "superclass_final": true,
+    // "superclass_final": true,
     "tabl_enhancement_category": true,
     "try_without_catch": true,
-    "type_begin_single_include": true,
     "type_form_parameters": true,
     "types_naming": {
       "exclude": [],
-      "pattern": "^(TY|T.{1,2})_.+$"
+      "pattern": "^(L?TY|T.{1,2})_.+$"
     },
     "unknown_types": true,
     "unreachable_code": true,

@@ -16,7 +16,6 @@ class zcl_text2tab_serializer definition
 
 
     type-pools abap .
-    class cl_abap_char_utilities definition load .
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
@@ -52,7 +51,6 @@ class zcl_text2tab_serializer definition
     data mv_line_index type i .
     data mv_add_header_descr type sy-langu.
 
-    class zcl_text2tab_utils definition load .
     methods serialize_field
       importing
         !is_component type zcl_text2tab_utils=>ty_comp_descr

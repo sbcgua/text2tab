@@ -26,7 +26,7 @@ end-of-definition.
 * Test Class definition
 **********************************************************************
 
-class lcl_text2tab_serializer_test definition final
+class ltcl_text2tab_serializer_test definition final
   for testing
   risk level harmless
   duration short.
@@ -83,13 +83,13 @@ class lcl_text2tab_serializer_test definition final
 
 endclass.
 
-class zcl_text2tab_serializer definition local friends lcl_text2tab_serializer_test.
+class zcl_text2tab_serializer definition local friends ltcl_text2tab_serializer_test.
 
 **********************************************************************
 * Implementation
 **********************************************************************
 
-class lcl_text2tab_serializer_test implementation.
+class ltcl_text2tab_serializer_test implementation.
 
   method setup.
     data lx type ref to zcx_text2tab_error.

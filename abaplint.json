@@ -81,7 +81,9 @@
     },
     "empty_statement": true,
     "empty_structure": {
-      "exclude": [],
+      "exclude": [
+        "zcl_text2tab_utils.clas.abap"
+      ],
       "loop": true,
       "try": true,
       "if": true,

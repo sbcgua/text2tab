@@ -199,14 +199,14 @@ class ltcl_deep_helper definition final for testing.
     interfaces zif_text2tab_deep_provider.
     methods constructor
       importing
-        tab type ltcl_text2tab_parser_test=>tt_deep_sub.
+        i_tab type ltcl_text2tab_parser_test=>tt_deep_sub.
     data mt_tab type ltcl_text2tab_parser_test=>tt_deep_sub.
 endclass.
 
 class ltcl_deep_helper implementation.
 
   method constructor.
-    mt_tab = tab.
+    mt_tab = i_tab.
   endmethod.
 
   method zif_text2tab_deep_provider~select.
@@ -1403,7 +1403,7 @@ class ltcl_text2tab_parser_test implementation.
     data lt_act type tt_deep.
     data lt_header_act  type standard table of string.
     data lo_deep_provider type ref to ltcl_deep_helper.
-    create object lo_deep_provider exporting tab = lt_sub.
+    create object lo_deep_provider exporting i_tab = lt_sub.
 
     try.
       o = zcl_text2tab_parser=>create(

@@ -152,15 +152,15 @@ class zcl_text2tab_parser definition
     methods parse_date
       importing
         !i_value type string
-      exporting
-        !e_field type d
+      returning
+        value(r_date) type d
       raising
         zcx_text2tab_error .
     methods parse_time
       importing
         !i_value type string
-      exporting
-        !e_field type t
+      returning
+        value(r_time) type t
       raising
         zcx_text2tab_error .
     methods apply_conv_exit
@@ -173,8 +173,8 @@ class zcl_text2tab_parser definition
         zcx_text2tab_error .
     methods raise_error
       importing
-        !msg type string
-        !code type zcx_text2tab_error=>ty_rc optional
+        !i_msg type string
+        !i_code type zcx_text2tab_error=>ty_rc optional
       raising
         zcx_text2tab_error .
 ENDCLASS.
@@ -199,7 +199,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     replace first occurrence of 'XXXXX' in l_fm_name with i_convexit.
     if zcl_text2tab_utils=>function_exists( l_fm_name ) = abap_false.
-      raise_error( msg = 'Conversion exit not found' code = 'EM' ). "#EC NOTEXT
+      raise_error( i_msg = 'Conversion exit not found' i_code = 'EM' ). "#EC NOTEXT
     endif.
 
     call function l_fm_name
@@ -213,7 +213,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     if sy-subrc <> 0.
       message id sy-msgid type sy-msgty number sy-msgno
         with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into l_message.
-      raise_error( msg = l_message code = 'EF' ). "#EC NOTEXT
+      raise_error( i_msg = l_message i_code = 'EF' ). "#EC NOTEXT
     endif.
 
   endmethod.
@@ -288,7 +288,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     " Check if the line ends with TAB
     find all occurrences of c_tab in i_header match count l_tab_cnt.
     if l_tab_cnt = l_field_cnt. " Line ends with TAB, last empty field is not added to table, see help for 'split'
-      raise_error( msg = 'Empty field at the end' code = 'EE' ).   "#EC NOTEXT
+      raise_error( i_msg = 'Empty field at the end' i_code = 'EE' ).   "#EC NOTEXT
     endif.
 
     " Compare number of fields, check structure similarity
@@ -302,7 +302,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       endif.
 
       if l_field_cnt + l_mandt_cnt <> lines( mt_components ).
-        raise_error( msg = 'Different columns number' code = 'CN' ).   "#EC NOTEXT
+        raise_error( i_msg = 'Different columns number' i_code = 'CN' ).   "#EC NOTEXT
       endif.
     endif.
 
@@ -311,7 +311,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     sort lt_dupcheck.
     delete adjacent duplicates from lt_dupcheck.
     if lines( lt_dupcheck ) <> l_field_cnt.
-      raise_error( msg = 'Duplicate field names found' code = 'DN' ).   "#EC NOTEXT
+      raise_error( i_msg = 'Duplicate field names found' i_code = 'DN' ).   "#EC NOTEXT
     endif.
 
     " Check duplicates after rename
@@ -327,7 +327,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       sort lt_dupcheck.
       delete adjacent duplicates from lt_dupcheck.
       if lines( lt_dupcheck ) <> l_field_cnt.
-        raise_error( msg = 'Duplicate field names found after rename' code = 'DR' ).   "#EC NOTEXT
+        raise_error( i_msg = 'Duplicate field names found after rename' i_code = 'DR' ).   "#EC NOTEXT
       endif.
     endif.
 
@@ -335,11 +335,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     field-symbols <component> like line of mt_components.
     loop at et_head_fields assigning <field>.
       if <field> is initial. " Check empty fields
-        raise_error( msg = 'Empty field name found' code = 'EN' ).   "#EC NOTEXT
+        raise_error( i_msg = 'Empty field name found' i_code = 'EN' ).   "#EC NOTEXT
       endif.
       " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, non-strict mode characters included
       if strlen( <field> ) > abap_max_comp_name_ln or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
-        raise_error( msg = 'Incorrect field name (long or special chars used)' code = 'WE' ). "#EC NOTEXT
+        raise_error( i_msg = 'Incorrect field name (long or special chars used)' i_code = 'WE' ). "#EC NOTEXT
       endif.
       if mv_is_typeless = abap_false.
         read table mt_components with key name = <field> assigning <component>.
@@ -347,13 +347,13 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           if <component>-ignore = abap_false.
             append sy-tabix to et_map.
           else.
-            raise_error( msg = |Cannot map to ignored field { <field> }| code = 'IG' ). "#EC NOTEXT
+            raise_error( i_msg = |Cannot map to ignored field { <field> }| i_code = 'IG' ). "#EC NOTEXT
           endif.
         else.
           if i_corresponding = abap_true.
             append -1 to et_map. " Skip this field later
           else.
-            raise_error( msg = |Field { <field> } not found in structure| code = 'MC' ). "#EC NOTEXT
+            raise_error( i_msg = |Field { <field> } not found in structure| i_code = 'MC' ). "#EC NOTEXT
           endif.
         endif.
       else.
@@ -371,7 +371,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     if mv_is_typeless = abap_true.
       if cl_abap_typedescr=>describe_by_data( e_container )->type_kind <> cl_abap_typedescr=>typekind_dref.
-        raise_error( msg = 'Typeless parsing require dref as the container'  code = 'DR' ). "#EC NOTEXT
+        raise_error( i_msg = 'Typeless parsing require dref as the container'  i_code = 'DR' ). "#EC NOTEXT
       endif.
 
       parse_typeless(
@@ -424,7 +424,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
       if <dataline> is initial. " Check empty lines
         check mv_line_index < lines( it_data ). " Last line of a file may be empty, others - not
-        raise_error( msg = 'Empty line cannot be parsed'  code = 'LE' ). "#EC NOTEXT
+        raise_error( i_msg = 'Empty line cannot be parsed'  i_code = 'LE' ). "#EC NOTEXT
       endif.
 
       parse_line(
@@ -460,7 +460,6 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_charset type c length 11 value '0123456789',
           l_sep     type c.
 
-    clear e_field.
     l_sep           = mv_date_format+3(1).
     l_charset+10(1) = l_sep.
 
@@ -469,12 +468,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     if not i_value co l_charset.  " Check wrong symbols
-      raise_error( msg = 'Date contains invalid symbols' code = 'DY' ). "#EC NOTEXT
+      raise_error( i_msg = 'Date contains invalid symbols' i_code = 'DY' ). "#EC NOTEXT
     endif.
 
     " Not separated date must be 8 chars, separated not more than 10
     if l_sep <> space and strlen( i_value ) > 10  or l_sep = space and strlen( i_value ) <> 8.
-      raise_error( msg = 'Incorrect date length' code = 'DL' ). "#EC NOTEXT
+      raise_error( i_msg = 'Incorrect date length' i_code = 'DL' ). "#EC NOTEXT
     endif.
 
     do 3 times.
@@ -492,7 +491,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           l_size = 4.
           l_home = 0.
         when others.
-          raise_error( msg = 'Wrong date format' ). "#EC NOTEXT
+          raise_error( i_msg = 'Wrong date format' ). "#EC NOTEXT
       endcase.
 
       if l_sep is initial. " No seps
@@ -505,10 +504,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           find first occurrence of l_sep in i_value+l_cursor match offset l_offs.
         endif.
         if sy-subrc <> 0.
-          raise_error( msg = 'Date separator is missing' code = 'DS' ). "#EC NOTEXT
+          raise_error( i_msg = 'Date separator is missing' i_code = 'DS' ). "#EC NOTEXT
         endif.
         if l_offs > l_size.
-          raise_error( msg = 'Too long date part' code = 'DP' ). "#EC NOTEXT
+          raise_error( i_msg = 'Too long date part' i_code = 'DP' ). "#EC NOTEXT
         endif.
         l_stencil                = i_value+l_cursor(l_offs).
         l_pad                    = 4 - l_size. " Offset within stencil
@@ -525,9 +524,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           im_datext   = l_rawdate
           im_datfmdes = '4' " YYYY.MM.DD
         importing
-          ex_datint   = e_field ).
+          ex_datint   = r_date ).
     catch cx_abap_datfm.
-      raise_error( msg = 'Date format unknown' code = 'DU' ). "#EC NOTEXT
+      raise_error( i_msg = 'Date format unknown' i_code = 'DU' ). "#EC NOTEXT
     endtry.
 
   endmethod.
@@ -554,15 +553,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     " Parse depending on output type
     case is_component-type_kind.
       when cl_abap_typedescr=>typekind_date. " Date
-        parse_date(
-          exporting
-            i_value = l_unquoted
-          importing
-            e_field = e_field ).
+        e_field = parse_date( l_unquoted ).
 
       when cl_abap_typedescr=>typekind_char. " Char + Alpha
         if is_component-output_length < strlen( l_unquoted ).
-          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+          raise_error( i_msg = 'Value is longer than field' i_code = 'FS' ). "#EC NOTEXT
         endif.
 
         if is_component-edit_mask is initial.
@@ -605,15 +600,11 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         endif.
 
       when cl_abap_typedescr=>typekind_time. " Time
-        parse_time(
-          exporting
-            i_value = l_unquoted
-          importing
-            e_field = e_field ).
+        e_field = parse_time( l_unquoted ).
 
       when cl_abap_typedescr=>typekind_num. " Numchar
         if is_component-output_length < strlen( l_unquoted ).
-          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+          raise_error( i_msg = 'Value is longer than field' i_code = 'FS' ). "#EC NOTEXT
         endif.
 
         if l_unquoted co '0123456789'.
@@ -624,7 +615,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
       when cl_abap_typedescr=>typekind_hex. " Raw
         if is_component-length < strlen( l_unquoted ) / 2 + strlen( l_unquoted ) mod 2. " 2 hex-char per byte
-          raise_error( msg = 'Value is longer than field' code = 'FS' ). "#EC NOTEXT
+          raise_error( i_msg = 'Value is longer than field' i_code = 'FS' ). "#EC NOTEXT
         endif.
 
         try .
@@ -634,12 +625,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         endtry.
 
       when others.
-        raise_error( msg = 'Unsupported field type' code = 'UT' ). "#EC NOTEXT
+        raise_error( i_msg = 'Unsupported field type' i_code = 'UT' ). "#EC NOTEXT
 
     endcase.
 
     if sy-subrc is not initial.
-      raise_error( msg = 'Field parsing failed' code = 'PF' ). "#EC NOTEXT
+      raise_error( i_msg = 'Field parsing failed' i_code = 'PF' ). "#EC NOTEXT
     endif.
 
   endmethod.
@@ -703,10 +694,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       try. " Try converting again
         e_field = l_tmp.
       catch cx_sy_arithmetic_error cx_sy_conversion_error.
-        raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
+        raise_error( i_msg = 'Float number parsing failed' i_code = 'PF' ). "#EC NOTEXT
       endtry.
     else. " Not matched
-      raise_error( msg = 'Float number parsing failed' code = 'PF' ). "#EC NOTEXT
+      raise_error( i_msg = 'Float number parsing failed' i_code = 'PF' ). "#EC NOTEXT
     endif.
 
   endmethod.
@@ -717,10 +708,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     read table ct_data into l_header_str index 1.
     if sy-subrc <> 0.
-      raise_error( msg = 'Data empty' code = 'DE' ). "#EC NOTEXT
+      raise_error( i_msg = 'Data empty' i_code = 'DE' ). "#EC NOTEXT
     endif.
     if l_header_str is initial.
-      raise_error( msg = 'Header line is empty'  code = 'HE' ). "#EC NOTEXT
+      raise_error( i_msg = 'Header line is empty'  i_code = 'HE' ). "#EC NOTEXT
     endif.
 
     map_head_structure(
@@ -758,9 +749,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     " Check field number is the same as in header
     if l_tab_cnt > lines( it_map ).
-      raise_error( msg = 'More fields than in header' code = '>H' ). "#EC NOTEXT
+      raise_error( i_msg = 'More fields than in header' i_code = '>H' ). "#EC NOTEXT
     elseif l_tab_cnt < lines( it_map ).
-      raise_error( msg = 'Less fields than in header' code = '<H' ). "#EC NOTEXT
+      raise_error( i_msg = 'Less fields than in header' i_code = '<H' ). "#EC NOTEXT
     endif.
 
     " Move data to table line
@@ -823,12 +814,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       exporting
         input                     = i_value
       importing
-        output                    = e_field
+        output                    = r_time
       exceptions
         plausibility_check_failed = 2
         wrong_format_in_input     = 4.
     if sy-subrc <> 0.
-      raise_error( msg = |{ i_value } is not a valid time| code = 'IT' ).
+      raise_error( i_msg = |{ i_value } is not a valid time| i_code = 'IT' ).
     endif.
 
   endmethod.
@@ -846,20 +837,20 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     " Validate params
     if i_has_head = abap_false and i_strict = abap_false.
-      raise_error( msg = 'Header line mandatory for non-strict mode' code = 'WP' ). "#EC NOTEXT
+      raise_error( i_msg = 'Header line mandatory for non-strict mode' i_code = 'WP' ). "#EC NOTEXT
     endif.
 
     if i_corresponding = abap_true and i_strict = abap_true.
-      raise_error( msg = 'Cannot be strict and corresponding' code = 'WP' ). "#EC NOTEXT
+      raise_error( i_msg = 'Cannot be strict and corresponding' i_code = 'WP' ). "#EC NOTEXT
     endif.
 
     if i_corresponding = abap_true and i_has_head = abap_false.
-      raise_error( msg = 'Cannot be strict and has no head line' code = 'WP' ). "#EC NOTEXT
+      raise_error( i_msg = 'Cannot be strict and has no head line' i_code = 'WP' ). "#EC NOTEXT
     endif.
 
     " Check container type
     if mo_struc_descr->absolute_name <> zcl_text2tab_utils=>get_safe_struc_descr( e_container )->absolute_name.
-      raise_error( msg = 'Container type does not fit pattern' code = 'TE' ). "#EC NOTEXT
+      raise_error( i_msg = 'Container type does not fit pattern' i_code = 'TE' ). "#EC NOTEXT
     endif.
 
     lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
@@ -973,8 +964,8 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     raise exception type zcx_text2tab_error
       exporting
         methname  = |{ sys_call-eventname }|
-        msg       = msg
-        code      = code
+        msg       = i_msg
+        code      = i_code
         field     = mv_current_field
         line      = mv_line_index
         structure = l_struc

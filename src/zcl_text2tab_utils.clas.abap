@@ -113,6 +113,12 @@ class ZCL_TEXT2TAB_UTILS definition
       tts_checked_names type sorted table of rs38l_fnam with unique key table_line.
     class-data gt_checked_fm_names type tts_checked_names.
 
+    class-methods version_to_number
+      importing
+        i_str_ver type string
+      returning
+        value(r_ver) type decfloat16.
+
 ENDCLASS.
 
 
@@ -202,26 +208,13 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method check_version_fits.
 
-    types:
-      begin of ty_version,
-        major type n length 4,
-        minor type n length 4,
-        patch type n length 4,
-      end of ty_version.
+    data lv_cur_ver type decfloat16.
+    data lv_req_ver type decfloat16.
 
-    data ls_cur_ver type ty_version.
-    data ls_req_ver type ty_version.
-    data lv_buf type string.
+    lv_cur_ver = version_to_number( i_current_version ).
+    lv_req_ver = version_to_number( i_required_version ).
 
-    lv_buf = i_current_version.
-    shift lv_buf left deleting leading 'v'.
-    split lv_buf at '.' into ls_cur_ver-major ls_cur_ver-minor ls_cur_ver-patch.
-
-    lv_buf = i_required_version.
-    shift lv_buf left deleting leading 'v'.
-    split lv_buf at '.' into ls_req_ver-major ls_req_ver-minor ls_req_ver-patch.
-
-    if ls_req_ver <= ls_cur_ver.
+    if lv_req_ver <= lv_cur_ver.
       r_fits = abap_true.
     endif.
 
@@ -441,5 +434,25 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
           msg      = |Unsupported date format { i_date_format }|
           code     = 'UD'. "#EC NOTEXT
     endif.
+  endmethod.
+
+
+  method version_to_number.
+
+    types:
+      begin of ty_version,
+        major type n length 4,
+        minor type n length 4,
+        patch type n length 4,
+      end of ty_version.
+
+    data lv_buf type string.
+    data ls_ver type ty_version.
+
+    lv_buf = i_str_ver.
+    shift lv_buf left deleting leading 'v'.
+    split lv_buf at '.' into ls_ver-major ls_ver-minor ls_ver-patch.
+    r_ver = ls_ver-major * 100000000 + ls_ver-minor * 10000 + ls_ver-patch.
+
   endmethod.
 ENDCLASS.

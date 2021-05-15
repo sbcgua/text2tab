@@ -399,6 +399,11 @@ class ltcl_text2tab_utils_test implementation.
         i_current_version = 'v3.0.0'
         i_required_version = 'v2.2.2' ) ).
 
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version = 'v2.1.10'
+        i_required_version = 'v2.1.7' ) ).
+
   endmethod.
 
   method get_struc_field_value_by_name.

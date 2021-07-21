@@ -1,6 +1,6 @@
 *&---------------------------------------------------------------------*
 *& ABAP TEXT2TAB PARSER
-*&   project homepage: https://github.com/sbcgua/abap_data_parser
+*&   project homepage: https://github.com/sbcgua/text2tab
 *&---------------------------------------------------------------------*
 
 report ztext2tab_example.

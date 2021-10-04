@@ -17,6 +17,7 @@ class ZCL_TEXT2TAB_UTILS definition
         output_length type i,
         ignore type abap_bool,
         description type string,
+        index type i,
       end of ty_comp_descr .
     types:
       tt_comp_descr type standard table of ty_comp_descr with default key .
@@ -245,6 +246,8 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     loop at i_struc->components assigning <c>.
       append initial line to rt_descr assigning <descr>.
       move-corresponding <c> to <descr>.
+      <descr>-index = sy-tabix.
+
       lo_data = i_struc->get_component_type( <c>-name ).
       if lo_data->kind = cl_abap_typedescr=>kind_elem.
         lo_element ?= lo_data.

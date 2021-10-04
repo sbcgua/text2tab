@@ -86,6 +86,7 @@ class zcl_text2tab_serializer definition
         struc_type type ref to cl_abap_structdescr,
         data_kind like cl_abap_typedescr=>kind_struct,
         fields_only type ts_fields_list,
+        all_components type zcl_text2tab_utils=>tt_comp_descr,
         components type zcl_text2tab_utils=>tt_comp_descr,
         data_ref type ref to data,
       end of ty_context.
@@ -160,6 +161,13 @@ class zcl_text2tab_serializer definition
         value(rs_context) type ty_context
       raising
         zcx_text2tab_error .
+    class-methods apply_field_rules_to_context
+      importing
+        !i_fields_only type tt_fields_list
+      changing
+        cs_context type ty_context
+      raising
+        zcx_text2tab_error .
 ENDCLASS.
 
 
@@ -194,6 +202,25 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
   endmethod.  "apply_conv_exit
 
 
+  method apply_field_rules_to_context.
+
+    cs_context-fields_only = i_fields_only. " SORTED
+    if lines( cs_context-fields_only ) > 0.
+      field-symbols <c> like line of cs_context-all_components.
+      clear cs_context-components.
+      loop at cs_context-all_components assigning <c>.
+        read table cs_context-fields_only transporting no fields with key table_line = <c>-name.
+        if sy-subrc = 0.
+          append <c> to cs_context-components.
+        endif.
+      endloop.
+    else.
+      cs_context-components = cs_context-all_components.
+    endif.
+
+  endmethod.
+
+
   method bind_data.
 
     ms_bind_context = build_context(
@@ -210,7 +237,11 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
     mt_fields_only = i_field_list.
     if ms_bind_context is not initial.
-      ms_bind_context-fields_only = i_field_list.
+      apply_field_rules_to_context(
+        exporting
+          i_fields_only = i_field_list
+        changing
+          cs_context    = ms_bind_context ).
     endif.
     ro_instance = me.
 
@@ -227,10 +258,15 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         e_data_kind  = rs_context-data_kind ).
     validate_components( rs_context-struc_type ).
 
-    rs_context-fields_only = i_fields_only. " SORTED
-    rs_context-components = zcl_text2tab_utils=>describe_struct(
+    rs_context-all_components = zcl_text2tab_utils=>describe_struct(
       i_struc              = rs_context-struc_type
       i_with_descr_in_lang = i_header_descr_lang ).
+
+    apply_field_rules_to_context(
+      exporting
+        i_fields_only = i_fields_only
+      changing
+        cs_context    = rs_context ).
 
     if i_build_data_ref = abap_true.
 
@@ -378,12 +414,14 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       mv_line_index = sy-tabix.
       clear lt_fields.
       loop at is_context-components assigning <c>.
-        assign component sy-tabix of structure <record> to <field>.
+*        assign component sy-tabix of structure <record> to <field>.
+*        assign component <c>-name of structure <record> to <field>.
+        assign component <c>-index of structure <record> to <field>.
         assert sy-subrc = 0.
-        if lv_limit_fields = abap_true.
-          read table is_context-fields_only transporting no fields with key table_line = <c>-name.
-          check sy-subrc = 0. " continue if not found
-        endif.
+*        if lv_limit_fields = abap_true.
+*          read table is_context-fields_only transporting no fields with key table_line = <c>-name.
+*          check sy-subrc = 0. " continue if not found
+*        endif.
         mv_current_field = <c>-name.
         lv_buf = serialize_field(
           is_component = <c>
@@ -580,10 +618,10 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
 
     loop at is_context-components assigning <c>.
-      if lv_limit_fields = abap_true.
-        read table is_context-fields_only transporting no fields with key table_line = <c>-name.
-        check sy-subrc = 0. " continue if not found
-      endif.
+*      if lv_limit_fields = abap_true.
+*        read table is_context-fields_only transporting no fields with key table_line = <c>-name.
+*        check sy-subrc = 0. " continue if not found
+*      endif.
       append <c>-name to lt_fields.
       if iv_add_header_descr = abap_true.
         append <c>-description to lt_fields_descr.

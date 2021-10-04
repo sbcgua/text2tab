@@ -63,6 +63,15 @@ class zcl_text2tab_serializer definition
   protected section.
   private section.
 
+    types:
+      begin of ty_context,
+        struc_type type ref to cl_abap_structdescr,
+        data_kind like cl_abap_typedescr=>kind_struct,
+        fields_only type ts_fields_list,
+        components type zcl_text2tab_utils=>tt_comp_descr,
+        data_ref type ref to data,
+      end of ty_context.
+
     data mv_decimal_sep type ty_decimal_sep .
     data mv_date_format type zcl_text2tab_parser=>ty_date_format .
     data mv_line_sep type string .
@@ -100,17 +109,15 @@ class zcl_text2tab_serializer definition
         zcx_text2tab_error .
     class-methods _serialize_header
       importing
-        !it_components type zcl_text2tab_utils=>tt_comp_descr
-        !i_fields_only type ts_fields_list optional
+        !is_context type ty_context
         !iv_add_header_tech type abap_bool default abap_true
         !iv_add_header_descr type abap_bool default abap_false
       changing
         !ct_lines type string_table .
     methods serialize_data
       importing
-        !it_components type zcl_text2tab_utils=>tt_comp_descr
+        !is_context type ty_context
         !i_data type any table
-        !i_fields_only type ts_fields_list optional
       changing
         !ct_lines type string_table
       raising
@@ -121,6 +128,16 @@ class zcl_text2tab_serializer definition
       exporting
         !e_struc_type type ref to cl_abap_structdescr
         !e_data_kind like cl_abap_typedescr=>kind_struct
+      raising
+        zcx_text2tab_error .
+    class-methods build_context
+      importing
+        !i_data type any
+        !i_fields_only type tt_fields_list
+        !i_header_descr_lang type sy-langu
+        !i_build_data_ref type abap_bool
+      returning
+        value(rs_context) type ty_context
       raising
         zcx_text2tab_error .
 ENDCLASS.
@@ -155,6 +172,38 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     r_out = l_tmp.
 
   endmethod.  "apply_conv_exit
+
+
+  method build_context.
+
+    detect_type(
+      exporting
+        i_data = i_data
+      importing
+        e_struc_type = rs_context-struc_type
+        e_data_kind  = rs_context-data_kind ).
+    validate_components( rs_context-struc_type ).
+
+    rs_context-fields_only = i_fields_only. " SORTED
+    rs_context-components = zcl_text2tab_utils=>describe_struct(
+      i_struc              = rs_context-struc_type
+      i_with_descr_in_lang = i_header_descr_lang ).
+
+    if i_build_data_ref = abap_true.
+
+      field-symbols <data> type any table.
+
+      if rs_context-data_kind = cl_abap_typedescr=>kind_struct.
+        rs_context-data_ref = zcl_text2tab_utils=>create_standard_table_of( rs_context-struc_type ).
+        assign rs_context-data_ref->* to <data>.
+        insert i_data into table <data>.
+      else.
+        get reference of i_data into rs_context-data_ref.
+      endif.
+
+    endif.
+
+  endmethod.
 
 
   method create.
@@ -217,46 +266,22 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
   method serialize.
 
-    " Detect types
-    data ld_struc type ref to cl_abap_structdescr.
-    data lv_data_kind like cl_abap_typedescr=>kind_struct.
-
-    detect_type(
-      exporting
-        i_data = i_data
-      importing
-        e_struc_type = ld_struc
-        e_data_kind  = lv_data_kind ).
-    validate_components( ld_struc ).
-
-    " Get components
-    data lt_fields_only_sorted type ts_fields_list.
-    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
-
-    lt_fields_only_sorted = i_fields_only.
-    lt_components = zcl_text2tab_utils=>describe_struct(
-      i_struc              = ld_struc
-      i_with_descr_in_lang = mv_add_header_descr ).
-
-    " Unify containers
-    data lr_datatab type ref to data.
+    data ls_context type ty_context.
+    data lt_lines type string_table.
     field-symbols <data> type any table.
 
-    if lv_data_kind = cl_abap_typedescr=>kind_struct.
-      lr_datatab = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
-      assign lr_datatab->* to <data>.
-      insert i_data into table <data>.
-    else.
-      assign i_data to <data>.
-    endif.
+    ls_context = build_context(
+      i_data              = i_data
+      i_fields_only       = i_fields_only
+      i_header_descr_lang = mv_add_header_descr
+      i_build_data_ref    = abap_true ).
 
-    " serialize header / collect in string table
-    data lt_lines type string_table.
+    assign ls_context-data_ref->* to <data>.
+
     _serialize_header(
       exporting
-        it_components      = lt_components
-        i_fields_only      = lt_fields_only_sorted
-        iv_add_header_tech = abap_true
+        is_context          = ls_context
+        iv_add_header_tech  = abap_true
         iv_add_header_descr = boolc( mv_add_header_descr is not initial )
       changing
         ct_lines = lt_lines ).
@@ -265,9 +290,8 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     if i_header_only = abap_false.
       serialize_data(
         exporting
-          it_components = lt_components
-          i_data        = <data>
-          i_fields_only = lt_fields_only_sorted
+          is_context = ls_context
+          i_data     = <data>
         changing
           ct_lines = lt_lines ).
     endif.
@@ -286,19 +310,19 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
     field-symbols <record> type any.
     field-symbols <field>  type any.
-    field-symbols <c> like line of it_components.
+    field-symbols <c> like line of is_context-components.
 
-    lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
+    lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
 
     " Serialization loop
     loop at i_data assigning <record>.
       mv_line_index = sy-tabix.
       clear lt_fields.
-      loop at it_components assigning <c>.
+      loop at is_context-components assigning <c>.
         assign component sy-tabix of structure <record> to <field>.
         assert sy-subrc = 0.
         if lv_limit_fields = abap_true.
-          read table i_fields_only transporting no fields with key table_line = <c>-name.
+          read table is_context-fields_only transporting no fields with key table_line = <c>-name.
           check sy-subrc = 0. " continue if not found
         endif.
         mv_current_field = <c>-name.
@@ -418,34 +442,20 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
   method serialize_header.
 
-    " Detect types
-    data ld_struc type ref to cl_abap_structdescr.
-
-    detect_type(
-      exporting
-        i_data = i_data
-      importing
-        e_struc_type = ld_struc ).
-    validate_components( ld_struc ).
-
-    " Get components
-    data lt_fields_only_sorted type ts_fields_list.
-    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
-
-    lt_fields_only_sorted = i_fields_only.
-    lt_components = zcl_text2tab_utils=>describe_struct(
-      i_struc              = ld_struc
-      i_with_descr_in_lang = i_lang ).
-
-    " serialize header / collect in string table
+    data ls_context type ty_context.
     data lt_lines type string_table.
+
+    ls_context = build_context(
+      i_data              = i_data
+      i_fields_only       = i_fields_only
+      i_header_descr_lang = i_lang
+      i_build_data_ref    = abap_false ).
 
     case i_header_type.
       when c_header-technical_names.
         _serialize_header(
           exporting
-            it_components       = lt_components
-            i_fields_only       = lt_fields_only_sorted
+            is_context          = ls_context
             iv_add_header_tech  = abap_true
             iv_add_header_descr = abap_false
           changing
@@ -453,8 +463,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       when c_header-descriptions.
         _serialize_header(
           exporting
-            it_components       = lt_components
-            i_fields_only       = lt_fields_only_sorted
+            is_context          = ls_context
             iv_add_header_tech  = abap_false
             iv_add_header_descr = abap_true
           changing
@@ -491,13 +500,13 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data lt_fields_descr type string_table.
     data lv_limit_fields type abap_bool.
     data lv_buf type string.
-    field-symbols <c> like line of it_components.
+    field-symbols <c> like line of is_context-components.
 
-    lv_limit_fields = boolc( lines( i_fields_only ) > 0 ).
+    lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
 
-    loop at it_components assigning <c>.
+    loop at is_context-components assigning <c>.
       if lv_limit_fields = abap_true.
-        read table i_fields_only transporting no fields with key table_line = <c>-name.
+        read table is_context-fields_only transporting no fields with key table_line = <c>-name.
         check sy-subrc = 0. " continue if not found
       endif.
       append <c>-name to lt_fields.

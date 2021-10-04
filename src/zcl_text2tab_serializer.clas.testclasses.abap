@@ -66,7 +66,7 @@ class ltcl_text2tab_serializer_test definition final
 
     methods integrated for testing.
     methods header_only for testing raising zcx_text2tab_error.
-    methods serialize_header_description for testing raising zcx_text2tab_error.
+    methods serialize_header for testing raising zcx_text2tab_error.
     methods given_fields for testing raising zcx_text2tab_error.
     methods with_descr for testing raising zcx_text2tab_error.
 
@@ -154,34 +154,60 @@ class ltcl_text2tab_serializer_test implementation.
 
   endmethod.
 
-  method serialize_header_description.
+  method serialize_header.
 
     data lv_act type string.
-    data lv_exp type string.
     data lt_tab type table of ty_dummy_with_ddic.
     data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lx type ref to zcx_text2tab_error.
 
-    lv_exp = 'User Name\tDate\tTime'.
-    replace all occurrences of '\t' in lv_exp with c_tab.
+    " Fail on wrong header_type
+    try.
+      lv_act = o->serialize_header(
+        i_header_type = ''
+        i_data = lt_tab ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error INTO lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'HT').
+    endtry.
 
-    lv_act = o->serialize_header_description( i_data = lt_tab ).
+    " Complete data set
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
+      i_data = lt_tab ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
-      exp = lv_exp ).
+      exp = |User Name\tDate\tTime| ).
+
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_data = lt_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = |UNAME\tDATUM\tUZEIT| ).
+
 
     " With listed fields
     append 'DATUM' to lt_fields_only.
     append 'UZEIT' to lt_fields_only.
 
-    lv_exp = 'Date\tTime'.
-    replace all occurrences of '\t' in lv_exp with c_tab.
-
-    lv_act = o->serialize_header_description(
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
       i_data = lt_tab
       i_fields_only = lt_fields_only ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
-      exp = lv_exp ).
+      exp = |Date\tTime| ).
+
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_data = lt_tab
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = |DATUM\tUZEIT| ).
 
   endmethod.
 

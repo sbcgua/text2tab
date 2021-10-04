@@ -9,6 +9,9 @@ class zcl_text2tab_serializer definition
       ty_decimal_sep type c length 1.
 
     types:
+      ty_header_type type c length 1.
+
+    types:
       tt_fields_list type standard table of abap_compname with default key.
 
     types:
@@ -18,18 +21,25 @@ class zcl_text2tab_serializer definition
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
 
+    constants:
+      begin of c_header,
+        technical_names type ty_header_type value 'T',
+        descriptions type ty_header_type value 'D',
+      end of c_header.
+
     methods serialize
       importing
         !i_data type any
-        !i_header_only type abap_bool default abap_false
+        !i_header_only type abap_bool default abap_false " DEPRECATIED, Use serialize_header
         !i_fields_only type tt_fields_list optional
       returning
         value(r_string) type string
       raising
         zcx_text2tab_error .
-    methods serialize_header_description
+    methods serialize_header
       importing
         !i_data type any
+        !i_header_type type ty_header_type default c_header-technical_names
         !i_lang type sy-langu default sy-langu
         !i_fields_only type tt_fields_list optional
       returning
@@ -88,7 +98,7 @@ class zcl_text2tab_serializer definition
         !id_struc type ref to cl_abap_structdescr
       raising
         zcx_text2tab_error .
-    class-methods serialize_header
+    class-methods _serialize_header
       importing
         !it_components type zcl_text2tab_utils=>tt_comp_descr
         !i_fields_only type ts_fields_list optional
@@ -242,7 +252,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
     " serialize header / collect in string table
     data lt_lines type string_table.
-    serialize_header(
+    _serialize_header(
       exporting
         it_components      = lt_components
         i_fields_only      = lt_fields_only_sorted
@@ -407,6 +417,76 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
 
   method serialize_header.
+
+    " Detect types
+    data ld_struc type ref to cl_abap_structdescr.
+
+    detect_type(
+      exporting
+        i_data = i_data
+      importing
+        e_struc_type = ld_struc ).
+    validate_components( ld_struc ).
+
+    " Get components
+    data lt_fields_only_sorted type ts_fields_list.
+    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
+
+    lt_fields_only_sorted = i_fields_only.
+    lt_components = zcl_text2tab_utils=>describe_struct(
+      i_struc              = ld_struc
+      i_with_descr_in_lang = i_lang ).
+
+    " serialize header / collect in string table
+    data lt_lines type string_table.
+
+    case i_header_type.
+      when c_header-technical_names.
+        _serialize_header(
+          exporting
+            it_components       = lt_components
+            i_fields_only       = lt_fields_only_sorted
+            iv_add_header_tech  = abap_true
+            iv_add_header_descr = abap_false
+          changing
+            ct_lines = lt_lines ).
+      when c_header-descriptions.
+        _serialize_header(
+          exporting
+            it_components       = lt_components
+            i_fields_only       = lt_fields_only_sorted
+            iv_add_header_tech  = abap_false
+            iv_add_header_descr = abap_true
+          changing
+            ct_lines = lt_lines ).
+      when others.
+        zcx_text2tab_error=>raise(
+          msg      = |incorrect header type requested "{ i_header_type }"|
+          code     = 'HT' ). "#EC NOTEXT
+    endcase.
+
+    r_string = concat_lines_of(
+      table = lt_lines
+      sep   = mv_line_sep ).
+
+  endmethod.
+
+
+  method validate_components.
+    " check if all components are elementary
+    field-symbols <c> like line of id_struc->components.
+    loop at id_struc->components assigning <c>.
+      if id_struc->get_component_type( <c>-name )->kind <> cl_abap_typedescr=>kind_elem.
+        zcx_text2tab_error=>raise(
+          msg  = 'i_data line should contain only fields of elementary types'
+          code = 'ET' ). "#EC NOTEXT
+      endif.
+    endloop.
+
+  endmethod.
+
+
+  method _serialize_header.
     data lt_fields type string_table.
     data lt_fields_descr type string_table.
     data lv_limit_fields type abap_bool.
@@ -439,59 +519,6 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         sep   = c_tab ).
       append lv_buf to ct_lines.
     endif.
-
-  endmethod.
-
-
-  method serialize_header_description.
-
-    " Detect types
-    data ld_struc type ref to cl_abap_structdescr.
-
-    detect_type(
-      exporting
-        i_data = i_data
-      importing
-        e_struc_type = ld_struc ).
-    validate_components( ld_struc ).
-
-    " Get components
-    data lt_fields_only_sorted type ts_fields_list.
-    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
-
-    lt_fields_only_sorted = i_fields_only.
-    lt_components = zcl_text2tab_utils=>describe_struct(
-      i_struc              = ld_struc
-      i_with_descr_in_lang = i_lang ).
-
-    " serialize header / collect in string table
-    data lt_lines type string_table.
-    serialize_header(
-      exporting
-        it_components      = lt_components
-        i_fields_only      = lt_fields_only_sorted
-        iv_add_header_tech = abap_false
-        iv_add_header_descr = abap_true
-      changing
-        ct_lines = lt_lines ).
-
-    r_string = concat_lines_of(
-      table = lt_lines
-      sep   = mv_line_sep ).
-
-  endmethod.
-
-
-  method validate_components.
-    " check if all components are elementary
-    field-symbols <c> like line of id_struc->components.
-    loop at id_struc->components assigning <c>.
-      if id_struc->get_component_type( <c>-name )->kind <> cl_abap_typedescr=>kind_elem.
-        zcx_text2tab_error=>raise(
-          msg  = 'i_data line should contain only fields of elementary types'
-          code = 'ET' ). "#EC NOTEXT
-      endif.
-    endloop.
 
   endmethod.
 ENDCLASS.

@@ -14,8 +14,6 @@ class zcl_text2tab_serializer definition
     types:
       ts_fields_list type sorted table of abap_compname with unique key table_line.
 
-
-    type-pools abap .
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
@@ -29,17 +27,29 @@ class zcl_text2tab_serializer definition
         value(r_string) type string
       raising
         zcx_text2tab_error .
+    methods serialize_header_description
+      importing
+        !i_data type any
+        !i_lang type sy-langu default sy-langu
+        !i_fields_only type tt_fields_list optional
+      returning
+        value(r_string) type string
+      raising
+        zcx_text2tab_error .
+
+    " CONSTRUCTION
     class-methods create
       importing
         !i_decimal_sep type ty_decimal_sep optional
         !i_date_format type zcl_text2tab_parser=>ty_date_format optional
         !i_max_frac_digits type i optional
         !i_use_lf type abap_bool default abap_false
-        !i_add_header_descr type sy-langu optional
+        !i_add_header_descr type sy-langu optional " DEPRECATIED, MAY CHANGE SOON
       returning
         value(ro_serializer) type ref to zcl_text2tab_serializer
       raising
         zcx_text2tab_error .
+
   protected section.
   private section.
 
@@ -78,10 +88,12 @@ class zcl_text2tab_serializer definition
         !id_struc type ref to cl_abap_structdescr
       raising
         zcx_text2tab_error .
-    methods serialize_header
+    class-methods serialize_header
       importing
         !it_components type zcl_text2tab_utils=>tt_comp_descr
         !i_fields_only type ts_fields_list optional
+        !iv_add_header_tech type abap_bool default abap_true
+        !iv_add_header_descr type abap_bool default abap_false
       changing
         !ct_lines type string_table .
     methods serialize_data
@@ -91,6 +103,14 @@ class zcl_text2tab_serializer definition
         !i_fields_only type ts_fields_list optional
       changing
         !ct_lines type string_table
+      raising
+        zcx_text2tab_error .
+    class-methods detect_type
+      importing
+        !i_data type any
+      exporting
+        !e_struc_type type ref to cl_abap_structdescr
+        !e_data_kind like cl_abap_typedescr=>kind_struct
       raising
         zcx_text2tab_error .
 ENDCLASS.
@@ -161,10 +181,11 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
   endmethod.
 
 
-  method serialize.
+  method detect_type.
 
-    " Detect types
     data ld_type type ref to cl_abap_typedescr.
+    data ld_table type ref to cl_abap_tabledescr.
+
     ld_type = cl_abap_typedescr=>describe_by_data( i_data ).
     if not ld_type->kind ca 'ST'. " Structure or table
       zcx_text2tab_error=>raise(
@@ -172,31 +193,52 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         code = 'ST' ). "#EC NOTEXT
     endif.
 
-    data ld_struc type ref to cl_abap_structdescr.
-    data ld_table type ref to cl_abap_tabledescr.
-    data lr_datatab type ref to data.
-    field-symbols <data> type any table.
-
     if ld_type->kind = cl_abap_typedescr=>kind_struct.
-      ld_struc ?= ld_type.
-      lr_datatab = zcl_text2tab_utils=>create_standard_table_of( ld_type ).
-      assign lr_datatab->* to <data>.
-      insert i_data into table <data>.
+      e_struc_type ?= ld_type.
     else.
-      ld_table ?= ld_type.
-      ld_struc ?= ld_table->get_table_line_type( ).
-      assign i_data to <data>.
+      ld_table     ?= ld_type.
+      e_struc_type ?= ld_table->get_table_line_type( ).
     endif.
 
+    e_data_kind = ld_type->kind.
+
+  endmethod.
+
+
+  method serialize.
+
+    " Detect types
+    data ld_struc type ref to cl_abap_structdescr.
+    data lv_data_kind like cl_abap_typedescr=>kind_struct.
+
+    detect_type(
+      exporting
+        i_data = i_data
+      importing
+        e_struc_type = ld_struc
+        e_data_kind  = lv_data_kind ).
     validate_components( ld_struc ).
 
+    " Get components
     data lt_fields_only_sorted type ts_fields_list.
     data lt_components type zcl_text2tab_utils=>tt_comp_descr.
 
     lt_fields_only_sorted = i_fields_only.
     lt_components = zcl_text2tab_utils=>describe_struct(
-      i_struc      = ld_struc
-      i_with_descr = mv_add_header_descr ).
+      i_struc              = ld_struc
+      i_with_descr_in_lang = mv_add_header_descr ).
+
+    " Unify containers
+    data lr_datatab type ref to data.
+    field-symbols <data> type any table.
+
+    if lv_data_kind = cl_abap_typedescr=>kind_struct.
+      lr_datatab = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
+      assign lr_datatab->* to <data>.
+      insert i_data into table <data>.
+    else.
+      assign i_data to <data>.
+    endif.
 
     " serialize header / collect in string table
     data lt_lines type string_table.
@@ -204,6 +246,8 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       exporting
         it_components      = lt_components
         i_fields_only      = lt_fields_only_sorted
+        iv_add_header_tech = abap_true
+        iv_add_header_descr = boolc( mv_add_header_descr is not initial )
       changing
         ct_lines = lt_lines ).
 
@@ -377,22 +421,63 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         check sy-subrc = 0. " continue if not found
       endif.
       append <c>-name to lt_fields.
-      if mv_add_header_descr is not initial.
+      if iv_add_header_descr = abap_true.
         append <c>-description to lt_fields_descr.
       endif.
     endloop.
 
-    if mv_add_header_descr is not initial.
+    if iv_add_header_descr = abap_true.
       lv_buf = concat_lines_of(
         table = lt_fields_descr
         sep   = c_tab ).
       append lv_buf to ct_lines.
     endif.
 
-    lv_buf = concat_lines_of(
-      table = lt_fields
-      sep   = c_tab ).
-    append lv_buf to ct_lines.
+    if iv_add_header_tech = abap_true.
+      lv_buf = concat_lines_of(
+        table = lt_fields
+        sep   = c_tab ).
+      append lv_buf to ct_lines.
+    endif.
+
+  endmethod.
+
+
+  method serialize_header_description.
+
+    " Detect types
+    data ld_struc type ref to cl_abap_structdescr.
+
+    detect_type(
+      exporting
+        i_data = i_data
+      importing
+        e_struc_type = ld_struc ).
+    validate_components( ld_struc ).
+
+    " Get components
+    data lt_fields_only_sorted type ts_fields_list.
+    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
+
+    lt_fields_only_sorted = i_fields_only.
+    lt_components = zcl_text2tab_utils=>describe_struct(
+      i_struc              = ld_struc
+      i_with_descr_in_lang = i_lang ).
+
+    " serialize header / collect in string table
+    data lt_lines type string_table.
+    serialize_header(
+      exporting
+        it_components      = lt_components
+        i_fields_only      = lt_fields_only_sorted
+        iv_add_header_tech = abap_false
+        iv_add_header_descr = abap_true
+      changing
+        ct_lines = lt_lines ).
+
+    r_string = concat_lines_of(
+      table = lt_lines
+      sep   = mv_line_sep ).
 
   endmethod.
 

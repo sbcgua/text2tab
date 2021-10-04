@@ -48,6 +48,13 @@ class ltcl_text2tab_serializer_test definition final
       end of ty_dummy,
       tt_dummy type standard table of ty_dummy with default key.
 
+    types:
+      begin of ty_dummy_with_ddic,
+        uname type uname,
+        datum type datum,
+        uzeit type uzeit,
+      end of ty_dummy_with_ddic.
+
   private section.
     constants c_tab   like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
     constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
@@ -59,6 +66,7 @@ class ltcl_text2tab_serializer_test definition final
 
     methods integrated for testing.
     methods header_only for testing raising zcx_text2tab_error.
+    methods serialize_header_description for testing raising zcx_text2tab_error.
     methods given_fields for testing raising zcx_text2tab_error.
     methods with_descr for testing raising zcx_text2tab_error.
 
@@ -146,6 +154,37 @@ class ltcl_text2tab_serializer_test implementation.
 
   endmethod.
 
+  method serialize_header_description.
+
+    data lv_act type string.
+    data lv_exp type string.
+    data lt_tab type table of ty_dummy_with_ddic.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    lv_exp = 'User Name\tDate\tTime'.
+    replace all occurrences of '\t' in lv_exp with c_tab.
+
+    lv_act = o->serialize_header_description( i_data = lt_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
+
+    " With listed fields
+    append 'DATUM' to lt_fields_only.
+    append 'UZEIT' to lt_fields_only.
+
+    lv_exp = 'Date\tTime'.
+    replace all occurrences of '\t' in lv_exp with c_tab.
+
+    lv_act = o->serialize_header_description(
+      i_data = lt_tab
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
+
+  endmethod.
+
   method given_fields.
 
     data lv_act        type string.
@@ -170,20 +209,48 @@ class ltcl_text2tab_serializer_test implementation.
 
   method with_descr.
 
-    data lv_act        type string.
-    data lv_exp_string type string.
-    data lt_tab        type tt_dummy.
+    data lv_act type string.
+    data lv_exp type string.
+    data lt_tab type table of ty_dummy_with_ddic.
     data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
 
-    get_dummy_data( importing
-      e_dummy_tab            = lt_tab
-      e_dummy_string_w_descr = lv_exp_string ).
+    field-symbols <i> like line of lt_tab.
+    append initial line to lt_tab assigning <i>.
+    <i>-uname = 'HELLO'.
+    <i>-datum = '20210901'.
+    <i>-uzeit = '100102'.
+
+    lv_exp = 'User Name\tDate\tTime\n' &&
+      'UNAME\tDATUM\tUZEIT\n' &&
+      'HELLO\t01.09.2021\t100102'.
+    replace all occurrences of '\t' in lv_exp with c_tab.
+    replace all occurrences of '\n' in lv_exp with c_crlf.
 
     o = zcl_text2tab_serializer=>create( i_add_header_descr = 'E' ).
     lv_act = o->serialize( i_data = lt_tab ).
+
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
-      exp = lv_exp_string ).
+      exp = lv_exp ).
+
+    " With listed fields
+    append 'DATUM' to lt_fields_only.
+    append 'UZEIT' to lt_fields_only.
+
+    lv_exp = 'Date\tTime\n' &&
+      'DATUM\tUZEIT\n' &&
+      '01.09.2021\t100102'.
+    replace all occurrences of '\t' in lv_exp with c_tab.
+    replace all occurrences of '\n' in lv_exp with c_crlf.
+
+    o = zcl_text2tab_serializer=>create( i_add_header_descr = 'E' ).
+    lv_act = o->serialize(
+      i_data = lt_tab
+      i_fields_only = lt_fields_only ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
 
   endmethod.
 

@@ -303,14 +303,17 @@ To do serialization use `ZCL_TEXT2TAB_SERIALIZER` class. Flat tables and structu
 ### Serialize selected fields
 The `serialize` method also accepts `i_fields_only` param - a explicit field list to serialize.
 
-### Human friendly fields description
+### Getting header row only
 
-The serializer can also create a tab-delimited string with human readable field description. E.g. `User Name  Date  Time` instead of `UNAME  DATUM  UZEIT`. This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header_description`.
+The serializer can also create a tab-delimited string with human readable field descriptions or technical names. E.g. `User Name  Date  Time` (c_header-descriptions) or `UNAME  DATUM  UZEIT` (c_header-tech_names). This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header`.
 ```abap
-  lv_string = lo_serializer->serialize( lt_some_table ).
+  lv_string = lo_serializer->serialize_header(
+    i_header_type = lo_serializer->c_header-descriptions
+    i_data = lt_some_table ).
   " OR
-  lv_string = lo_serializer->serialize( 
+  lv_string = lo_serializer->serialize_header( 
     i_data = lt_some_table
+    i_header_type = lo_serializer->c_header-descriptions
     i_lang = 'D'
     i_fields_only = value#( ( 'UNAME' ) ( 'DATUM' ) ) ).
 ```

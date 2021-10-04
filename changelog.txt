@@ -10,7 +10,7 @@ Legend
 
 v2.3.3, 2021-??-??
 ------------------
-+ new feature: method serialize_header_description to output just header description. IMPORTANT: this will probably replace "i_add_header_descr" param in CREATE.
++ new feature: method serialize_header to output just header technames or description. IMPORTANT: this will probably replace "i_add_header_descr" param in CREATE.
 
 v2.3.2, 2019-11-02
 ------------------

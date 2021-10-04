@@ -53,7 +53,7 @@ class ZCL_TEXT2TAB_UTILS definition
         !i_struc type ref to cl_abap_structdescr
         !i_is_deep type abap_bool default abap_false
         !i_ignore_nonflat type abap_bool default abap_false
-        !i_with_descr type sy-langu optional
+        !i_with_descr_in_lang type sy-langu optional
       returning
         value(rt_descr) type tt_comp_descr
       raising
@@ -252,7 +252,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
         <descr>-edit_mask     = lo_element->edit_mask.
         shift <descr>-edit_mask left deleting leading '='.
 
-        if i_with_descr is not initial and lo_data->is_ddic_type( ) = abap_true.
+        if i_with_descr_in_lang is not initial and lo_data->is_ddic_type( ) = abap_true.
           data lv_obj_name type ddobjname.
           data ls_dtel type dd04v.
           lv_obj_name = lo_data->get_relative_name( ).
@@ -260,7 +260,7 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
             exporting
               name  = lv_obj_name
               state = 'A'
-              langu = i_with_descr
+              langu = i_with_descr_in_lang
             importing
               dd04v_wa = ls_dtel
             exceptions

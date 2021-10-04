@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.3.3, 2021-??-??
+------------------
++ new feature: method serialize_header_description to output just header description. IMPORTANT: this will probably replace "i_add_header_descr" param in CREATE.
+
 v2.3.2, 2019-11-02
 ------------------
 * bug fix with parse_float

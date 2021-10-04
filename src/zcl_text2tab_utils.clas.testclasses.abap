@@ -257,7 +257,7 @@ class ltcl_text2tab_utils_test implementation.
     ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
     lt_descr = zcl_text2tab_utils=>describe_struct(
       i_struc      = ld_struc
-      i_with_descr = 'E' ).
+      i_with_descr_in_lang = 'E' ).
     cl_abap_unit_assert=>assert_equals( act = lines( lt_descr ) exp = 3 ).
 
     read table lt_descr assigning <c> index 1.

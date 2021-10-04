@@ -29,21 +29,39 @@ class zcl_text2tab_serializer definition
 
     methods serialize
       importing
-        !i_data type any
+        !i_data type any optional
         !i_header_only type abap_bool default abap_false " DEPRECATIED, Use serialize_header
         !i_fields_only type tt_fields_list optional
+        preferred parameter i_data
       returning
         value(r_string) type string
       raising
         zcx_text2tab_error .
     methods serialize_header
       importing
-        !i_data type any
+        !i_data type any optional
         !i_header_type type ty_header_type default c_header-technical_names
         !i_lang type sy-langu default sy-langu
         !i_fields_only type tt_fields_list optional
+        preferred parameter i_data
       returning
         value(r_string) type string
+      raising
+        zcx_text2tab_error .
+
+    " EXPERIMENTAL
+    methods bind_data
+      importing
+        !i_data type any
+      returning
+        value(ro_instance) type ref to zcl_text2tab_serializer
+      raising
+        zcx_text2tab_error .
+    methods bind_fields_only
+      importing
+        !i_field_list type tt_fields_list
+      returning
+        value(ro_instance) type ref to zcl_text2tab_serializer
       raising
         zcx_text2tab_error .
 
@@ -79,6 +97,8 @@ class zcl_text2tab_serializer definition
     data mv_current_field type string .
     data mv_line_index type i .
     data mv_add_header_descr type sy-langu.
+    data mt_fields_only type tt_fields_list.
+    data ms_bind_context type ty_context.
 
     methods serialize_field
       importing
@@ -172,6 +192,29 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     r_out = l_tmp.
 
   endmethod.  "apply_conv_exit
+
+
+  method bind_data.
+
+    ms_bind_context = build_context(
+      i_data              = i_data
+      i_fields_only       = mt_fields_only
+      i_build_data_ref    = abap_true
+      i_header_descr_lang = mv_add_header_descr ).
+    ro_instance = me.
+
+  endmethod.
+
+
+  method bind_fields_only.
+
+    mt_fields_only = i_field_list.
+    if ms_bind_context is not initial.
+      ms_bind_context-fields_only = i_field_list.
+    endif.
+    ro_instance = me.
+
+  endmethod.
 
 
   method build_context.
@@ -270,11 +313,27 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data lt_lines type string_table.
     field-symbols <data> type any table.
 
-    ls_context = build_context(
-      i_data              = i_data
-      i_fields_only       = i_fields_only
-      i_header_descr_lang = mv_add_header_descr
-      i_build_data_ref    = abap_true ).
+    if i_data is not supplied and ms_bind_context is initial.
+      zcx_text2tab_error=>raise(
+        msg  = 'data is not supplied or bind'
+        code = 'ND' ). "#EC NOTEXT
+    endif.
+
+    if i_data is supplied and ms_bind_context is not initial.
+      zcx_text2tab_error=>raise(
+        msg  = 'data is already bind explicitely'
+        code = 'AB' ). "#EC NOTEXT
+    endif.
+
+    if ms_bind_context is not initial.
+      ls_context = ms_bind_context.
+    else.
+      ls_context = build_context(
+        i_data              = i_data
+        i_fields_only       = i_fields_only
+        i_header_descr_lang = mv_add_header_descr
+        i_build_data_ref    = abap_true ).
+    endif.
 
     assign ls_context-data_ref->* to <data>.
 
@@ -445,11 +504,27 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data ls_context type ty_context.
     data lt_lines type string_table.
 
-    ls_context = build_context(
-      i_data              = i_data
-      i_fields_only       = i_fields_only
-      i_header_descr_lang = i_lang
-      i_build_data_ref    = abap_false ).
+    if i_data is not supplied and ms_bind_context is initial.
+      zcx_text2tab_error=>raise(
+        msg  = 'data is not supplied or bind'
+        code = 'ND' ). "#EC NOTEXT
+    endif.
+
+    if i_data is supplied and ms_bind_context is not initial.
+      zcx_text2tab_error=>raise(
+        msg  = 'data is already bind explicitely'
+        code = 'AB' ). "#EC NOTEXT
+    endif.
+
+    if ms_bind_context is not initial.
+      ls_context = ms_bind_context.
+    else.
+      ls_context = build_context(
+        i_data              = i_data
+        i_fields_only       = i_fields_only
+        i_header_descr_lang = i_lang
+        i_build_data_ref    = abap_false ).
+    endif.
 
     case i_header_type.
       when c_header-technical_names.

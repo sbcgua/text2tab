@@ -75,6 +75,9 @@ class ltcl_text2tab_serializer_test definition final
     methods negatives for testing.
     methods create for testing.
 
+    methods bind_data_and_fields for testing raising zcx_text2tab_error.
+    methods raise_on_no_data for testing raising zcx_text2tab_error.
+
 * ==== HELPERS ===
 
     methods setup.
@@ -106,7 +109,7 @@ class ltcl_text2tab_serializer_test implementation.
     catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>fail( lx->get_text( ) ).
     endtry.
-  endmethod.      "setup
+  endmethod.
 
   method integrated.
     data:
@@ -447,6 +450,91 @@ class ltcl_text2tab_serializer_test implementation.
       cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'UD' ).
     endtry.
     cl_abap_unit_assert=>assert_not_initial( lx ).
+
+  endmethod.
+
+  method bind_data_and_fields.
+
+    data lv_act type string.
+    data lv_exp type string.
+    data lv_exp_limited type string.
+    data lt_tab type tt_dummy.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    get_dummy_data( importing
+      e_dummy_tab       = lt_tab
+      e_dummy_string    = lv_exp ).
+
+    o->bind_data( lt_tab ).
+    lv_act = o->serialize( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
+
+    clear lv_exp.
+    get_dummy_data( importing
+      e_given_fields_list = lt_fields_only
+      e_given_fields_str  = lv_exp_limited ).
+
+    o->bind_fields_only( lt_fields_only ).
+    lv_act = o->serialize( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp_limited ).
+
+    " chained sample
+    lv_act = zcl_text2tab_serializer=>create(
+      )->bind_fields_only( lt_fields_only
+      )->bind_data( lt_tab
+      )->serialize( ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp_limited ).
+
+  endmethod.
+
+  method raise_on_no_data.
+
+    data lx type ref to zcx_text2tab_error.
+    data lt_tab type tt_dummy.
+
+    try.
+      o->serialize( ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'ND' ).
+    endtry.
+
+    try.
+      o->serialize_header( ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'ND' ).
+    endtry.
+
+    o->bind_data( lt_tab ).
+
+    try.
+      o->serialize( lt_tab ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'AB' ).
+    endtry.
+
+    try.
+      o->serialize_header( lt_tab ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'AB' ).
+    endtry.
 
   endmethod.
 

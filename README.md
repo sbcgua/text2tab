@@ -300,6 +300,21 @@ To do serialization use `ZCL_TEXT2TAB_SERIALIZER` class. Flat tables and structu
   lv_string = lo_serializer->serialize( lt_some_table ).
 ```
 
+### Serialize selected fields
+The `serialize` method also accepts `i_fields_only` param - a explicit field list to serialize.
+
+### Human friendly fields description
+
+The serializer can also create a tab-delimited string with human readable field description. E.g. `User Name  Date  Time` instead of `UNAME  DATUM  UZEIT`. This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header_description`.
+```abap
+  lv_string = lo_serializer->serialize( lt_some_table ).
+  " OR
+  lv_string = lo_serializer->serialize( 
+    i_data = lt_some_table
+    i_lang = 'D'
+    i_fields_only = value#( ( 'UNAME' ) ( 'DATUM' ) ) ).
+```
+
 ## Comments
 
 Since version 2.2.0 the text file can contain comment lines. A comment lines begins with one specific char, which is supplied in the factory method ```create```.

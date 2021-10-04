@@ -170,7 +170,7 @@ class ltcl_text2tab_serializer_test implementation.
         i_header_type = ''
         i_data = lt_tab ).
       cl_abap_unit_assert=>fail( ).
-    catch zcx_text2tab_error INTO lx.
+    catch zcx_text2tab_error into lx.
       cl_abap_unit_assert=>assert_equals(
         act = lx->code
         exp = 'HT').

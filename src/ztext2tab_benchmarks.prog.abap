@@ -57,6 +57,7 @@ class lcl_runner_base definition.
       importing
         iv_method type string.
 
+  private section.
     data mv_num_rounds type i.
 
 endclass.
@@ -124,6 +125,7 @@ class lcl_app definition final.
       importing
         iv_method type string.
 
+  private section.
     data mv_num_rounds type i.
     data mt_dummy type tt_dummy.
 

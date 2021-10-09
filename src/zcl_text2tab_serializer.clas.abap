@@ -64,6 +64,11 @@ class zcl_text2tab_serializer definition
         value(ro_instance) type ref to zcl_text2tab_serializer
       raising
         zcx_text2tab_error .
+    methods as_html
+      importing
+        !i_yes type abap_bool default abap_true
+      returning
+        value(ro_instance) type ref to zcl_text2tab_serializer .
 
     " CONSTRUCTION
     class-methods create
@@ -88,6 +93,7 @@ class zcl_text2tab_serializer definition
         fields_only type ts_fields_list,
         components type zcl_text2tab_utils=>tt_comp_descr,
         data_ref type ref to data,
+        as_html type abap_bool,
       end of ty_context.
 
     data mv_decimal_sep type ty_decimal_sep .
@@ -99,6 +105,7 @@ class zcl_text2tab_serializer definition
     data mv_add_header_descr type sy-langu.
     data mt_fields_only type tt_fields_list.
     data ms_bind_context type ty_context.
+    data mv_as_html type abap_bool.
 
     methods serialize_field
       importing
@@ -192,6 +199,12 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     r_out = l_tmp.
 
   endmethod.  "apply_conv_exit
+
+
+  method as_html.
+    mv_as_html = i_yes.
+    ro_instance = me.
+  endmethod.
 
 
   method bind_data.
@@ -336,6 +349,11 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     endif.
 
     assign ls_context-data_ref->* to <data>.
+    ls_context-as_html = mv_as_html.
+
+    if ls_context-as_html = abap_true.
+      append '<table>' to lt_lines.
+    endif.
 
     _serialize_header(
       exporting
@@ -353,6 +371,10 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
           i_data     = <data>
         changing
           ct_lines = lt_lines ).
+    endif.
+
+    if ls_context-as_html = abap_true.
+      append '</table>' to lt_lines.
     endif.
 
     r_string = concat_lines_of(
@@ -390,7 +412,20 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
           i_value      = <field> ).
         append lv_buf to lt_fields.
       endloop.
-      lv_buf = concat_lines_of( table = lt_fields sep = c_tab ).
+
+      if is_context-as_html = abap_true.
+        lv_buf =
+          '<tr><td>' &&
+          concat_lines_of(
+            table = lt_fields
+            sep   = '</td><td>' ) &&
+          '</td></tr>'.
+      else.
+        lv_buf = concat_lines_of(
+          table = lt_fields
+          sep   = c_tab ).
+      endif.
+
       append lv_buf to ct_lines.
     endloop.
 
@@ -591,16 +626,34 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     endloop.
 
     if iv_add_header_descr = abap_true.
-      lv_buf = concat_lines_of(
-        table = lt_fields_descr
-        sep   = c_tab ).
+      if is_context-as_html = abap_true.
+        lv_buf =
+          '<tr><td>' &&
+          concat_lines_of(
+            table = lt_fields_descr
+            sep   = '</td><td>' ) &&
+          '</td></tr>'.
+      else.
+        lv_buf = concat_lines_of(
+          table = lt_fields_descr
+          sep   = c_tab ).
+      endif.
       append lv_buf to ct_lines.
     endif.
 
     if iv_add_header_tech = abap_true.
-      lv_buf = concat_lines_of(
-        table = lt_fields
-        sep   = c_tab ).
+      if is_context-as_html = abap_true.
+        lv_buf =
+          '<tr><td>' &&
+          concat_lines_of(
+            table = lt_fields
+            sep   = '</td><td>' ) &&
+          '</td></tr>'.
+      else.
+        lv_buf = concat_lines_of(
+          table = lt_fields
+          sep   = c_tab ).
+      endif.
       append lv_buf to ct_lines.
     endif.
 

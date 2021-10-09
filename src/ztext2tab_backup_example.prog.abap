@@ -324,17 +324,35 @@ endclass.
 class lcl_app definition final.
   public section.
     methods constructor raising cx_static_check.
-    methods run raising cx_static_check.
+    methods run
+      importing
+        iv_to_clip type abap_bool
+        iv_as_html type abap_bool
+    raising
+      cx_static_check.
 
   private section.
+    types:
+      tty_t000 type standard table of t000 with key mandt.
+
     data mo_ser type ref to zcl_text2tab_serializer.
     data mo_zipw type ref to zcl_w3mime_zip_writer.
-    methods pile_data
+
+    methods get_t000
+      returning
+        value(rt_data) type tty_t000
+      raising
+        cx_static_check.
+    methods save_to_file
       importing
-        it_tab  type standard table
-        iv_name type string
-      raising cx_static_check.
-    methods save_t000 raising cx_static_check.
+        iv_data type string
+      raising
+        cx_static_check.
+    methods save_to_clip
+      importing
+        iv_data type string
+      raising
+        cx_static_check.
 
 endclass.
 
@@ -345,25 +363,42 @@ class lcl_app implementation.
     mo_ser = zcl_text2tab_serializer=>create( ).
   endmethod.
 
-  method pile_data.
-    data lv_data type string.
-    lv_data = mo_ser->serialize( it_tab ).
-    mo_zipw->add( iv_filename = iv_name iv_data = lv_data ).
-  endmethod.
-
-  method save_t000.
-    data lt_data type standard table of t000.
+  method get_t000.
     write: / 'Backing up t000 ...'. "#EC NOTEXT
-    select * from t000 into table lt_data.
-    pile_data(
-      iv_name = 't000.txt'
-      it_tab  = lt_data ).
+    select * from t000 into table rt_data.
   endmethod.
 
-  method run.
+  method save_to_clip.
 
-    save_t000( ).
+    types ty_line type c length 256.
+    data lt_tab type table of ty_line.
+    data lv_rc type i.
+
+    split iv_data at cl_abap_char_utilities=>cr_lf into table lt_tab.
+
+    cl_gui_frontend_services=>clipboard_export(
+      importing
+        data                 = lt_tab
+      changing
+        rc                   = lv_rc
+      exceptions
+        cntl_error           = 1
+        error_no_gui         = 2
+        not_supported_by_gui = 3
+        no_authority         = 4
+        others               = 5 ).
+
+    write: / 'Done. Data saved to:' color 5, 'clipboard'. "#EC NOTEXT
+
+  endmethod.
+
+  method save_to_file.
+
     write: / 'Archiving ...'. "#EC NOTEXT
+
+    mo_zipw->add(
+      iv_filename = 't000.txt'
+      iv_data = iv_data ).
 
     data lv_xdata type xstring.
     lv_xdata = mo_zipw->get_blob( ).
@@ -383,13 +418,34 @@ class lcl_app implementation.
 
   endmethod.
 
+  method run.
+
+    data lt_data type tty_t000.
+    lt_data = get_t000( ).
+
+    data lv_data type string.
+    mo_ser->as_html( iv_as_html ).
+    lv_data = mo_ser->serialize( lt_data ).
+
+    if iv_to_clip = abap_true.
+      save_to_clip( lv_data ).
+    else.
+      save_to_file( lv_data ).
+    endif.
+
+  endmethod.
+
 endclass.
 
 **********************************************************************
 * FORMS
 **********************************************************************
 
-form main.
+form main
+  using
+    p_to_clip type abap_bool
+    p_as_html type abap_bool.
+
   data lx type ref to cx_root.
   data lo_app type ref to lcl_app.
 
@@ -405,7 +461,9 @@ form main.
 
   try .
     create object lo_app.
-    lo_app->run( ).
+    lo_app->run(
+      iv_to_clip = p_to_clip
+      iv_as_html = p_as_html ).
   catch cx_root into lx.
     data msg type string.
     msg = lx->get_text( ).
@@ -417,17 +475,29 @@ endform.
 selection-screen begin of block b1 with frame title txt_b1.
 
 selection-screen begin of line.
-parameters p_p0 type char1.
+parameters p_p0 radiobutton group g1 default 'X'.
 selection-screen comment (60) txt_p0.
+selection-screen end of line.
+
+selection-screen begin of line.
+parameters p_p1 radiobutton group g1.
+selection-screen comment (60) txt_p1.
+selection-screen end of line.
+
+selection-screen begin of line.
+parameters p_p2 type abap_bool as checkbox.
+selection-screen comment (60) txt_p2.
 selection-screen end of line.
 
 selection-screen end of block b1.
 
 initialization.
 
-  txt_b1   = 'Info'. "#EC NOTEXT
-  txt_p0   = 'This program saves table T000 to sap workdir'. "#EC NOTEXT
+  txt_b1   = 'This program saves table T000...'. "#EC NOTEXT
+  txt_p0   = '... to sap workdir'. "#EC NOTEXT
+  txt_p1   = '... to clipboard'. "#EC NOTEXT
+  txt_p2   = ' as HTML'. "#EC NOTEXT
 
 start-of-selection.
 
-  perform main.
+  perform main using p_p1 p_p2.

@@ -424,7 +424,13 @@ class lcl_app implementation.
     lt_data = get_t000( ).
 
     data lv_data type string.
-    mo_ser->as_html( iv_as_html ).
+    if iv_as_html = abap_true.
+      data lt_text_fields type string_table.
+      append 'cccoractiv' to lt_text_fields.
+      mo_ser->as_html(
+        i_bold_header = abap_true
+        i_text_fields = lt_text_fields ).
+    endif.
     lv_data = mo_ser->serialize( lt_data ).
 
     if iv_to_clip = abap_true.

@@ -113,6 +113,18 @@ class lcl_app definition final.
         tnumber  type n length 4,
         tinteger type i,
         tfloat   type f,
+        extra1   type string,
+        extra2   type string,
+        extra3   type string,
+        extra4   type string,
+        extra5   type string,
+        extra6   type string,
+        extra7   type string,
+        extra8   type string,
+        extra9   type string,
+        extra10  type string,
+        extra11  type string,
+        extra12  type string,
       end of ty_dummy,
       tt_dummy type standard table of ty_dummy with default key.
 
@@ -137,12 +149,32 @@ class lcl_app implementation.
 
     data ls_dummy type ty_dummy.
 
-    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
-    append_dummy '20150101' 'Trololo1' 'String1' '1234567.81' 2015 '8A'  1111 '0000100000' '1.12345'.
-    append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000' '1.10'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1000.00'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1000.00'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1000.00'.
+    ls_dummy-tdate    = '20150101'.
+    ls_dummy-tchar    = 'Trololo1'.
+    ls_dummy-tstring  = 'Trololo2'.
+    ls_dummy-tdecimal = '1234567.81'.
+    ls_dummy-tnumber  = 2020.
+    ls_dummy-traw     = '8A'.
+    ls_dummy-tinteger = 1234.
+    ls_dummy-talpha   = '0000100000'.
+    ls_dummy-tfloat   = '1.12345'.
+
+    ls_dummy-extra1  = '1'.
+    ls_dummy-extra2  = '1'.
+    ls_dummy-extra3  = '1'.
+    ls_dummy-extra4  = '1'.
+    ls_dummy-extra5  = '1'.
+    ls_dummy-extra6  = '1'.
+    ls_dummy-extra7  = '1'.
+    ls_dummy-extra8  = '1'.
+    ls_dummy-extra9  = '1'.
+    ls_dummy-extra10 = '1'.
+    ls_dummy-extra11 = '1'.
+    ls_dummy-extra12 = '1'.
+
+    do 50 times.
+      append ls_dummy to mt_dummy.
+    enddo.
 
   endmethod.
 

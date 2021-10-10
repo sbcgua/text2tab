@@ -8,7 +8,7 @@ Legend
 + : added
 - : removed
 
-v2.3.3, 2021-??-??
+v2.3.3, 2021-10-10
 ------------------
 + new feature: method serialize_header to output just header technames or description. IMPORTANT: this will probably replace "i_add_header_descr" param in CREATE.
 + new experimental bind_data and bind_fields_only methods, to make more convenient chaining and several calls to serialize and serialize_header

@@ -305,7 +305,7 @@ The `serialize` method also accepts `i_fields_only` param - a explicit field lis
 
 ### Getting header row only
 
-The serializer can also create a tab-delimited string with human readable field descriptions or technical names. E.g. `User Name  Date  Time` (c_header-descriptions) or `UNAME  DATUM  UZEIT` (c_header-tech_names). This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header`.
+The serializer can also create a tab-delimited string with human readable field descriptions or technical names. E.g. `User Name \t Date \t Time` (c_header-descriptions) or `UNAME \t DATUM \t UZEIT` (c_header-tech_names). This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header`.
 ```abap
   lv_string = lo_serializer->serialize_header(
     i_header_type = lo_serializer->c_header-descriptions
@@ -317,6 +317,16 @@ The serializer can also create a tab-delimited string with human readable field 
     i_lang = 'D'
     i_fields_only = value#( ( 'UNAME' ) ( 'DATUM' ) ) ).
 ```
+
+### Serialize as HTML
+
+The feature allows serialization to html table `<table><tr>...`. In particular this form is natively supported when pasted to Excel sheet. And in particular it is possible to mark fields as text, so that no auto conversion happen to the values. E.g. "1.1" is auto converted to a date which is not intended.
+
+```abap
+  lv_string = lo_serializer->as_html( i_text_fields = value#( ( 'CODE' ) ) )->serialize( lt_some_table ).
+```
+
+*To see the impact of modes, check `ZTEXT2TAB_BACKUP_EXAMPLE` - the selection screen allows control over the html/text modes. As well it allows copying the result to the clipboard for pasting to Excel after.*
 
 ## Comments
 

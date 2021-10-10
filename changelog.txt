@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.3.4, 2021-10-10
+------------------
++ new feature: serialize as html. The key usage is to copy the result into excel, it allows marking certain fields as text, to avoid autoconversion. E.g. "1.1" will not convert to date
+
 v2.3.3, 2021-10-10
 ------------------
 + new feature: method serialize_header to output just header technames or description. IMPORTANT: this will probably replace "i_add_header_descr" param in CREATE.

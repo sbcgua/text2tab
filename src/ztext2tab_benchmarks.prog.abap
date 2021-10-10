@@ -130,6 +130,7 @@ class lcl_app definition final.
 
     methods prepare_data.
     methods serialize.
+    methods serialize_html.
     methods serialize_with_fields_only.
 
     class-methods main.
@@ -192,6 +193,20 @@ class lcl_app implementation.
 
   endmethod.
 
+  method serialize_html.
+
+    data lo_serializer type ref to zcl_text2tab_serializer.
+
+    try.
+      lo_serializer = zcl_text2tab_serializer=>create( )->as_html( ).
+      do 100 times.
+        lo_serializer->serialize( mt_dummy ).
+      enddo.
+    catch zcx_text2tab_error.
+    endtry.
+
+  endmethod.
+
   method serialize_with_fields_only.
 
     data lo_serializer type ref to zcl_text2tab_serializer.
@@ -242,6 +257,7 @@ class lcl_app implementation.
 
     lo_app->mv_num_rounds = 100.
     lo_app->run( 'serialize' ).
+    lo_app->run( 'serialize_html' ).
     lo_app->run( 'serialize_with_fields_only' ).
 
   endmethod.

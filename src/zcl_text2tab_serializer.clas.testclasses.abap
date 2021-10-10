@@ -64,7 +64,9 @@ class ltcl_text2tab_serializer_test definition final
 
 * ==== TESTING ===
 
-    methods integrated for testing.
+    methods integrated for testing raising zcx_text2tab_error.
+    methods as_html for testing raising zcx_text2tab_error.
+    methods as_html_w_styles for testing raising zcx_text2tab_error.
     methods header_only for testing raising zcx_text2tab_error.
     methods serialize_header for testing raising zcx_text2tab_error.
     methods given_fields for testing raising zcx_text2tab_error.
@@ -117,8 +119,7 @@ class ltcl_text2tab_serializer_test implementation.
       lv_exp_struc type string,
       lv_exp_tab   type string,
       lt_tab       type tt_dummy,
-      ls_struc     type ty_dummy,
-      lx type ref to zcx_text2tab_error.
+      ls_struc     type ty_dummy.
 
     get_dummy_data( importing
       e_dummy_struc     = ls_struc
@@ -126,16 +127,69 @@ class ltcl_text2tab_serializer_test implementation.
       e_dummy_string    = lv_exp_tab
       e_dummy_struc_str = lv_exp_struc ).
 
-    try.
-      lv_act = o->serialize( lt_tab ).
-      cl_abap_unit_assert=>assert_equals( act = lv_act exp = lv_exp_tab ).
+    lv_act = o->serialize( lt_tab ).
+    cl_abap_unit_assert=>assert_equals( act = lv_act exp = lv_exp_tab ).
 
-      lv_act = o->serialize( ls_struc ).
-      cl_abap_unit_assert=>assert_equals( act = lv_act exp = lv_exp_struc ).
+    lv_act = o->serialize( ls_struc ).
+    cl_abap_unit_assert=>assert_equals( act = lv_act exp = lv_exp_struc ).
 
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+  endmethod.
+
+  method as_html.
+
+    data lv_act type string.
+    data lv_exp type string.
+    data lt_tab type table of ty_dummy_with_ddic.
+
+    field-symbols <i> like line of lt_tab.
+    append initial line to lt_tab assigning <i>.
+    <i>-uname = 'HELLO'.
+    <i>-datum = '20210901'.
+    <i>-uzeit = '100102'.
+
+    lv_exp =
+      '<table>\n' &&
+      '<tr><td>UNAME</td><td>DATUM</td><td>UZEIT</td></tr>\n' &&
+      '<tr><td>HELLO</td><td>01.09.2021</td><td>100102</td></tr>\n' &&
+      '</table>'.
+    replace all occurrences of '\n' in lv_exp with c_crlf.
+
+    lv_act = o->as_html( )->serialize( lt_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
+
+  endmethod.
+
+  method as_html_w_styles.
+
+    data lv_act type string.
+    data lv_exp type string.
+    data lt_tab type table of ty_dummy_with_ddic.
+    data lt_text_fields type string_table.
+
+    field-symbols <i> like line of lt_tab.
+    append initial line to lt_tab assigning <i>.
+    <i>-uname = 'HELLO'.
+    <i>-datum = '20210901'.
+    <i>-uzeit = '100102'.
+
+    append 'uzeit' to lt_text_fields.
+
+    lv_exp =
+      '<table>\n' &&
+      '<tr style="font-weight: bold"><td>UNAME</td><td>DATUM</td><td>UZEIT</td></tr>\n' &&
+      '<tr><td>HELLO</td><td>01.09.2021</td><td style="mso-number-format:''\@''">100102</td></tr>\n' &&
+      '</table>'.
+    replace all occurrences of '\n' in lv_exp with c_crlf.
+
+    lv_act = o->as_html(
+      i_text_fields = lt_text_fields
+      i_bold_header = abap_true )->serialize( lt_tab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = lv_exp ).
+
   endmethod.
 
   method header_only.
@@ -335,7 +389,7 @@ class ltcl_text2tab_serializer_test implementation.
     replace all occurrences of '\t' in e_dummy_string_w_descr with c_tab.
     replace all occurrences of '\n' in e_dummy_string_w_descr with c_crlf.
 
-  endmethod.       " get_dummy_data
+  endmethod.
 
   method serialize_date.
     data l_act type string.

@@ -85,19 +85,6 @@ endclass.
 * END-OF ZTEST_BENCHMARKS CONTRIB
 **********************************************************************
 
-define append_dummy.
-  ls_dummy-tdate    = &1.
-  ls_dummy-tchar    = &2.
-  ls_dummy-tstring  = &3.
-  ls_dummy-tdecimal = &4.
-  ls_dummy-tnumber  = &5.
-  ls_dummy-traw     = &6.
-  ls_dummy-tinteger = &7.
-  ls_dummy-talpha   = &8.
-  ls_dummy-tfloat   = &9.
-  append ls_dummy to mt_dummy.
-end-of-definition.
-
 class lcl_app definition final.
   public section.
 

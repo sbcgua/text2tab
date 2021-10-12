@@ -32,36 +32,6 @@ define test_parse_negative.
   cl_abap_unit_assert=>assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
 end-of-definition.
 
-define append_dummy.
-  e_dummy_struc-tdate    = &1.
-  e_dummy_struc-tchar    = &2.
-  e_dummy_struc-tstring  = &3.
-  e_dummy_struc-tdecimal = &4.
-  e_dummy_struc-tnumber  = &5.
-  if i_strict = abap_true.
-    e_dummy_struc-traw     = &6.
-    e_dummy_struc-tinteger = &7.
-    e_dummy_struc-talpha   = &8.
-    e_dummy_struc-tfloat   = &9.
-  endif.
-  append e_dummy_struc to e_dummy_tab.
-end-of-definition.
-
-define append_dummy_s.
-  l_dummy_s-tdate    = &1.
-  l_dummy_s-tchar    = &2.
-  l_dummy_s-tstring  = &3.
-  l_dummy_s-tdecimal = &4.
-  l_dummy_s-tnumber  = &5.
-  if i_strict = abap_true.
-    l_dummy_s-traw     = &6.
-    l_dummy_s-tinteger = &7.
-    l_dummy_s-talpha   = &8.
-    l_dummy_s-tfloat   = &9.
-  endif.
-  append l_dummy_s to e_dummy_tab_s.
-end-of-definition.
-
 
 **********************************************************************
 * Test Class definition
@@ -70,7 +40,6 @@ end-of-definition.
 class ltcl_text2tab_parser_test definition for testing
   final risk level harmless duration short.
 
-* ================
   public section.
 
     types:
@@ -157,7 +126,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse_line_negative   for testing.
     methods parse_data_empty_line for testing.
     methods parse_negative        for testing.
-    methods parse                 for testing.
+    methods parse                 for testing raising zcx_text2tab_error.
     methods parse_time for testing raising zcx_text2tab_error.
     methods parse_float for testing raising zcx_text2tab_error.
     methods parse_ignore_convexit for testing raising zcx_text2tab_error.
@@ -170,6 +139,10 @@ class ltcl_text2tab_parser_test definition for testing
 
 
 * ==== HELPERS ===
+
+    data mt_dummy_tmp type tt_dummy.
+    data mt_dummy_str_tmp type tt_dummy_str.
+    data mt_strict_tmp type abap_bool.
 
     methods setup raising zcx_text2tab_error.
     methods get_dummy_data
@@ -188,7 +161,17 @@ class ltcl_text2tab_parser_test definition for testing
         e_exp_result        type ty_dummy_with_time
         e_with_valid_time   type string
         e_with_invalid_time type string.
-
+    methods _append_dummy
+      importing
+        iv_str type string
+      changing
+        ct_tab type standard table.
+    methods append_dummy
+      importing
+        iv_str type string.
+    methods append_dummy_s
+      importing
+        iv_str type string.
 
 endclass.
 
@@ -243,7 +226,7 @@ class ltcl_text2tab_parser_test implementation.
 
   method setup.
     o = zcl_text2tab_parser=>create( c_dummy ).
-  endmethod.      "setup
+  endmethod.
 
   method create.
     data:
@@ -306,85 +289,88 @@ class ltcl_text2tab_parser_test implementation.
       cl_abap_unit_assert=>assert_not_initial( act = lx ).
     enddo.
 
-  endmethod.      "create
+  endmethod.
 
   method parse.
     data:
-          dummy_act      type ty_dummy,
-          dummy_tab_act  type tt_dummy,
-          dummy_htab     type hashed table of ty_dummy with unique key tdate,
-          dummy_stab     type sorted table of ty_dummy with unique key tdate,
-          dummy_exp      type ty_dummy,
-          dummy_tab_exp  type tt_dummy,
-          dummy_head     type string,
-          l_string       type string,
-          lt_strings     type table of string,
-          lt_header_act  type standard table of string,
-          lt_header_exp  type standard table of string,
-          lx             type ref to zcx_text2tab_error.
+      dummy_act      type ty_dummy,
+      dummy_tab_act  type tt_dummy,
+      dummy_htab     type hashed table of ty_dummy with unique key tdate,
+      dummy_stab     type sorted table of ty_dummy with unique key tdate,
+      dummy_exp      type ty_dummy,
+      dummy_tab_exp  type tt_dummy,
+      dummy_head     type string,
+      l_string       type string,
+      lt_strings     type table of string,
+      lt_header_act  type standard table of string,
+      lt_header_exp  type standard table of string,
+      lx             type ref to zcx_text2tab_error.
 
     " Strict parsing *********************************
-    get_dummy_data( importing e_dummy_struc  = dummy_exp
-                              e_dummy_tab    = dummy_tab_exp
-                              e_dummy_header = dummy_head
-                              e_dummy_string = l_string ).
+    get_dummy_data(
+      importing
+        e_dummy_struc  = dummy_exp
+        e_dummy_tab    = dummy_tab_exp
+        e_dummy_header = dummy_head
+        e_dummy_string = l_string ).
+
     split dummy_head at c_tab into table lt_header_exp.
 
-    try.
-      o->parse(
-        exporting
-          i_data      = l_string
-        importing
-          e_container = dummy_act ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_act     exp = dummy_exp ).
+    o->parse(
+      exporting
+        i_data      = l_string
+      importing
+        e_container = dummy_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_act
+      exp = dummy_exp ).
 
-      o->parse(
-        exporting
-          i_data        = l_string
-        importing
-          e_container   = dummy_tab_act
-          e_head_fields = lt_header_act ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
-      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    o->parse(
+      exporting
+        i_data        = l_string
+      importing
+        e_container   = dummy_tab_act
+        e_head_fields = lt_header_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_tab_act
+      exp = dummy_tab_exp ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_header_act
+      exp = lt_header_exp ).
 
     " Parse to sorted and hashed tables ***************
-    try.
-      o->parse(
-        exporting
-          i_data      = l_string
-        importing
-          e_container = dummy_stab ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_stab exp = dummy_tab_exp ).
+    o->parse(
+      exporting
+        i_data      = l_string
+      importing
+        e_container = dummy_stab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_stab
+      exp = dummy_tab_exp ).
 
-      o->parse(
-        exporting
-          i_data      = l_string
-        importing
-          e_container = dummy_htab ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_htab exp = dummy_tab_exp ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    o->parse(
+      exporting
+        i_data      = l_string
+      importing
+        e_container = dummy_htab ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_htab
+      exp = dummy_tab_exp ).
 
     " Parse without head
     split l_string at c_crlf into table lt_strings.
     delete lt_strings index 1.
     concatenate lines of lt_strings into l_string separated by c_crlf.
 
-    try.
-      o->parse(
-        exporting
-          i_data      = l_string
-          i_has_head  = abap_false
-        importing
-           e_container = dummy_tab_act ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    o->parse(
+      exporting
+        i_data      = l_string
+        i_has_head  = abap_false
+      importing
+         e_container = dummy_tab_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_tab_act
+      exp = dummy_tab_exp ).
 
     " NOT STRICT parsing ******************************
     get_dummy_data(
@@ -394,23 +380,24 @@ class ltcl_text2tab_parser_test implementation.
         e_dummy_tab    = dummy_tab_exp
         e_dummy_header = dummy_head
         e_dummy_string = l_string ).
+
     split dummy_head at c_tab into table lt_header_exp.
 
-    try.
-      o->parse(
-        exporting
-          i_data        = l_string
-          i_strict      = abap_false
-        importing
-          e_container   = dummy_tab_act
-          e_head_fields = lt_header_act ).
-      cl_abap_unit_assert=>assert_equals( act = dummy_tab_act exp = dummy_tab_exp ).
-      cl_abap_unit_assert=>assert_equals( act = lt_header_act exp = lt_header_exp ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    o->parse(
+      exporting
+        i_data        = l_string
+        i_strict      = abap_false
+      importing
+        e_container   = dummy_tab_act
+        e_head_fields = lt_header_act ).
+    cl_abap_unit_assert=>assert_equals(
+      act = dummy_tab_act
+      exp = dummy_tab_exp ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_header_act
+      exp = lt_header_exp ).
 
-  endmethod.  "parse
+  endmethod.
 
   method parse_time.
     data: l_exp_result        type ty_dummy_with_time,
@@ -455,7 +442,7 @@ class ltcl_text2tab_parser_test implementation.
       act = l_act_result
       msg = |parsing should be sucessfull with correct time| ).
 
-  endmethod.  "parse_time
+  endmethod.
 
   method parse_negative.
 
@@ -548,7 +535,7 @@ class ltcl_text2tab_parser_test implementation.
 
     enddo.
 
-  endmethod.  "parse_negative
+  endmethod.
 
   method apply_conv_exit.
     data:
@@ -582,7 +569,7 @@ class ltcl_text2tab_parser_test implementation.
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
 
-  endmethod. "apply_conv_exit
+  endmethod.
 
   method parse_field.
     data:
@@ -729,7 +716,7 @@ class ltcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_not_initial( lx ).
 
 
-  endmethod.       "parse_field
+  endmethod.
 
   method parse_float.
 
@@ -910,7 +897,7 @@ class ltcl_text2tab_parser_test implementation.
     enddo.
 
 
-  endmethod.     "map_head_structure
+  endmethod.
 
   method map_head_structure_corresp.
 
@@ -978,7 +965,7 @@ class ltcl_text2tab_parser_test implementation.
         msg = |parse_line_negative, case { sy-index }| ).
 
     enddo.
-  endmethod.    "parse_line_negative
+  endmethod.
 
   method parse_data_empty_line.
 
@@ -1026,15 +1013,67 @@ class ltcl_text2tab_parser_test implementation.
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
 
-  endmethod.  "parse_data_empty_line
+  endmethod.
+
+  method _append_dummy.
+
+    data lt_vals type string_table.
+    data lo_table type ref to cl_abap_tabledescr.
+    data lo_struc type ref to cl_abap_structdescr.
+    data lr type ref to data.
+
+    field-symbols <c> like line of lo_struc->components.
+    field-symbols <v> like line of lt_vals.
+    field-symbols <fld> type any.
+    field-symbols <struc> type any.
+
+    lo_table ?= cl_abap_typedescr=>describe_by_data( ct_tab ).
+    lo_struc ?= lo_table->get_table_line_type( ).
+    create data lr like line of ct_tab.
+    assign lr->* to <struc>.
+
+    split iv_str at '|' into table lt_vals.
+
+    loop at lo_struc->components assigning <c>.
+      read table lt_vals index sy-tabix assigning <v>.
+      cl_abap_unit_assert=>assert_subrc( ).
+      assign component <c>-name of structure <struc> to <fld>.
+      <fld> = condense( <v> ).
+    endloop.
+
+    append <struc> to ct_tab.
+
+  endmethod.
+
+  method append_dummy.
+
+    _append_dummy(
+      exporting
+        iv_str = iv_str
+      changing
+        ct_tab = mt_dummy_tmp ).
+
+  endmethod.
+
+  method append_dummy_s.
+
+    _append_dummy(
+      exporting
+        iv_str = iv_str
+      changing
+        ct_tab = mt_dummy_str_tmp ).
+
+  endmethod.
 
   method get_dummy_data.
 
     data:
-          l_dummy_s type ty_dummy_str,
-          l_offs    type i,
-          l_fields  type i,
-          l_string  type string.
+      l_dummy_s type ty_dummy_str,
+      l_offs    type i,
+      l_fields  type i,
+      l_string  type string.
+    field-symbols <d> like line of e_dummy_tab.
+    field-symbols <ds> like line of e_dummy_tab_s.
 
     clear e_map.
 
@@ -1078,17 +1117,29 @@ class ltcl_text2tab_parser_test implementation.
     replace all occurrences of '\t' in l_string with c_tab.
     replace all occurrences of '\n' in l_string with c_crlf.
 
-    clear e_dummy_tab.
+    clear mt_dummy_tmp.
+    "              |TDATE    |TCHAR    |TRAW |TSTRING |TALPHA     |TDECIMAL   |TNUM |TINT |TFLOAT
+    append_dummy( '|20150101 |Trololo1 |8A   |String1 |0000100000 |1234567.81 |2015 |1111 |1.12345' ).
+    append_dummy( '|20160102 |Trololo2 |8B   |String2 |0000200000 |1234567.82 |2016 |2222 |1.00' ).
+    append_dummy( '|20160103 |Trololo3 |8C   |String3 |0000300000 |1234567.83 |2015 |3333 |1.00' ).
+    e_dummy_tab = mt_dummy_tmp.
+    if i_strict = abap_false.
+      loop at e_dummy_tab assigning <d>.
+        clear: <d>-traw, <d>-tinteger, <d>-talpha, <d>-tfloat.
+      endloop.
+    endif.
 
-    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
-    append_dummy '20150101' 'Trololo1' 'String1' '1234567.81' 2015 '8A'  1111 '0000100000' '1.12345'.
-    append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000' '1.00'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1.00'.
-
-    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
-    append_dummy_s '01.01.2015' 'Trololo1' 'String1' '1234567,81' '2015' '8A'  '1111' '100000' '1,12345'.
-    append_dummy_s '02.01.2016' 'Trololo2' 'String2' '1234567,82' '2016' '8B'  '2222' '200000' '1,00'.
-    append_dummy_s '03.01.2016' 'Trololo3' 'String3' '1234567,83' '2015' '8C'  '3333' '300000' '1'.
+    clear mt_dummy_str_tmp.
+    "                |TDATE      |TCHAR    |TRAW |TSTRING |TALPHA |TDECIMAL   |TNUM |TINT  |TFLOAT
+    append_dummy_s( '|01.01.2015 |Trololo1 |8A   |String1 |100000 |1234567,81 |2015 |1111  |1,12345' ).
+    append_dummy_s( '|02.01.2016 |Trololo2 |8B   |String2 |200000 |1234567,82 |2016 |2222  |1,00' ).
+    append_dummy_s( '|03.01.2016 |Trololo3 |8C   |String3 |300000 |1234567,83 |2015 |3333  |1' ).
+    e_dummy_tab_s = mt_dummy_str_tmp.
+    if i_strict = abap_false.
+      loop at e_dummy_tab_s assigning <ds>.
+        clear: <ds>-traw, <ds>-tinteger, <ds>-talpha, <ds>-tfloat.
+      endloop.
+    endif.
 
     read table e_dummy_tab into e_dummy_struc index 1.
     e_dummy_string = l_string.
@@ -1096,7 +1147,7 @@ class ltcl_text2tab_parser_test implementation.
     find first occurrence of c_crlf in l_string match offset l_offs.
     e_dummy_header = l_string+0(l_offs).
 
-  endmethod.       " get_dummy_data
+  endmethod.
 
   method get_dummy_data_with_time.
 
@@ -1115,7 +1166,7 @@ class ltcl_text2tab_parser_test implementation.
     e_exp_result-tchar = 'Trolo2'.
     e_exp_result-ttime = '083000'.
 
-  endmethod.       " get_dummy_data_with_time
+  endmethod.
 
 
   method parse_typeless.

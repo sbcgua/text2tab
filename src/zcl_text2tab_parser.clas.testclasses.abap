@@ -1,42 +1,3 @@
-**********************************************************************
-* MACRO
-**********************************************************************
-define test_parse.
-  clear ls_dummy.
-  read table lt_components into ls_component with key name = '&1'.
-  o->parse_field(
-    exporting
-      is_component = ls_component
-      i_value      = &2
-    importing
-      e_field      = ls_dummy-&1 ).
-end-of-definition.
-
-define test_parse_positive.
-  clear lx.
-  try.
-    test_parse &1 &2.
-  catch zcx_text2tab_error into lx.
-    cl_abap_unit_assert=>fail( lx->get_text( ) ).
-  endtry.
-  cl_abap_unit_assert=>assert_equals( act = ls_dummy-&1 exp = &3 msg = 'Parse field positive:' && &2 ).
-end-of-definition.
-
-define test_parse_negative.
-  clear lx.
-  try.
-    test_parse &1 &2.
-  catch zcx_text2tab_error into lx.
-    cl_abap_unit_assert=>assert_equals( exp = &3 act = lx->code ).
-  endtry.
-  cl_abap_unit_assert=>assert_not_initial( act = lx msg = 'Parse field negative:' && &2 ).
-end-of-definition.
-
-
-**********************************************************************
-* Test Class definition
-**********************************************************************
-
 class ltcl_text2tab_parser_test definition for testing
   final risk level harmless duration short.
 
@@ -118,7 +79,9 @@ class ltcl_text2tab_parser_test definition for testing
 
     methods create                for testing.
     methods apply_conv_exit       for testing.
-    methods parse_field           for testing.
+    methods parse_field_positive  for testing raising zcx_text2tab_error.
+    methods parse_field_negative  for testing raising zcx_text2tab_error.
+    methods parse_field_special   for testing raising zcx_text2tab_error.
     methods map_head_structure    for testing.
     methods map_head_structure_corresp for testing raising zcx_text2tab_error.
     methods map_head_structure_w_ignores for testing raising zcx_text2tab_error.
@@ -143,6 +106,7 @@ class ltcl_text2tab_parser_test definition for testing
     data mt_dummy_tmp type tt_dummy.
     data mt_dummy_str_tmp type tt_dummy_str.
     data mt_strict_tmp type abap_bool.
+    data mt_field_components type zcl_text2tab_utils=>tt_comp_descr.
 
     methods setup raising zcx_text2tab_error.
     methods get_dummy_data
@@ -172,6 +136,23 @@ class ltcl_text2tab_parser_test definition for testing
     methods append_dummy_s
       importing
         iv_str type string.
+    methods test_parse
+      importing
+        positive type abap_bool
+        f type string
+        v type string
+        exp type any optional
+        err type string optional.
+    methods test_parse_positive
+      importing
+        f type string
+        v type string
+        exp type any.
+    methods test_parse_negative
+      importing
+        f type string
+        v type string
+        err type string.
 
 endclass.
 
@@ -216,7 +197,6 @@ class ltcl_deep_helper implementation.
   endmethod.
 
 endclass.
-
 
 **********************************************************************
 * Implementation
@@ -571,136 +551,210 @@ class ltcl_text2tab_parser_test implementation.
 
   endmethod.
 
-  method parse_field.
-    data:
-          ls_dummy       type ty_dummy,
-          lo_struc_descr type ref to cl_abap_structdescr,
-          lt_components  type zcl_text2tab_utils=>tt_comp_descr,
-          ls_component   like line of lt_components,
-          lx             type ref to zcx_text2tab_error.
+  method test_parse.
 
-    lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    data ls_dummy type ty_dummy.
+    data ls_component like line of mt_field_components.
+    data lx type ref to zcx_text2tab_error.
+    field-symbols <fld> type any.
+
+    read table mt_field_components into ls_component with key name = f.
+    cl_abap_unit_assert=>assert_subrc( ).
+
+    assign component f of structure ls_dummy to <fld>.
+    cl_abap_unit_assert=>assert_subrc( ).
+
     try.
-      lt_components = zcl_text2tab_utils=>describe_struct( i_struc = lo_struc_descr i_ignore_nonflat = abap_false ).
-    catch zcx_text2tab_error.
-      cl_abap_unit_assert=>fail( ).
+      o->parse_field(
+        exporting
+          is_component = ls_component
+          i_value      = v
+        importing
+          e_field      = <fld> ).
+      if positive = abap_true.
+        cl_abap_unit_assert=>assert_equals(
+          act = <fld>
+          exp = exp
+          msg = |Parse field positive: { f }| ).
+      else.
+        cl_abap_unit_assert=>fail( |Parse field negative didn''t raise: { f }| ).
+      endif.
+    catch zcx_text2tab_error into lx.
+      if positive = abap_true.
+        cl_abap_unit_assert=>fail( |Parse field positive must not raise: { f }| ).
+      else.
+        cl_abap_unit_assert=>assert_equals(
+          act = lx->code
+          exp = err
+          msg = |Parse field negative wrong code: { f } [{ lx->code }]| ).
+      endif.
     endtry.
 
-    " Positive tests ******************************
-    test_parse_positive TDATE    '01.02.2015'      '20150201'.
-    test_parse_positive TDATE    '1.2.2015'        '20150201'.
-    test_parse_positive TCHAR    'ABC'             'ABC'.
-    test_parse_positive TSTRING  'The string test' 'The string test'.
-    test_parse_positive TALPHA   '100000'          '0000100000'.
-    test_parse_positive TNUMBER  '2015'            '2015'.
-    test_parse_positive TINTEGER '123'             123.
-    test_parse_positive TRAW     '8E'              '8E'.
-    test_parse_positive TFLOAT   '1,123456789'     '1.123456789'.
-    test_parse_positive TFLOAT   '"1,123456789"'   '1.123456789'. " Quoted data, issue#6
-    test_parse_positive TNUMBER  '"2015"'          '2015'.        " Quoted
+  endmethod.
 
-    " Negative tests ******************************
-    test_parse_negative TNUMBER  '20ha'      'PF'.
+  method test_parse_positive.
+    test_parse(
+      positive = abap_true
+      f = f
+      v = v
+      exp = exp ).
+  endmethod.
+
+  method test_parse_negative.
+    test_parse(
+      positive = abap_false
+      f = f
+      v = v
+      err = err ).
+  endmethod.
+
+  method parse_field_positive.
+
+    data ls_dummy       type ty_dummy.
+    data lo_struc_descr type ref to cl_abap_structdescr.
+
+    lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    mt_field_components = zcl_text2tab_utils=>describe_struct(
+      i_struc          = lo_struc_descr
+      i_ignore_nonflat = abap_false ).
+
+    " Positive tests ******************************
+    test_parse_positive( f = 'TDATE'    v = '01.02.2015'      exp = '20150201' ).
+    test_parse_positive( f = 'TDATE'    v = '1.2.2015'        exp = '20150201' ).
+    test_parse_positive( f = 'TCHAR'    v = 'ABC'             exp = 'ABC' ).
+    test_parse_positive( f = 'TSTRING'  v = 'The string test' exp = 'The string test' ).
+    test_parse_positive( f = 'TALPHA'   v = '100000'          exp = '0000100000' ).
+    test_parse_positive( f = 'TNUMBER'  v = '2015'            exp = '2015' ).
+    test_parse_positive( f = 'TINTEGER' v = '123'             exp = 123 ).
+    test_parse_positive( f = 'TRAW'     v = '8E'              exp = '8E' ).
+    test_parse_positive( f = 'TFLOAT'   v = '1,123456789'     exp = '1.123456789' ).
+    test_parse_positive( f = 'TFLOAT'   v = '"1,123456789"'   exp = '1.123456789' ). " Quoted data, issue#6
+    test_parse_positive( f = 'TNUMBER'  v = '"2015"'          exp = '2015' ).        " Quoted data
 
     " Decimal converion tests *********************
-    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
-    test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
+    test_parse_positive( f = 'TDECIMAL' v = '1234,12'      exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '-1234,12'     exp = '-1234.12' ).
 
     " Different amount formats
-    test_parse_positive TDECIMAL '-1234,12'        '-1234.12'.
-    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
-    test_parse_positive TDECIMAL '1234'            '1234'.
-    test_parse_positive TDECIMAL '1 234'           '1234'.
-    test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
-    test_parse_positive TDECIMAL '14,12'           '14.12'.
-    test_parse_positive TDECIMAL '1 234 567,12'    '1234567.12'.
-    test_parse_positive TDECIMAL '0'               '0'.
-    test_parse_positive TDECIMAL '0,0'             '0'.
-    test_parse_positive TDECIMAL ''                '0'.
-    test_parse_positive TDECIMAL '15'              '15'.
+    test_parse_positive( f = 'TDECIMAL' v = '-1234,12'     exp = '-1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1234,12'      exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1234'         exp = '1234' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1 234'        exp = '1234' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1 234,12'     exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '14,12'        exp = '14.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1 234 567,12' exp = '1234567.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '0'            exp = '0' ).
+    test_parse_positive( f = 'TDECIMAL' v = '0,0'          exp = '0' ).
+    test_parse_positive( f = 'TDECIMAL' v = ''             exp = '0' ).
+    test_parse_positive( f = 'TDECIMAL' v = '15'           exp = '15' ).
 
     o->mv_amount_format = '.,'.
-    test_parse_positive TDECIMAL '1234,12'         '1234.12'.
-    test_parse_positive TDECIMAL '1 234,12'        '1234.12'.
-    test_parse_positive TDECIMAL '1.234,12'        '1234.12'.
-    test_parse_positive TDECIMAL '1.234'           '1234'.
-    test_parse_positive TDECIMAL '14,12'           '14.12'.
-    test_parse_positive TDECIMAL '1.234.567,12'    '1234567.12'.
+    test_parse_positive( f = 'TDECIMAL' v = '1234,12'      exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1 234,12'     exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1.234,12'     exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1.234'        exp = '1234' ).
+    test_parse_positive( f = 'TDECIMAL' v = '14,12'        exp = '14.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1.234.567,12' exp = '1234567.12' ).
 
     o->mv_amount_format = ',.'.
-    test_parse_positive TDECIMAL '1234.12'         '1234.12'.
-    test_parse_positive TDECIMAL '1 234.12'        '1234.12'.
-    test_parse_positive TDECIMAL '1,234.12'        '1234.12'.
-    test_parse_positive TDECIMAL '14.12'           '14.12'.
-    test_parse_positive TDECIMAL '1,234,567.12'    '1234567.12'.
-
-    " Negative decimal tests
-    o->mv_amount_format = ' ,'. " Set defaults
-    test_parse_negative TDECIMAL '1 234.12' 'PF'.
-    test_parse_negative TDECIMAL '1 234_12' 'PF'.
-    test_parse_negative TDECIMAL '1234,123' 'PF'. " 3 decimal digits into amount which has just 2
-    test_parse_negative TDECIMAL '1234,12_' 'PF'.
-    test_parse_negative TDECIMAL 'Not-a-number' 'PF'.
-
-    o->mv_amount_format = '.,'.
-    test_parse_negative TDECIMAL '1 234.12' 'PF'.
-    test_parse_negative TDECIMAL '1,234.12' 'PF'.
-
-    o->mv_amount_format = ',.'.
-    test_parse_negative TDECIMAL '1 234,12' 'PF'.
-    test_parse_negative TDECIMAL '1.234,12' 'PF'.
+    test_parse_positive( f = 'TDECIMAL' v = '1234.12'      exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1 234.12'     exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1,234.12'     exp = '1234.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '14.12'        exp = '14.12' ).
+    test_parse_positive( f = 'TDECIMAL' v = '1,234,567.12' exp = '1234567.12' ).
 
     " Date tests **********************************
     o->mv_date_format = 'MDY'.
-    test_parse_positive TDATE    '02012015'    '20150201'.
+    test_parse_positive( f = 'TDATE' v = '02012015'   exp = '20150201' ).
     o->mv_date_format = 'YMD'.
-    test_parse_positive TDATE    '20150201'    '20150201'.
-    test_parse_negative TDATE    '2015020'     'DL'.  " Too short
+    test_parse_positive( f = 'TDATE' v = '20150201'   exp = '20150201' ).
     o->mv_date_format = 'YMD-'.
-    test_parse_positive TDATE    '2015-02-01'  '20150201'.
-    test_parse_positive TDATE    '2015-2-1'    '20150201'.
-    test_parse_positive TDATE    `        `    '00000000'.
-    test_parse_positive TDATE    ''            '00000000'.
+    test_parse_positive( f = 'TDATE' v = '2015-02-01' exp = '20150201' ).
+    test_parse_positive( f = 'TDATE' v = '2015-2-1'   exp = '20150201' ).
+    test_parse_positive( f = 'TDATE' v = `        `   exp = '00000000' ).
+    test_parse_positive( f = 'TDATE' v = ''           exp = '00000000' ).
     o->mv_date_format = 'DMY.'. " Back to default
 
+  endmethod.
+
+
+  method parse_field_negative.
+    data:
+      ls_dummy       type ty_dummy,
+      lo_struc_descr type ref to cl_abap_structdescr,
+      lt_components  type zcl_text2tab_utils=>tt_comp_descr,
+      ls_component   like line of lt_components,
+      lx             type ref to zcx_text2tab_error.
+
+    lo_struc_descr ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
+    mt_field_components = zcl_text2tab_utils=>describe_struct(
+      i_struc          = lo_struc_descr
+      i_ignore_nonflat = abap_false ).
+
+    " Negative tests ******************************
+    test_parse_negative( f = 'TNUMBER' v = '20ha'  err = 'PF' ).
+
+    " Negative decimal tests
+    o->mv_amount_format = ' ,'. " Set defaults
+    test_parse_negative( f = 'TDECIMAL' v = '1 234.12' err = 'PF' ).
+    test_parse_negative( f = 'TDECIMAL' v = '1 234_12' err = 'PF' ).
+    test_parse_negative( f = 'TDECIMAL' v = '1234,123' err = 'PF' ). " 3 decimal digits into amount which has just 2
+    test_parse_negative( f = 'TDECIMAL' v = '1234,12_' err = 'PF' ).
+    test_parse_negative( f = 'TDECIMAL' v = 'Not-a-number' err = 'PF' ).
+
+    o->mv_amount_format = '.,'.
+    test_parse_negative( f = 'TDECIMAL' v = '1 234.12' err = 'PF' ).
+    test_parse_negative( f = 'TDECIMAL' v = '1,234.12' err = 'PF' ).
+
+    o->mv_amount_format = ',.'.
+    test_parse_negative( f = 'TDECIMAL' v = '1 234,12' err = 'PF' ).
+    test_parse_negative( f = 'TDECIMAL' v = '1.234,12' err = 'PF' ).
+
+
+    " Date tests **********************************
+
     " Negative tests
-    test_parse_negative TDATE    'AB022015'    'DY'. " Wrong symbols
-    test_parse_negative TDATE    '01.02-2015'  'DY'. " Wrong separators
-    test_parse_negative TDATE    '01.02.20156' 'DL'. " Too long
-    test_parse_negative TDATE    '1.2.201567'  'DP'. " Wrong part length
-    test_parse_negative TDATE    '123.2.2015'  'DP'. " Wrong part length
-    test_parse_negative TDATE    '01022015'    'DS'. " No separators
-    test_parse_negative TDATE    '01.012015'   'DS'. " No second separator
-    test_parse_negative TDATE    '40.01.2015'  'DU'. " Incorrect day
-    test_parse_negative TDATE    '01.13.2015'  'DU'. " Incorrect month
+    o->mv_date_format = 'YMD'.
+    test_parse_negative( f = 'TDATE' v = '2015020'     err = 'DL' ).  " Too short
+    o->mv_date_format = 'DMY.'. " Back to default
+    test_parse_negative( f = 'TDATE' v = '01.02.20156' err = 'DL' ). " Too long
+    test_parse_negative( f = 'TDATE' v = 'AB022015'    err = 'DY' ). " Wrong symbols
+    test_parse_negative( f = 'TDATE' v = '01.02-2015'  err = 'DY' ). " Wrong separators
+    test_parse_negative( f = 'TDATE' v = '1.2.201567'  err = 'DP' ). " Wrong part length
+    test_parse_negative( f = 'TDATE' v = '123.2.2015'  err = 'DP' ). " Wrong part length
+    test_parse_negative( f = 'TDATE' v = '01022015'    err = 'DS' ). " No separators
+    test_parse_negative( f = 'TDATE' v = '01.012015'   err = 'DS' ). " No second separator
+    test_parse_negative( f = 'TDATE' v = '40.01.2015'  err = 'DU' ). " Incorrect day
+    test_parse_negative( f = 'TDATE' v = '01.13.2015'  err = 'DU' ). " Incorrect month
 
     " Overflow ************************************
-    test_parse_negative TCHAR    'ABCDEFGH123' 'FS'.
-    test_parse_negative TNUMBER  '201567'      'FS'.
-    test_parse_negative TRAW     '8E8F'        'FS'.
-    test_parse_negative TRAW     '8E8'         'FS'.
+    test_parse_negative( f = 'TCHAR'   v = 'ABCDEFGH123' err = 'FS' ).
+    test_parse_negative( f = 'TNUMBER' v = '201567'      err = 'FS' ).
+    test_parse_negative( f = 'TRAW'    v = '8E8F'        err = 'FS' ).
+    test_parse_negative( f = 'TRAW'    v = '8E8'         err = 'FS' ).
+
+  endmethod.
+
+  method parse_field_special.
+    data lx type ref to zcx_text2tab_error.
+    data lv_meins type meins.
+    data ls_comp like line of mt_field_components.
 
     " CONV EXITS
-    data lv_meins type meins.
-    data ls_comp like line of lt_components.
-    try.
-      clear lx.
-      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
-      ls_comp-edit_mask = 'CUNIT'.
-      ls_comp-output_length = 3.
-      o->parse_field(
-        exporting
-          is_component = ls_comp
-          i_value      = 'KG'
-        importing
-          e_field      = lv_meins ).
-      cl_abap_unit_assert=>assert_equals( act = lv_meins exp = 'KG' ).
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+    ls_comp-edit_mask = 'CUNIT'.
+    ls_comp-output_length = 3.
+    o->parse_field(
+      exporting
+        is_component = ls_comp
+        i_value      = 'KG'
+      importing
+        e_field      = lv_meins ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_meins
+      exp = 'KG' ).
 
     try.
-      clear lx.
       ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
       ls_comp-edit_mask = 'CUNIT'.
       ls_comp-output_length = 3.
@@ -710,11 +764,12 @@ class ltcl_text2tab_parser_test implementation.
           i_value      = '??'
         importing
           e_field      = lv_meins ).
+      cl_abap_unit_assert=>fail( ).
     catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'EF' ).
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'EF' ).
     endtry.
-    cl_abap_unit_assert=>assert_not_initial( lx ).
-
 
   endmethod.
 

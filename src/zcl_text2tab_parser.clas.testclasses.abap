@@ -45,7 +45,7 @@ class ltcl_text2tab_parser_test definition for testing
     types:
       begin of ty_dummy,
         mandt    type mandt,
-        tdate    type datum,
+        tdate    type d,
         tchar    type c length 8,
         traw     type x length 1,
         tstring  type string,
@@ -61,7 +61,7 @@ class ltcl_text2tab_parser_test definition for testing
       end of ty_dummy_with_time,
       tt_dummy type standard table of ty_dummy with default key,
       begin of ty_dummy_corresponding,
-        tdate    type datum,
+        tdate    type d,
         tchar    type c length 8,
         _another type i,
       end of ty_dummy_corresponding,
@@ -83,7 +83,7 @@ class ltcl_text2tab_parser_test definition for testing
     types:
       begin of ty_dummy_with_nonflat,
         mandt    type mandt,
-        tdate    type datum,
+        tdate    type d,
         nonflat  type ty_dummy,
         tchar    type c length 8,
       end of ty_dummy_with_nonflat.
@@ -448,8 +448,8 @@ class ltcl_text2tab_parser_test implementation.
 
     data: begin of wrong_struc ##NEEDED,
             mandt    type mandt,
-            tdate    type datum,
-            tchar    type char08,
+            tdate    type d,
+            tchar    type c length 8,
           end of   wrong_struc.
 
     data:

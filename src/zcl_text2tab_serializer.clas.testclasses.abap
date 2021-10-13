@@ -8,7 +8,7 @@ class ltcl_text2tab_serializer_test definition final
     types:
       begin of ty_dummy,
         mandt    type mandt,
-        tdate    type datum,
+        tdate    type d,
         tchar    type c length 8,
         traw     type x length 1,
         tstring  type string,

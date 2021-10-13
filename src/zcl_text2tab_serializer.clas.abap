@@ -134,7 +134,7 @@ class zcl_text2tab_serializer definition
         conv_failed .
     class-methods serialize_date
       importing
-        !i_date type datum
+        !i_date type d
         !iv_date_format type zcl_text2tab_parser=>ty_date_format
       returning
         value(r_out) type string .

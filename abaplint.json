@@ -25,12 +25,7 @@
     "avoid_use": {
       "exclude": [],
       "define": false,
-      "endselect": true,
-      "execSQL": true,
-      "kernelCall": true,
-      "communication": true,
       "statics": true,
-      "systemCall": true,
       "defaultKey": false,
       "break": true,
       "describeLines": true
@@ -128,7 +123,8 @@
       "alignTryCatch": true,
       "globalClassSkipFirst": false,
       "ignoreGlobalClassDefinition": false,
-      "ignoreGlobalInterface": false
+      "ignoreGlobalInterface": false,
+      "selectionScreenBlockIndentation": false
     },
     "inline_data_old_versions": true,
     "keep_single_parameter_on_one_line": {
@@ -183,10 +179,13 @@
       "exclude": [],
       "statements": 100,
       "errorWhenEmpty": true,
-      "ignoreTestClasses": true
+      "ignoreTestClasses": true,
+      "checkForms": true
     },
     "method_parameter_names": {
-      "exclude": [],
+      "exclude": [
+        ".*\\.testclasses\\.abap"
+      ],
       "patternKind": "required",
       "ignoreNames": [],
       "ignorePatterns": [],
@@ -209,7 +208,7 @@
     },
     "no_public_attributes": {
       "exclude": [
-        "zcl_text2tab_parser.clas.testclasses.abap"
+        ".*\\.testclasses\\.abap"
       ],
       "allowReadOnly": true
     },
@@ -252,7 +251,17 @@
       "withHeaderLine": true,
       "fieldSymbolStructure": true,
       "load": true,
-      "typePools": false
+      "typePools": false,
+      "parameter": true,
+      "ranges": false,
+      "pack": true,
+      "regex": true,
+      "communication": true,
+      "callTransformation": true,
+      "freeMemory": true,
+      "selectWithoutInto": true,
+      "exitFromSQL": true,
+      "sortByFS": true
     },
     "parser_error": true,
     "prefer_inline": true,

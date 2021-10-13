@@ -1,31 +1,3 @@
-**********************************************************************
-* MACRO
-**********************************************************************
-
-define append_dummy.
-  e_dummy_struc-tdate    = &1.
-  e_dummy_struc-tchar    = &2.
-  e_dummy_struc-tstring  = &3.
-  e_dummy_struc-tdecimal = &4.
-  e_dummy_struc-tnumber  = &5.
-  e_dummy_struc-traw     = &6.
-  e_dummy_struc-tinteger = &7.
-  e_dummy_struc-talpha   = &8.
-  e_dummy_struc-tfloat   = &9.
-  append e_dummy_struc to e_dummy_tab.
-end-of-definition.
-
-define test_field.
-  ls_dummy-&1 = &2.
-  read table lt_components with key name = '&1' assigning <comp>.
-  l_act = o->serialize_field( i_value = ls_dummy-&1 is_component = <comp> ).
-  cl_abap_unit_assert=>assert_equals( act = l_act exp = &3 ).
-end-of-definition.
-
-**********************************************************************
-* Test Class definition
-**********************************************************************
-
 class ltcl_text2tab_serializer_test definition final
   for testing
   risk level harmless
@@ -36,7 +8,7 @@ class ltcl_text2tab_serializer_test definition final
     types:
       begin of ty_dummy,
         mandt    type mandt,
-        tdate    type datum,
+        tdate    type d,
         tchar    type c length 8,
         traw     type x length 1,
         tstring  type string,
@@ -62,6 +34,8 @@ class ltcl_text2tab_serializer_test definition final
 
     data o type ref to zcl_text2tab_serializer.  "class under test
 
+    data mt_dummy_tmp type tt_dummy.
+
 * ==== TESTING ===
 
     methods integrated for testing raising zcx_text2tab_error.
@@ -72,8 +46,8 @@ class ltcl_text2tab_serializer_test definition final
     methods given_fields for testing raising zcx_text2tab_error.
     methods with_descr for testing raising zcx_text2tab_error.
 
-    methods serialize_date for testing.
-    methods serialize_field for testing.
+    methods serialize_date for testing raising zcx_text2tab_error.
+    methods serialize_field for testing raising zcx_text2tab_error.
     methods negatives for testing.
     methods create for testing.
 
@@ -81,6 +55,8 @@ class ltcl_text2tab_serializer_test definition final
     methods raise_on_no_data for testing raising zcx_text2tab_error.
 
 * ==== HELPERS ===
+
+    data mt_field_components type zcl_text2tab_utils=>tt_comp_descr.
 
     methods setup.
     methods get_dummy_data
@@ -93,6 +69,16 @@ class ltcl_text2tab_serializer_test definition final
         e_dummy_string        type string
         e_dummy_string_w_descr type string
         e_dummy_header        type string.
+    methods append_dummy
+      importing
+        iv_str type string.
+    methods test_field
+      importing
+        f type string
+        v type any
+        exp type string
+      raising
+        zcx_text2tab_error.
 
 endclass.
 
@@ -339,6 +325,29 @@ class ltcl_text2tab_serializer_test implementation.
 
 **********************************************************************
 
+  method append_dummy.
+
+    data ls_dummy like line of mt_dummy_tmp.
+    data lt_tab type string_table.
+    data lo_struc type ref to cl_abap_structdescr.
+    field-symbols <c> like line of lo_struc->components.
+    field-symbols <v> like line of lt_tab.
+    field-symbols <fld> type any.
+
+    lo_struc ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
+    split iv_str at '|' into table lt_tab.
+
+    loop at lo_struc->components assigning <c>.
+      read table lt_tab index sy-tabix assigning <v>.
+      cl_abap_unit_assert=>assert_subrc( ).
+      assign component <c>-name of structure ls_dummy to <fld>.
+      <fld> = condense( <v> ).
+    endloop.
+
+    append ls_dummy to mt_dummy_tmp.
+
+  endmethod.
+
   method get_dummy_data.
 
     data l_offs    type i.
@@ -352,12 +361,12 @@ class ltcl_text2tab_serializer_test implementation.
     replace all occurrences of '\t' in l_string with c_tab.
     replace all occurrences of '\n' in l_string with c_crlf.
 
-    clear e_dummy_tab.
-
-    "             TDATE      TCHAR      TSTRING   TDECIMAL    TNUM TRAW  TINT  TALPHA      TFLOAT
-    append_dummy '20150101' 'Trololo1' 'String1' '1234567.81' 2015 '8A'  1111 '0000100000' '1.12345'.
-    append_dummy '20160102' 'Trololo2' 'String2' '1234567.82' 2016 '8B'  2222 '0000200000' '1.10'.
-    append_dummy '20160103' 'Trololo3' 'String3' '1234567.83' 2015 '8C'  3333 '0000300000' '1000.00'.
+    clear mt_dummy_tmp.
+    "              |TDATE    |TCHAR    |TRAW |TSTRING |TALPHA     |TDECIMAL   |TNUM |TINT |TFLOAT
+    append_dummy( '|20150101 |Trololo1 |8A   |String1 |0000100000 |1234567.81 |2015 |1111 |1.12345' ).
+    append_dummy( '|20160102 |Trololo2 |8B   |String2 |0000200000 |1234567.82 |2016 |2222 |1.10' ).
+    append_dummy( '|20160103 |Trololo3 |8C   |String3 |0000300000 |1234567.83 |2015 |3333 |1000.00' ).
+    e_dummy_tab = mt_dummy_tmp.
 
     read table e_dummy_tab into e_dummy_struc index 1.
     e_dummy_string = l_string.
@@ -392,6 +401,7 @@ class ltcl_text2tab_serializer_test implementation.
   endmethod.
 
   method serialize_date.
+
     data l_act type string.
 
     l_act = zcl_text2tab_serializer=>serialize_date( i_date = '20180901' iv_date_format = 'DMY' ).
@@ -405,64 +415,86 @@ class ltcl_text2tab_serializer_test implementation.
 
   endmethod.
 
+  method test_field.
+
+    data ls_dummy type ty_dummy.
+    data l_act     type string.
+    field-symbols <fld> type any.
+    field-symbols <comp> like line of mt_field_components.
+
+    assign component f of structure ls_dummy to <fld>.
+    cl_abap_unit_assert=>assert_subrc( ).
+
+    <fld> = v.
+    read table mt_field_components with key name = f assigning <comp>.
+    cl_abap_unit_assert=>assert_subrc( ).
+
+    l_act = o->serialize_field(
+      i_value      = <fld>
+      is_component = <comp> ).
+    cl_abap_unit_assert=>assert_equals(
+      act = l_act
+      exp = exp ).
+
+  endmethod.
+
   method serialize_field.
 
     data lx        type ref to zcx_text2tab_error.
     data l_act     type string.
     data ls_dummy  type ty_dummy.
     data ld_type   type ref to cl_abap_structdescr.
-    data lt_components type zcl_text2tab_utils=>tt_comp_descr.
-    data lv_meins type meins.
-    data ls_comp like line of lt_components.
-
-    field-symbols: <comp> like line of lt_components.
+    data lv_meins  type meins.
+    data ls_comp   like line of mt_field_components.
 
     ld_type ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
+    mt_field_components = zcl_text2tab_utils=>describe_struct( ld_type ).
 
-    try.
-      lt_components = zcl_text2tab_utils=>describe_struct( ld_type ).
+    test_field( f = 'TFLOAT'   v = '1.123456'   exp = '1.12346' ).
+    test_field( f = 'TFLOAT'   v = '1.00'       exp = '1' ).
+    test_field( f = 'TFLOAT'   v = '1.10'       exp = '1.1' ).
+    test_field( f = 'TFLOAT'   v = '1231.10'    exp = '1231.1' ).
+    test_field( f = 'TFLOAT'   v = '-1231.10'   exp = '-1231.1' ).
 
-      test_field TFLOAT '1.123456' '1.12346'.
-      test_field TFLOAT '1.00'     '1'.
-      test_field TFLOAT '1.10'     '1.1'.
-      test_field TFLOAT '1231.10'  '1231.1'.
-      test_field TFLOAT '-1231.10' '-1231.1'.
+    o->mv_decimal_sep = ','.
+    test_field( f = 'TFLOAT'   v = '1.10'       exp = '1,1' ).
+    o->mv_max_frac_digits = 3.
+    test_field( f = 'TFLOAT'   v = '1.123456'   exp = '1,123' ).
 
-      o->mv_decimal_sep = ','.
-      test_field TFLOAT '1.10'     '1,1'.
-      o->mv_max_frac_digits = 3.
-      test_field TFLOAT '1.123456' '1,123'.
+    test_field( f = 'TDECIMAL' v = '1.12'       exp = '1,12' ).
+    test_field( f = 'TDECIMAL' v = '-1.12'      exp = '-1,12' ).
+    test_field( f = 'TDECIMAL' v = '1111.12'    exp = '1111,12' ).
+    test_field( f = 'TALPHA'   v = '0000100000' exp = '100000' ).
+    test_field( f = 'TINTEGER' v = 3333         exp = '3333' ).
+    test_field( f = 'TDATE'    v = '20180901'   exp = '01.09.2018' ).
+    test_field( f = 'TDATE'    v = '00000000'   exp = '' ).
+    test_field( f = 'TDATE'    v = ''           exp = '' ).
 
-      test_field TDECIMAL  '1.12'       '1,12'.
-      test_field TDECIMAL  '-1.12'      '-1,12'.
-      test_field TDECIMAL  '1111.12'    '1111,12'.
-      test_field TALPHA    '0000100000' '100000'.
-      test_field TINTEGER  3333         '3333'.
-
-      test_field TDATE  '20180901' '01.09.2018'.
-      test_field TDATE  '00000000' ''.
-      test_field TDATE  '' ''.
-
-      lv_meins          = 'KG'.
-      ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
-      l_act = o->serialize_field( i_value = lv_meins is_component = ls_comp ).
-      cl_abap_unit_assert=>assert_equals( act = l_act exp = 'KG' ).
-
-    catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>fail( lx->get_text( ) ).
-    endtry.
+    " Unit of measurement (CUNIT CONV)
+    lv_meins          = 'KG'.
+    ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
+    ls_comp-edit_mask = 'CUNIT'.
+    l_act = o->serialize_field(
+      i_value      = lv_meins
+      is_component = ls_comp ).
+    cl_abap_unit_assert=>assert_equals(
+      act = l_act
+      exp = 'KG' ).
 
     " Negative tests
     try.
-      clear lx.
       lv_meins = '??'.
       ls_comp-type_kind = cl_abap_typedescr=>typekind_char.
       ls_comp-edit_mask = 'CUNIT'.
-      l_act = o->serialize_field( i_value = lv_meins is_component = ls_comp ).
+      l_act = o->serialize_field(
+        i_value      = lv_meins
+        is_component = ls_comp ).
+      cl_abap_unit_assert=>fail( ).
     catch zcx_text2tab_error into lx.
-      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'CF' ).
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'CF' ).
     endtry.
-    cl_abap_unit_assert=>assert_not_initial( lx ).
 
   endmethod.
 

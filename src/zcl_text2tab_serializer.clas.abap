@@ -124,14 +124,14 @@ class zcl_text2tab_serializer definition
         value(r_out) type string
       raising
         zcx_text2tab_error .
-    class-methods apply_conv_exit
+    methods apply_conv_exit
       importing
         !i_in type any
         !i_convexit type abap_editmask
       returning
         value(r_out) type string
-      exceptions
-        conv_failed .
+      raising
+        zcx_text2tab_error .
     class-methods serialize_date
       importing
         !i_date type d
@@ -202,12 +202,15 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         others = 1.
 
     if sy-subrc <> 0.
-      raise conv_failed.
+      zcx_text2tab_error=>raise(
+        msg      = |convexit failed for "{ i_in }"|
+        location = |{ mv_current_field }@{ mv_line_index }|
+        code     = 'CF' ). "#EC NOTEXT
     endif.
 
     r_out = l_tmp.
 
-  endmethod.  "apply_conv_exit
+  endmethod.
 
 
   method as_html.
@@ -505,19 +508,9 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         if is_component-edit_mask is initial.
           r_out = i_value.
         else.
-          apply_conv_exit(
-            exporting
-              i_in       = i_value
-              i_convexit = is_component-edit_mask
-            receiving
-              r_out = r_out
-            exceptions others = 1 ).
-          if sy-subrc is not initial.
-            zcx_text2tab_error=>raise(
-              msg      = |convexit failed for "{ i_value }"|
-              location = |{ mv_current_field }@{ mv_line_index }|
-              code     = 'CF' ). "#EC NOTEXT
-          endif.
+          r_out = apply_conv_exit(
+            i_in       = i_value
+            i_convexit = is_component-edit_mask ).
         endif.
 
       when cl_abap_typedescr=>typekind_date. " Date

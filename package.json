@@ -1,6 +1,7 @@
 {
   "name": "text2tab",
   "version": "1.0.0",
+  "private": true,
   "description": "abap tab-delimited tax parser/serializer",
   "main": "js-transpiled/index.mjs",
   "scripts": {

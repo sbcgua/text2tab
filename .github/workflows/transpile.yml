@@ -16,5 +16,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run abap transpiler
         run: |
-          npm -g install @abaplint/transpiler
+          npm -g install @abaplint/transpiler-cli
           abap_transpile abap_transpile.json

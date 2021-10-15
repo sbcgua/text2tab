@@ -37,10 +37,9 @@ class ZCL_TEXT2TAB_UTILS definition
     types:
       th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
-    type-pools abap .
     class-methods function_exists
       importing
-        !i_function_name type rs38l_fnam
+        !i_function_name type tfdir-funcname
       returning
         value(r_yes) type abap_bool .
     class-methods validate_date_format_spec
@@ -106,11 +105,10 @@ class ZCL_TEXT2TAB_UTILS definition
         value(rr_dref) type ref to data
       raising
         zcx_text2tab_error .
-
   protected section.
   private section.
     types:
-      tts_checked_names type sorted table of rs38l_fnam with unique key table_line.
+      tts_checked_names type sorted table of tfdir-funcname with unique key table_line.
     class-data gt_checked_fm_names type tts_checked_names.
 
     class-methods version_to_number
@@ -118,7 +116,6 @@ class ZCL_TEXT2TAB_UTILS definition
         i_str_ver type string
       returning
         value(r_ver) type decfloat16.
-
 ENDCLASS.
 
 

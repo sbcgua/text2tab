@@ -186,7 +186,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method apply_conv_exit.
 
-    data l_fm_name type rs38l_fnam value 'CONVERSION_EXIT_XXXXX_INPUT'.
+    data l_fm_name type tfdir-funcname value 'CONVERSION_EXIT_XXXXX_INPUT'.
     data l_message type string.
 
     if lines( mt_ignore_exits ) > 0.

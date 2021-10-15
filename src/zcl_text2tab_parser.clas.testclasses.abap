@@ -212,7 +212,7 @@ class ltcl_text2tab_parser_test implementation.
     data:
           lo type ref to zcl_text2tab_parser,
           lx type ref to zcx_text2tab_error,
-          lv_date_format type char4,
+          lv_date_format type zcl_text2tab_parser=>ty_date_format,
           ls_dummy       type ty_dummy,
           lt_dummy       type tt_dummy,
           lv_dummy       type i.

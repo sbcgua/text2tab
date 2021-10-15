@@ -161,7 +161,7 @@ class ltcl_text2tab_utils_test implementation.
   method validate_date_format_spec.
     data:
           lx type ref to zcx_text2tab_error,
-          lv_date_format type char4.
+          lv_date_format type zcl_text2tab_parser=>ty_date_format.
 
     do 3 times.
       case sy-index.

@@ -3,3 +3,7 @@
 .DS_Store
 .vscode
 .ssh
+
+# Artifacts
+js-transpiled
+node_modules

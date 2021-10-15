@@ -434,7 +434,7 @@ class ltcl_text2tab_parser_test implementation.
 
     data:
           l_exp_code     type char2,
-          dummy_val      type char40 ##NEEDED,
+          dummy_val      type c length 40 ##NEEDED,
           dummy_tab_act  type tt_dummy ##NEEDED,
           l_string       type string,
           l_string_bak   type string,

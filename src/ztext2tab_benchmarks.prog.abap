@@ -39,7 +39,7 @@ class lcl_benchmark implementation.
       call method mo_object->(mv_method).
     enddo.
     get time stamp field lv_end_time.
-    mv_diff  = lv_end_time - lv_sta_time.
+    mv_diff  = lv_end_time - lv_sta_time ##TIME_ARITH.
 
   endmethod.
 

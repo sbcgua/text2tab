@@ -18,13 +18,16 @@ class ltcl_text2tab_utils_test definition
     methods describe_struct_with_descr for testing raising zcx_text2tab_error.
     methods describe_struct_ignoring for testing raising zcx_text2tab_error.
     methods describe_struct_deep for testing raising zcx_text2tab_error.
-    methods check_version_fits for testing.
     methods break_to_lines for testing.
     methods build_rename_map for testing.
     methods create_standard_table_of for testing raising zcx_text2tab_error.
 
     methods parse_deep_address for testing raising zcx_text2tab_error.
     methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
+
+    methods check_version_fits for testing.
+    methods check_version_fits_w_pre for testing.
+
 endclass.
 
 **********************************************************************
@@ -403,6 +406,30 @@ class ltcl_text2tab_utils_test implementation.
       zcl_text2tab_utils=>check_version_fits(
         i_current_version = 'v2.1.10'
         i_required_version = 'v2.1.7' ) ).
+
+  endmethod.
+
+  method check_version_fits_w_pre.
+
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version  = 'v2.1.10-beta'
+        i_required_version = 'v2.1.7' ) ).
+
+    cl_abap_unit_assert=>assert_false(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version  = 'v2.1.10-beta'
+        i_required_version = 'v2.1.10' ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version  = 'v2.1.10-beta'
+        i_required_version = 'v2.1.10-alpha' ) ).
+
+    cl_abap_unit_assert=>assert_false(
+      zcl_text2tab_utils=>check_version_fits(
+        i_current_version  = 'v2.1.10-beta'
+        i_required_version = 'v2.1.10-gamma' ) ).
 
   endmethod.
 

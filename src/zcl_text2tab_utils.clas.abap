@@ -59,8 +59,8 @@ class ZCL_TEXT2TAB_UTILS definition
         zcx_text2tab_error .
     class-methods check_version_fits
       importing
-        !i_required_version type string
-        !i_current_version type string
+        !i_required_version type csequence
+        !i_current_version type csequence
       returning
         value(r_fits) type abap_bool .
     class-methods parse_deep_address
@@ -109,13 +109,23 @@ class ZCL_TEXT2TAB_UTILS definition
   private section.
     types:
       tts_checked_names type sorted table of tfdir-funcname with unique key table_line.
+
+    types:
+      begin of ty_version,
+        major type n length 4,
+        minor type n length 4,
+        patch type n length 4,
+        ver_num type decfloat16,
+        pre_release type string,
+      end of ty_version.
+
     class-data gt_checked_fm_names type tts_checked_names.
 
     class-methods version_to_number
       importing
-        i_str_ver type string
+        i_str_ver type csequence
       returning
-        value(r_ver) type decfloat16.
+        value(rs_ver) type ty_version.
 ENDCLASS.
 
 
@@ -205,14 +215,22 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method check_version_fits.
 
-    data lv_cur_ver type decfloat16.
-    data lv_req_ver type decfloat16.
+    data ls_cur_ver type ty_version.
+    data ls_req_ver type ty_version.
 
-    lv_cur_ver = version_to_number( i_current_version ).
-    lv_req_ver = version_to_number( i_required_version ).
+    ls_cur_ver = version_to_number( i_current_version ).
+    ls_req_ver = version_to_number( i_required_version ).
 
-    if lv_req_ver <= lv_cur_ver.
+    if ls_req_ver-ver_num < ls_cur_ver-ver_num.
       r_fits = abap_true.
+    elseif ls_req_ver-ver_num = ls_cur_ver-ver_num.
+      if ls_req_ver-pre_release is initial.
+        r_fits = boolc( ls_cur_ver-pre_release is initial ). " 1.0-beta < 1.0
+      else.
+        r_fits = boolc( ls_req_ver-pre_release <= ls_cur_ver-pre_release ). " 1.0-alpha < 1.0-beta
+      endif.
+    else.
+      r_fits = abap_false.
     endif.
 
   endmethod.
@@ -436,20 +454,15 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method version_to_number.
 
-    types:
-      begin of ty_version,
-        major type n length 4,
-        minor type n length 4,
-        patch type n length 4,
-      end of ty_version.
-
     data lv_buf type string.
-    data ls_ver type ty_version.
 
     lv_buf = i_str_ver.
+
     shift lv_buf left deleting leading 'v'.
-    split lv_buf at '.' into ls_ver-major ls_ver-minor ls_ver-patch.
-    r_ver = ls_ver-major * 100000000 + ls_ver-minor * 10000 + ls_ver-patch.
+    split lv_buf at '-' into lv_buf rs_ver-pre_release.
+    split lv_buf at '.' into rs_ver-major rs_ver-minor rs_ver-patch.
+
+    rs_ver-ver_num = rs_ver-major * 100000000 + rs_ver-minor * 10000 + rs_ver-patch.
 
   endmethod.
 ENDCLASS.

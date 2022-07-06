@@ -582,6 +582,22 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           importing
             e_field    = e_field ).
 
+      when cl_abap_typedescr=>typekind_decfloat16.
+        parse_float(
+          exporting
+            i_value    = l_unquoted
+            i_decimals = 16
+          importing
+            e_field    = e_field ).
+
+      when cl_abap_typedescr=>typekind_decfloat34.
+        parse_float(
+          exporting
+            i_value    = l_unquoted
+            i_decimals = 34
+          importing
+            e_field    = e_field ).
+
       when cl_abap_typedescr=>typekind_float. " Float
         parse_float(
           exporting

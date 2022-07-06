@@ -92,6 +92,7 @@ class ltcl_text2tab_parser_test definition for testing
     methods parse                 for testing raising zcx_text2tab_error.
     methods parse_time for testing raising zcx_text2tab_error.
     methods parse_float for testing raising zcx_text2tab_error.
+    methods parse_df16 for testing raising zcx_text2tab_error.
     methods parse_ignore_convexit for testing raising zcx_text2tab_error.
 
     methods parse_typeless for testing.
@@ -796,6 +797,48 @@ class ltcl_text2tab_parser_test implementation.
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
       exp = '1' ).
+
+  endmethod.
+
+  method parse_df16.
+
+    types:
+      begin of lty_df16,
+        val type decfloat16,
+      end of lty_df16.
+
+    data ls_exp type lty_df16.
+    data ls_act type lty_df16.
+
+    ls_exp-val = '123.456789'.
+
+    clear ls_act.
+    o = zcl_text2tab_parser=>create(
+      i_pattern       = ls_exp
+      i_amount_format = ' .' ).
+    o->parse(
+      exporting
+        i_data      = |val\n123.456789|
+      importing
+        e_container = ls_act ).
+
+    cl_abap_unit_assert=>assert_equals(
+      exp = ls_exp
+      act = ls_act ).
+
+    clear ls_act.
+    o = zcl_text2tab_parser=>create(
+      i_pattern       = ls_exp
+      i_amount_format = ' ,' ).
+    o->parse(
+      exporting
+        i_data      = |val\n123,456789|
+      importing
+        e_container = ls_act ).
+
+    cl_abap_unit_assert=>assert_equals(
+      exp = ls_exp
+      act = ls_act ).
 
   endmethod.
 

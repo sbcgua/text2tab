@@ -1,8 +1,12 @@
 {
   "input_folder": "src",
   "input_filter": ["zcl*","zif*","zcx*"],
-  "output_folder": "js-transpiled",
-  "lib": "https://github.com/open-abap/open-abap",
+  "output_folder": "transpiled",
+  "libs": [
+    {
+      "url": "https://github.com/open-abap/open-abap-core"
+    }
+  ],
   "write_unit_tests": true,
   "write_source_map": true,
   "options": {
@@ -10,7 +14,8 @@
     "addFilenames": true,
     "addCommonJS": true,
     "unknownTypes": "runtimeError",
-    "skip": []
+    "keywords": ["return", "in", "class"],
+    "skip": [
+    ]
   }
 }
-

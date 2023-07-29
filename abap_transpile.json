@@ -1,6 +1,11 @@
 {
-  "input_folder": "src",
-  "input_filter": ["zcl*","zif*","zcx*"],
+  "input_folder": "{src,deps}",
+  "input_filter": [
+    "deps/",
+    "src/zcl*",
+    "src/zif*",
+    "src/zcx*"
+  ],
   "output_folder": "transpiled",
   "libs": [
     {

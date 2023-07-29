@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.3.5, 2023-07-??
+------------------
+* code and type cleanups
+
 v2.3.4, 2021-10-10
 ------------------
 + new feature: serialize as html. The key usage is to copy the result into excel, it allows marking certain fields as text, to avoid autoconversion. E.g. "1.1" will not convert to date

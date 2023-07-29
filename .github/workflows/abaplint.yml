@@ -12,9 +12,11 @@ jobs:
     name: abaplint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v2
-      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - uses: actions/checkout@v3
       - name: Run abaplint
         run: |
           npm -g install @abaplint/cli
-          abaplint
+          abaplint --format codeframe

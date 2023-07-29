@@ -14,7 +14,7 @@ class ltcl_text2tab_parser_test definition for testing
         tdecimal type p length 13 decimals 2, " dmbtr
         tnumber  type n length 4,
         tinteger type i,
-        tfloat   type float,
+        tfloat   type f,
       end of ty_dummy,
       begin of ty_dummy_with_time,
         tchar(8),

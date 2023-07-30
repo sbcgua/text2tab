@@ -16,12 +16,17 @@ jobs:
         with:
           node-version: '20'
       - uses: actions/checkout@v3
-      - name: Run unit tests
+      - name: Prepare env
         run: |
+          rm -Rf transpiled
+          rm package*.json
           npm -g install @abaplint/transpiler-cli
           npm install @abaplint/runtime
-          rm -rf transpiled
+      - name: Build unit tests
+        run: |
           echo "Building ..."
           abap_transpile abap_transpile.json
+      - name: Run unit tests
+        run: |
           echo "Running unit tests ..."
           node transpiled/index.mjs

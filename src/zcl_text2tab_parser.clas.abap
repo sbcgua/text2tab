@@ -951,18 +951,18 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method raise_error.
 
-    data: sys_call    type sys_calls,
-          sys_stack   type sys_callst,
-          l_location  type string,
-          l_struc     type string.
+    data l_location   type string.
+    data l_struc      type string.
+    data lt_callstack type abap_callstack.
+    data ls_callpoint like line of lt_callstack.
 
-    call function 'SYSTEM_CALLSTACK' " Get stack information
+    call function 'SYSTEM_CALLSTACK'
       exporting
         max_level    = 2
       importing
-        et_callstack = sys_stack.
+        callstack = lt_callstack.
 
-    read table sys_stack into sys_call index 2.
+    read table lt_callstack into ls_callpoint index 2.
 
     if mo_struc_descr is bound.
       l_struc = mo_struc_descr->get_relative_name( ).
@@ -979,7 +979,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     raise exception type zcx_text2tab_error
       exporting
-        methname  = |{ sys_call-eventname }|
+        methname  = |{ ls_callpoint-blockname }|
         msg       = i_msg
         code      = i_code
         field     = mv_current_field

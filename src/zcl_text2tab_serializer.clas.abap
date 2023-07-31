@@ -32,6 +32,7 @@ class zcl_text2tab_serializer definition
         !i_data type any optional
         !i_header_only type abap_bool default abap_false " DEPRECATIED, Use serialize_header
         !i_fields_only type tt_fields_list optional
+        !i_keep_order type abap_bool default abap_false
         preferred parameter i_data
       returning
         value(r_string) type string
@@ -43,6 +44,7 @@ class zcl_text2tab_serializer definition
         !i_header_type type ty_header_type default c_header-technical_names
         !i_lang type sy-langu default sy-langu
         !i_fields_only type tt_fields_list optional
+        !i_keep_order type abap_bool default abap_false
         preferred parameter i_data
       returning
         value(r_string) type string
@@ -60,6 +62,7 @@ class zcl_text2tab_serializer definition
     methods bind_fields_only
       importing
         !i_field_list type tt_fields_list
+        !i_keep_order type abap_bool default abap_false
       returning
         value(ro_instance) type ref to zcl_text2tab_serializer
       raising
@@ -92,7 +95,8 @@ class zcl_text2tab_serializer definition
       begin of ty_context,
         struc_type type ref to cl_abap_structdescr,
         data_kind like cl_abap_typedescr=>kind_struct,
-        fields_only type ts_fields_list,
+        fields_only type tt_fields_list,
+        keep_order type abap_bool,
         components type zcl_text2tab_utils=>tt_comp_descr,
         data_ref type ref to data,
         as_html type abap_bool,
@@ -110,6 +114,7 @@ class zcl_text2tab_serializer definition
 
     data mv_add_header_descr type sy-langu.
     data mt_fields_only type tt_fields_list.
+    data mv_keep_order type abap_bool.
 
     data ms_bind_context type ty_context.
     data mv_as_html type abap_bool.
@@ -158,6 +163,15 @@ class zcl_text2tab_serializer definition
         !ct_lines type string_table
       raising
         zcx_text2tab_error .
+    methods render_field
+      importing
+        !is_context type ty_context
+        !i_value type any
+        !i_comp like line of is_context-components
+      returning
+        value(rv_value) type string
+      raising
+        zcx_text2tab_error .
     class-methods detect_type
       importing
         !i_data type any
@@ -172,6 +186,7 @@ class zcl_text2tab_serializer definition
         !i_fields_only type tt_fields_list
         !i_header_descr_lang type sy-langu
         !i_build_data_ref type abap_bool
+        !i_keep_order type abap_bool default abap_false
       returning
         value(rs_context) type ty_context
       raising
@@ -235,6 +250,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     ms_bind_context = build_context(
       i_data              = i_data
       i_fields_only       = mt_fields_only
+      i_keep_order        = mv_keep_order
       i_build_data_ref    = abap_true
       i_header_descr_lang = mv_add_header_descr ).
     ro_instance = me.
@@ -245,8 +261,10 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
   method bind_fields_only.
 
     mt_fields_only = i_field_list.
+    mv_keep_order = i_keep_order.
     if ms_bind_context is not initial.
       ms_bind_context-fields_only = i_field_list.
+      ms_bind_context-keep_order = i_keep_order.
     endif.
     ro_instance = me.
 
@@ -263,7 +281,8 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
         e_data_kind  = rs_context-data_kind ).
     validate_components( rs_context-struc_type ).
 
-    rs_context-fields_only = i_fields_only. " SORTED
+    rs_context-fields_only = i_fields_only.
+    rs_context-keep_order = i_keep_order.
     rs_context-components = zcl_text2tab_utils=>describe_struct(
       i_struc              = rs_context-struc_type
       i_with_descr_in_lang = i_header_descr_lang ).
@@ -343,6 +362,30 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
   endmethod.
 
 
+  method render_field.
+
+    data lv_td_open type string.
+
+    mv_current_field = i_comp-name.
+    if is_context-as_html = abap_true.
+      read table is_context-html_text_fields transporting no fields with key table_line = i_comp-name.
+      if sy-subrc = 0.
+        lv_td_open = '<td style="mso-number-format:''\@''">'.
+      else.
+        lv_td_open = '<td>'.
+      endif.
+      rv_value = lv_td_open && serialize_field(
+        is_component = i_comp
+        i_value      = i_value ) && '</td>'.
+    else.
+      rv_value = serialize_field(
+        is_component = i_comp
+        i_value      = i_value ).
+    endif.
+
+  endmethod.
+
+
   method serialize.
 
     data ls_context type ty_context.
@@ -367,6 +410,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       ls_context = build_context(
         i_data              = i_data
         i_fields_only       = i_fields_only
+        i_keep_order        = i_keep_order
         i_header_descr_lang = mv_add_header_descr
         i_build_data_ref    = abap_true ).
     endif.
@@ -413,11 +457,14 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data lt_fields type string_table.
     data lv_buf type string.
     data lv_limit_fields type abap_bool.
-    data lv_td_open type string.
 
     field-symbols <record> type any.
     field-symbols <field>  type any.
     field-symbols <c> like line of is_context-components.
+    field-symbols <f> like line of is_context-fields_only.
+
+    data lt_fields_only_sorted type ts_fields_list.
+    data lt_components_sorted like sorted table of <c> with unique key name.
 
     lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
 
@@ -425,31 +472,36 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     loop at i_data assigning <record>.
       mv_line_index = sy-tabix.
       clear lt_fields.
-      loop at is_context-components assigning <c>.
-        assign component sy-tabix of structure <record> to <field>.
-        assert sy-subrc = 0.
-        if lv_limit_fields = abap_true.
-          read table is_context-fields_only transporting no fields with key table_line = <c>-name.
-          check sy-subrc = 0. " continue if not found
-        endif.
-        mv_current_field = <c>-name.
-        if is_context-as_html = abap_true.
-          read table is_context-html_text_fields transporting no fields with key table_line = <c>-name.
-          if sy-subrc = 0.
-            lv_td_open = '<td style="mso-number-format:''\@''">'.
-          else.
-            lv_td_open = '<td>'.
+
+      if lv_limit_fields = abap_true and is_context-keep_order = abap_true.
+        lt_components_sorted = is_context-components.
+        loop at is_context-fields_only assigning <f>.
+          read table lt_components_sorted assigning <c> with key name = <f>.
+          check sy-subrc = 0.
+          assign component <f> of structure <record> to <field>.
+          assert sy-subrc = 0.
+          lv_buf = render_field(
+            is_context = is_context
+            i_value = <field>
+            i_comp = <c> ).
+          append lv_buf to lt_fields.
+        endloop.
+      else.
+        lt_fields_only_sorted = is_context-fields_only.
+        loop at is_context-components assigning <c>.
+          assign component sy-tabix of structure <record> to <field>.
+          assert sy-subrc = 0.
+          if lv_limit_fields = abap_true.
+            read table lt_fields_only_sorted transporting no fields with key table_line = <c>-name.
+            check sy-subrc = 0. " continue if not found
           endif.
-          lv_buf = lv_td_open && serialize_field(
-            is_component = <c>
-            i_value      = <field> ) && '</td>'.
-        else.
-          lv_buf = serialize_field(
-            is_component = <c>
-            i_value      = <field> ).
-        endif.
-        append lv_buf to lt_fields.
-      endloop.
+          lv_buf = render_field(
+            is_context = is_context
+            i_value = <field>
+            i_comp = <c> ).
+          append lv_buf to lt_fields.
+        endloop.
+      endif.
 
       if is_context-as_html = abap_true.
         lv_buf = '<tr>' && concat_lines_of( table = lt_fields ) && '</tr>'.
@@ -580,6 +632,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
       ls_context = build_context(
         i_data              = i_data
         i_fields_only       = i_fields_only
+        i_keep_order        = i_keep_order
         i_header_descr_lang = i_lang
         i_build_data_ref    = abap_false ).
     endif.
@@ -635,19 +688,36 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     data lv_buf type string.
     data lv_tr_open type string.
     field-symbols <c> like line of is_context-components.
+    field-symbols <f> like line of is_context-fields_only.
+
+    data lt_fields_only_sorted type ts_fields_list.
+    data lt_components_sorted like sorted table of <c> with unique key name.
 
     lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
 
-    loop at is_context-components assigning <c>.
-      if lv_limit_fields = abap_true.
-        read table is_context-fields_only transporting no fields with key table_line = <c>-name.
-        check sy-subrc = 0. " continue if not found
-      endif.
-      append <c>-name to lt_fields.
-      if iv_add_header_descr = abap_true.
-        append <c>-description to lt_fields_descr.
-      endif.
-    endloop.
+    if lv_limit_fields = abap_true and is_context-keep_order = abap_true.
+      lt_components_sorted = is_context-components.
+      loop at is_context-fields_only assigning <f>.
+        read table lt_components_sorted assigning <c> with key name = <f>.
+        check sy-subrc = 0.
+        append <c>-name to lt_fields.
+        if iv_add_header_descr = abap_true.
+          append <c>-description to lt_fields_descr.
+        endif.
+      endloop.
+    else.
+      lt_fields_only_sorted = is_context-fields_only.
+      loop at is_context-components assigning <c>.
+        if lv_limit_fields = abap_true.
+          read table lt_fields_only_sorted transporting no fields with key table_line = <c>-name.
+          check sy-subrc = 0. " continue if not found
+        endif.
+        append <c>-name to lt_fields.
+        if iv_add_header_descr = abap_true.
+          append <c>-description to lt_fields_descr.
+        endif.
+      endloop.
+    endif.
 
     if is_context-as_html = abap_true.
       if is_context-html_bold_header = abap_true.

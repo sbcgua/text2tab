@@ -43,7 +43,9 @@ class ltcl_text2tab_serializer_test definition final
     methods as_html_w_styles for testing raising zcx_text2tab_error.
     methods header_only for testing raising zcx_text2tab_error.
     methods serialize_header for testing raising zcx_text2tab_error.
+    methods serialize_header_keep_order for testing raising zcx_text2tab_error.
     methods given_fields for testing raising zcx_text2tab_error.
+    methods given_fields_keep_order for testing raising zcx_text2tab_error.
     methods with_descr for testing raising zcx_text2tab_error.
 
     methods serialize_date for testing raising zcx_text2tab_error.
@@ -251,6 +253,60 @@ class ltcl_text2tab_serializer_test implementation.
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
       exp = |DATUM\tUZEIT| ).
+
+  endmethod.
+
+  method serialize_header_keep_order.
+
+    data lv_act type string.
+    data lt_tab type table of ty_dummy_with_ddic.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    append 'UZEIT' to lt_fields_only.
+    append 'UNAME' to lt_fields_only.
+
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
+      i_keep_order  = abap_true
+      i_data        = lt_tab
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = |Time\tUser Name| ).
+
+    lv_act = o->serialize_header(
+      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_keep_order  = abap_true
+      i_data        = lt_tab
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = |UZEIT\tUNAME| ).
+
+  endmethod.
+
+  method given_fields_keep_order.
+
+    data lv_act type string.
+    data lv_exp type string.
+    data ls_tab type ty_dummy_with_ddic.
+    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+
+    append 'UZEIT' to lt_fields_only.
+    append 'UNAME' to lt_fields_only.
+
+    ls_tab-uname = 'U1'.
+    ls_tab-uzeit = '120000'.
+    ls_tab-datum = '20230731'.
+
+    o = zcl_text2tab_serializer=>create( i_use_lf = abap_true ).
+    lv_act = o->serialize(
+      i_data        = ls_tab
+      i_keep_order  = abap_true
+      i_fields_only = lt_fields_only ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lv_act
+      exp = |UZEIT\tUNAME\n120000\tU1| ).
 
   endmethod.
 

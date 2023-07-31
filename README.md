@@ -12,7 +12,7 @@ Text2tab is an utility to parse TAB-delimited text into an internal table of an 
 
 - supports "non-strict" mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
 - supports "header" specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order.
-- supports loading into a structure (the first data line of the text is parsed). 
+- supports loading into a structure (the first data line of the text is parsed).
 - supports *type-less* parsing, when the data is not checked against existing structure but dynamically create as a table with string fields.
 - supports specifying date and amount formats
 - supports on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
@@ -24,6 +24,7 @@ And vice versa - serialize flat table or structure to text.
 - support specifying date and amount formats, and line-break symbol
 
 The package also contains 2 **examples**:
+
 - `ZTEXT2TAB_EXAMPLE` - simple parsing code
 - `ZTEXT2TAB_BACKUP_EXAMPLE` - example of DB table backup with serializer
 
@@ -36,13 +37,16 @@ The tool is open source and distributed under MIT license. It was initially crea
 ## Example of usage
 
 Source text file (CRLF as a line delimiter, TAB as a field delimiter)
-```
+
+```text
 NAME     BIRTHDATE
 ALEX     01.01.1990
 JOHN     02.02.1995
 LARA     03.03.2000
 ```
+
 Simple parsing code
+
 ```abap
 types:
   begin of my_table_type,
@@ -82,6 +86,7 @@ zcl_text2tab_parser=>create(
     importing 
       e_container = lt_container ).  " table or structure (first data line from text)
 ```
+
 Of course, you can keep the object reference returned by `create()` and use it to parse more data of the same pattern.
 
 ## Field name remapping
@@ -135,14 +140,14 @@ Sometimes your structure contain technical non-flat fields which are not suppose
 
 E.g. target structure is `'DATE,CHAR,COLORCOL'`, where `colorcol` is a structure. The parser will accept and parse data like
 
-```
+```text
 DATE        CHAR
 01.01.2019  ABC
 ```
 
 But will fail on
 
-```
+```text
 DATE        CHAR       COLORCOL
 01.01.2019  ABC        123
 ```
@@ -153,7 +158,7 @@ If you have a target data with deep fields - tables or structures - it is possib
 
 Let's assume you have 2 linked tables - header and lines
 
-```
+```text
 DOCUMENT
 ========
 ID   DATE   ...
@@ -169,6 +174,7 @@ DOCID   LINEID   AMOUNT   ...
 ```
 
 Let's assume you have a target data of the following structure
+
 ```abap
 types:
   begin of ty_line,
@@ -187,6 +193,7 @@ types:
 ```
 
 So you can run the parser as follows to parse all at once
+
 ```abap
 zcl_text2tab_parser=>create( 
   i_pattern = lt_container 
@@ -200,7 +207,7 @@ zcl_text2tab_parser=>create(
 
 So what is `lo_implementation_of_zif_text2tab_deep_provider` in this example? The parser does not know how to get additional data other than `my_raw_text_data`. The implementation of `zif_text2tab_deep_provider` should. Maybe you want to get it from a file, which is located somewhere near, or download from web, or just select from a DB table - this is up to your design and need. For example, the mentioned [mockup_loader](https://github.com/sbcgua/mockup_loader) uses the text value in place of "deep" field in order to find the data and parse it. The source file should contain a reference in place of "deep" field to help finding the source data. E.g.
 
-```
+```text
 DOCUMENT
 ========
 ID   DATE   ...   LINES
@@ -210,7 +217,7 @@ ID   DATE   ...   LINES
 
 where mockup_loader interprets `lines.txt[docid=@id]` as *"go find lines.txt file, parse it, extract the lines, filter those where `docid` = `id` value of the current header record"*.
 
-`zif_text2tab_deep_provider` requires just one method to implement - `select`. 
+`zif_text2tab_deep_provider` requires just one method to implement - `select`.
 
 ```abap
   methods select
@@ -249,7 +256,8 @@ zcl_text2tab_parser=>create_typeless( )->parse(
 It does actually what it states - move only those field which are the same, example is below.
 
 Source text file
-```
+
+```text
 NAME     BIRTHDATE
 ALEX     01.01.1990
 JOHN     02.02.1995
@@ -273,7 +281,6 @@ zcl_text2tab_parser=>create( lt_container )->parse(
   importing
     e_container = lt_container ).
 ```
-
 
 ## Data formats
 
@@ -301,11 +308,13 @@ To do serialization use `ZCL_TEXT2TAB_SERIALIZER` class. Flat tables and structu
 ```
 
 ### Serialize selected fields
-The `serialize` method also accepts `i_fields_only` param - a explicit field list to serialize.
+
+The `serialize` method also accepts `i_fields_only` param - a explicit field list to serialize. You can also pass `i_keep_order = abap_true` to keep serilization order according to the fields only list (by default the order is takes from the data structure).
 
 ### Getting header row only
 
 The serializer can also create a tab-delimited string with human readable field descriptions or technical names. E.g. `User Name \t Date \t Time` (c_header-descriptions) or `UNAME \t DATUM \t UZEIT` (c_header-tech_names). This may be useful to prepend the description before the technical fields. To get such a string use method `serialize_header`.
+
 ```abap
   lv_string = lo_serializer->serialize_header(
     i_header_type = lo_serializer->c_header-descriptions
@@ -315,6 +324,7 @@ The serializer can also create a tab-delimited string with human readable field 
     i_data = lt_some_table
     i_header_type = lo_serializer->c_header-descriptions
     i_lang = 'D'
+    " i_keep_order = abap_true " to respect i_fields_only order
     i_fields_only = value#( ( 'UNAME' ) ( 'DATUM' ) ) ).
 ```
 
@@ -332,17 +342,20 @@ The feature allows serialization to html table `<table><tr>...`. In particular t
 
 Since version 2.2.0 the text file can contain comment lines. A comment lines begins with one specific char, which is supplied in the factory method ```create```.
 A sample text-file:
-```
+
+```text
 * comment line: expected birthdays in test class ...
-NAME	  BIRTHDAY
-JOHN	  01.01.1990
+NAME    BIRTHDAY
+JOHN    01.01.1990
 ```
+
 Now we should call the factory method like this and the first line is interpreted as a comment:
+
 ```abap
 zcl_text2tab_parser=>create( i_pattern = ls_birthday i_begin_comment = '*' ).
 ```
-The char '*' must have the first position in the text line.  Otherwise it isn't interpreted as a comment.
 
+The char '*' must have the first position in the text line.  Otherwise it isn't interpreted as a comment.
 
 ## Error message redefinition
 

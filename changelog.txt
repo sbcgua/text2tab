@@ -11,6 +11,7 @@ Legend
 v2.3.5, 2023-07-??
 ------------------
 * code and type cleanups
++ possibility to keep fields_only order during serialization #25
 
 v2.3.4, 2021-10-10
 ------------------

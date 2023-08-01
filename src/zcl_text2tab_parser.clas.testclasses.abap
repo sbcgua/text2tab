@@ -576,18 +576,18 @@ class ltcl_text2tab_parser_test implementation.
         cl_abap_unit_assert=>assert_equals(
           act = <fld>
           exp = exp
-          msg = |Parse field positive: { f }| ).
+          msg = |Parse field positive: { f } = { v }| ).
       else.
-        cl_abap_unit_assert=>fail( |Parse field negative didn''t raise: { f }| ).
+        cl_abap_unit_assert=>fail( |Parse field negative didn''t raise: { f } = { v }| ).
       endif.
     catch zcx_text2tab_error into lx.
       if positive = abap_true.
-        cl_abap_unit_assert=>fail( |Parse field positive must not raise: { f }| ).
+        cl_abap_unit_assert=>fail( |Parse field positive must not raise: { f } = { v }| ).
       else.
         cl_abap_unit_assert=>assert_equals(
           act = lx->code
           exp = err
-          msg = |Parse field negative wrong code: { f } [{ lx->code }]| ).
+          msg = |Parse field negative wrong code: { f } = { v } [{ lx->code }]| ).
       endif.
     endtry.
 

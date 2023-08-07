@@ -119,8 +119,8 @@ class ltcl_text2tab_parser_test definition for testing
         e_dummy_tab_s  type tt_dummy_str
         e_dummy_header type string
         e_dummy_string type string
-        e_map_corresp  type int4_table
-        e_map          type int4_table.
+        e_map_corresp  type zcl_text2tab_parser=>tt_field_map
+        e_map          type zcl_text2tab_parser=>tt_field_map.
     methods get_dummy_data_with_time
       exporting
         e_exp_result        type ty_dummy_with_time
@@ -434,7 +434,7 @@ class ltcl_text2tab_parser_test implementation.
           end of   wrong_struc.
 
     data:
-          l_exp_code     type char2,
+          l_exp_code     type c length 2,
           dummy_val      type c length 40 ##NEEDED,
           dummy_tab_act  type tt_dummy ##NEEDED,
           l_string       type string,
@@ -846,9 +846,9 @@ class ltcl_text2tab_parser_test implementation.
     data:
           l_header      type string,
           l_header_bak  type string,
-          l_exp_code    type char2,
-          l_act_map     type int4_table,
-          l_exp_map     type int4_table,
+          l_exp_code    type c length 2,
+          l_act_map     type zcl_text2tab_parser=>tt_field_map,
+          l_exp_map     type zcl_text2tab_parser=>tt_field_map,
           l_ren_map     type zcl_text2tab_utils=>th_field_name_map,
           l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
@@ -1001,8 +1001,8 @@ class ltcl_text2tab_parser_test implementation.
 
     data:
           l_header      type string,
-          l_act_map     type int4_table,
-          l_exp_map     type int4_table,
+          l_act_map     type zcl_text2tab_parser=>tt_field_map,
+          l_exp_map     type zcl_text2tab_parser=>tt_field_map,
           l_ren_map     type zcl_text2tab_utils=>th_field_name_map.
 
     get_dummy_data(
@@ -1029,8 +1029,8 @@ class ltcl_text2tab_parser_test implementation.
     data:
           l_dataline    type string,
           l_header_bak  type string,
-          l_exp_code    type char2,
-          lt_map        type int4_table,
+          l_exp_code    type c length 2,
+          lt_map        type zcl_text2tab_parser=>tt_field_map,
           lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_header = l_header_bak
@@ -1072,7 +1072,7 @@ class ltcl_text2tab_parser_test implementation.
           dummy_tab_act type tt_dummy,
           l_string      type string,
           lt_data       type table of string,
-          lt_map        type int4_table,
+          lt_map        type zcl_text2tab_parser=>tt_field_map,
           lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_tab    = dummy_tab_exp

@@ -50,6 +50,7 @@ class ltcl_text2tab_serializer_test definition final
 
     methods serialize_date for testing raising zcx_text2tab_error.
     methods serialize_field for testing raising zcx_text2tab_error.
+    methods serialize_field_cunit for testing raising zcx_text2tab_error.
     methods negatives for testing.
     methods create for testing.
 
@@ -500,8 +501,6 @@ class ltcl_text2tab_serializer_test implementation.
     data l_act     type string.
     data ls_dummy  type ty_dummy.
     data ld_type   type ref to cl_abap_structdescr.
-    data lv_meins  type meins.
-    data ls_comp   like line of mt_field_components.
 
     ld_type ?= cl_abap_typedescr=>describe_by_data( ls_dummy ).
     mt_field_components = zcl_text2tab_utils=>describe_struct( ld_type ).
@@ -525,6 +524,15 @@ class ltcl_text2tab_serializer_test implementation.
     test_field( f = 'TDATE'    v = '20180901'   exp = '01.09.2018' ).
     test_field( f = 'TDATE'    v = '00000000'   exp = '' ).
     test_field( f = 'TDATE'    v = ''           exp = '' ).
+
+  endmethod.
+
+  method serialize_field_cunit.
+
+    data lx        type ref to zcx_text2tab_error.
+    data l_act     type string.
+    data lv_meins  type meins.
+    data ls_comp   like line of mt_field_components.
 
     " Unit of measurement (CUNIT CONV)
     lv_meins          = 'KG'.

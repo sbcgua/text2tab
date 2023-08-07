@@ -21,6 +21,8 @@
     "unknownTypes": "runtimeError",
     "keywords": ["return", "in", "class"],
     "skip": [
+      { "object": "ZCL_TEXT2TAB_SERIALIZER", "class": "ltcl_text2tab_serializer_test", "method": "serialize_field_cunit",  "note": "CUNIT issue" },
+      { "object": "ZCL_TEXT2TAB_PARSER", "class": "ltcl_text2tab_parser_test", "method": "parse_field_special",  "note": "CUNIT issue" }
     ]
   }
 }

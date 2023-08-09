@@ -822,17 +822,16 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse_time.
 
-    call function 'CONVERT_TIME_INPUT'
-      exporting
-        input                     = i_value
-      importing
-        output                    = r_time
-      exceptions
-        plausibility_check_failed = 2
-        wrong_format_in_input     = 4.
-    if sy-subrc <> 0.
+    try.
+      cl_abap_timefm=>conv_time_ext_to_int(
+        exporting
+          time_ext      = i_value
+          is_24_allowed = abap_true
+        importing
+          time_int = r_time ).
+    catch cx_abap_timefm_invalid.
       raise_error( i_msg = |{ i_value } is not a valid time| i_code = 'IT' ).
-    endif.
+    endtry.
 
   endmethod.
 

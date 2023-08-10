@@ -19,7 +19,7 @@
   "homepage": "https://github.com/sbcgua/text2tab#readme",
   "dependencies": {
     "@abaplint/cli": "^2.102.17",
-    "@abaplint/runtime": "^2.7.71",
-    "@abaplint/transpiler-cli": "^2.7.71"
+    "@abaplint/runtime": "^2.7.73",
+    "@abaplint/transpiler-cli": "^2.7.73"
   }
 }

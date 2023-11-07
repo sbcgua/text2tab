@@ -357,6 +357,14 @@ zcl_text2tab_parser=>create( i_pattern = ls_birthday i_begin_comment = '*' ).
 
 The char '*' must have the first position in the text line.  Otherwise it isn't interpreted as a comment.
 
+The comment (or rather the description) line can also be auto-detected with `i_begin_comment = zif_text2tab=>c_auto_detect_by_space`. It tries to find spaces in the first line of the text and, if found, ignores this first line. The idea is that the descriptions will probably have spaces, while abap field names will not:
+
+```text
+Name    Date of birth <<< containes spaces
+NAME    BIRTHDAY
+JOHN    01.01.1990
+```
+
 ## Error message redefinition
 
 The exception class - `zcx_text2tab_error` - exposes `structure`, `field`, `line` and `msg` attributes (and some others). They can be used to reformat the message text if needed. For example:

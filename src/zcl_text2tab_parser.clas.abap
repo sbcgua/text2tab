@@ -11,8 +11,6 @@ class zcl_text2tab_parser definition
     types:
       ty_date_format type c length 4.
     types:
-      ty_begin_comment type c length 1.
-    types:
       tt_field_map type standard table of i with default key.
 
     constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
@@ -30,7 +28,7 @@ class zcl_text2tab_parser definition
         !i_ignore_nonflat type abap_bool default abap_false
         !i_amount_format  type ty_amount_format optional
         !i_date_format    type ty_date_format optional
-        !i_begin_comment  type ty_begin_comment optional
+        !i_begin_comment  type zif_text2tab=>ty_begin_comment optional
         !i_deep_provider  type ref to zif_text2tab_deep_provider optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
@@ -68,7 +66,7 @@ class zcl_text2tab_parser definition
     data mv_current_field type string .
     data mv_line_index type i .
     data mv_is_typeless type abap_bool .
-    data mv_begin_comment type ty_begin_comment .
+    data mv_begin_comment type zif_text2tab=>ty_begin_comment .
     data mt_ignore_exits type sorted table of abap_editmask with unique key table_line.
 
     data mt_components type zcl_text2tab_utils=>tt_comp_descr .
@@ -864,7 +862,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       raise_error( i_msg = 'Container type does not fit pattern' i_code = 'TE' ). "#EC NOTEXT
     endif.
 
-    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines(
+      i_text          = i_data
+      i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     if i_has_head = abap_true.

@@ -1,0 +1,32 @@
+name: testing
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  unit_test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - uses: actions/checkout@v3
+      - name: Prepare env
+        run: |
+          rm -Rf transpiled
+          rm package*.json
+          npm -g install @abaplint/transpiler-cli
+          npm install @abaplint/runtime
+      - name: Build unit tests
+        run: |
+          echo "Building ..."
+          abap_transpile abap_transpile.json
+      - name: Run unit tests
+        run: |
+          echo "Running unit tests ..."
+          node transpiled/index.mjs

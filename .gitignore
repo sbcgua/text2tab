@@ -8,3 +8,5 @@
 abaplint-deps
 transpiled
 node_modules
+# package.json
+# package-lock.json

@@ -612,7 +612,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         if l_unquoted co '0123456789'.
           e_field = l_unquoted.
         else.
-          sy-subrc = 4.
+          raise_error( i_msg = 'Field parsing failed' i_code = 'PF' ). "#EC NOTEXT
         endif.
 
       when cl_abap_typedescr=>typekind_time. " Time
@@ -626,7 +626,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         if l_unquoted co '0123456789'.
           e_field = l_unquoted.
         else.
-          sy-subrc = 4.
+          raise_error( i_msg = 'Field parsing failed' i_code = 'PF' ). "#EC NOTEXT
         endif.
 
       when cl_abap_typedescr=>typekind_hex. " Raw
@@ -637,17 +637,13 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         try .
           e_field = l_unquoted.
         catch cx_sy_conversion_no_raw cx_sy_conversion_error.
-          sy-subrc = 4.
+          raise_error( i_msg = 'Field parsing failed' i_code = 'PF' ). "#EC NOTEXT
         endtry.
 
       when others.
         raise_error( i_msg = 'Unsupported field type' i_code = 'UT' ). "#EC NOTEXT
 
     endcase.
-
-    if sy-subrc is not initial.
-      raise_error( i_msg = 'Field parsing failed' i_code = 'PF' ). "#EC NOTEXT
-    endif.
 
   endmethod.
 

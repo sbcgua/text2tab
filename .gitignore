@@ -4,6 +4,7 @@
 .vscode
 .ssh
 
-# Artifacts
-js-transpiled
+# Test related
+abaplint-deps
+transpiled
 node_modules

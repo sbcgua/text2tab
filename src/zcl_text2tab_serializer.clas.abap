@@ -17,9 +17,9 @@ class zcl_text2tab_serializer definition
     types:
       ts_fields_list type sorted table of abap_compname with unique key table_line.
 
-    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
-    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
-    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
+    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
 
     constants:
       begin of c_header,

@@ -5,10 +5,6 @@ class ZCL_TEXT2TAB_UTILS definition
 
   public section.
 
-    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
-    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
-    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
-
     types:
       begin of ty_comp_descr.
         include type abap_compdescr.
@@ -81,7 +77,7 @@ class ZCL_TEXT2TAB_UTILS definition
     class-methods break_to_lines
       importing
         !i_text type string
-        !i_begin_comment type c
+        !i_begin_comment type zif_text2tab=>ty_begin_comment
       returning
         value(rt_tab) type string_table .
     class-methods get_safe_struc_descr
@@ -105,6 +101,7 @@ class ZCL_TEXT2TAB_UTILS definition
         value(rr_dref) type ref to data
       raising
         zcx_text2tab_error .
+
   protected section.
   private section.
     types:
@@ -134,26 +131,38 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
 
   method break_to_lines.
-    data:
-      l_found type i,
-      l_break type string value c_crlf.
-    field-symbols: <line> type string.
+
+    constants lc_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants lc_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+
+    data l_found type i.
+    data l_break type string value lc_crlf.
+    field-symbols <l> type string.
 
     " Detect line break
-    l_found = find( val = i_text sub = c_crlf ).
+    l_found = find( val = i_text sub = lc_crlf ).
     if l_found < 0.
-      l_found = find( val = i_text sub = c_lf ).
+      l_found = find( val = i_text sub = lc_lf ).
       if l_found >= 0.
-        l_break = c_lf.
+        l_break = lc_lf.
       endif.
     endif.
 
     split i_text at l_break into table rt_tab.
 
-    if i_begin_comment <> space.
-      loop at rt_tab assigning <line>.
+    if i_begin_comment = zif_text2tab=>c_auto_detect_by_space.
+      read table rt_tab index 1 assigning <l>.
+      if sy-subrc = 0 and find( val = <l> sub = ` ` ) > 0.
+        " Idea is that a text may contain (optional!) description row and then field name row
+        " Field names will not contain spaces, because it is not allowed in abap
+        " And the desciptions probably will.
+        " So not a 100% reliable feature but can be useful for the majority of real cases
+        delete rt_tab index 1.
+      endif.
+    elseif i_begin_comment <> space.
+      loop at rt_tab assigning <l>.
         try.
-          if <line>+0(1) = i_begin_comment.
+          if <l>+0(1) = i_begin_comment.
             delete rt_tab index sy-tabix.
           endif.
         catch cx_sy_range_out_of_bounds.

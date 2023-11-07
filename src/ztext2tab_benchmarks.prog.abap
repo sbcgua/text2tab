@@ -96,7 +96,7 @@ class lcl_app definition final.
         traw     type x length 1,
         tstring  type string,
         talpha   type veri_alpha,
-        tdecimal type dmbtr,
+        tdecimal type p length 13 decimals 2, " dmbtr
         tnumber  type n length 4,
         tinteger type i,
         tfloat   type f,

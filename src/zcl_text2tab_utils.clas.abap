@@ -132,19 +132,19 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
 
   method break_to_lines.
 
-    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
-    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+    constants lc_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants lc_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
 
     data l_found type i.
-    data l_break type string value c_crlf.
+    data l_break type string value lc_crlf.
     field-symbols <l> type string.
 
     " Detect line break
-    l_found = find( val = i_text sub = c_crlf ).
+    l_found = find( val = i_text sub = lc_crlf ).
     if l_found < 0.
-      l_found = find( val = i_text sub = c_lf ).
+      l_found = find( val = i_text sub = lc_lf ).
       if l_found >= 0.
-        l_break = c_lf.
+        l_break = lc_lf.
       endif.
     endif.
 

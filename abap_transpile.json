@@ -1,0 +1,30 @@
+{
+  "input_folder": "{src,deps}",
+  "input_filter": [
+    "deps/",
+    "src/zcl*",
+    "src/zif*",
+    "src/zcx*"
+  ],
+  "output_folder": "transpiled",
+  "libs": [
+    {
+      "url": "https://github.com/open-abap/open-abap-core"
+    }
+  ],
+  "write_unit_tests": true,
+  "write_source_map": true,
+  "options": {
+    "ignoreSyntaxCheck": false,
+    "addFilenames": true,
+    "addCommonJS": true,
+    "unknownTypes": "runtimeError",
+    "keywords": ["return", "in", "class"],
+    "skip": [
+      { "object": "ZCL_TEXT2TAB_SERIALIZER", "class": "ltcl_text2tab_serializer_test", "method": "serialize_field_cunit",  "note": "CUNIT issue" },
+      { "object": "ZCL_TEXT2TAB_PARSER", "class": "ltcl_text2tab_parser_test", "method": "parse_field_special",  "note": "CUNIT issue" },
+      { "object": "ZCL_TEXT2TAB_PARSER", "class": "ltcl_text2tab_parser_test", "method": "parse_df16",  "note": "TypeError: abap.types.typeTodoDecFloat16Type is not a constructor" },
+      { "object": "ZCL_TEXT2TAB_PARSER", "class": "ltcl_text2tab_parser_test", "method": "parse_ignore_convexit",  "note": "CUNIT issue" }
+    ]
+  }
+}

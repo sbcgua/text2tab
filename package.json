@@ -2,11 +2,10 @@
   "name": "text2tab",
   "version": "1.0.0",
   "private": true,
-  "description": "abap tab-delimited tax parser/serializer",
-  "main": "js-transpiled/index.mjs",
   "scripts": {
-    "test": "node js-transpiled/index.mjs",
-    "transpile": "abap_transpile abap_transpile.json"
+    "test": "npm run build && npm run run_ut",
+    "run_ut": "node transpiled/index.mjs",
+    "build": "abap_transpile abap_transpile.json"
   },
   "repository": {
     "type": "git",
@@ -19,8 +18,8 @@
   },
   "homepage": "https://github.com/sbcgua/text2tab#readme",
   "dependencies": {
-    "@abaplint/cli": "^2.79.29",
-    "@abaplint/runtime": "^1.6.47",
-    "@abaplint/transpiler-cli": "^1.6.47"
+    "@abaplint/cli": "^2.113.63",
+    "@abaplint/runtime": "^2.10.20",
+    "@abaplint/transpiler-cli": "^2.10.20"
   }
 }

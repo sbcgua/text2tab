@@ -17,6 +17,9 @@ class zcl_text2tab_parser definition
     constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
     constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
 
+    class-methods version
+      returning
+        value(r_version) type string .
     class-methods check_version_fits
       importing
         !i_required_version type string
@@ -220,7 +223,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   method check_version_fits.
 
     r_fits = zcl_text2tab_utils=>check_version_fits(
-      i_current_version  = zif_text2tab_constants=>version
+      i_current_version  = zif_text2tab=>version
       i_required_version = i_required_version ).
 
   endmethod.
@@ -982,5 +985,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         structure = l_struc
         location  = l_location.
 
+  endmethod.
+
+
+  method version.
+    r_version = zif_text2tab=>version.
   endmethod.
 ENDCLASS.

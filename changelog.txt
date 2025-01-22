@@ -8,7 +8,12 @@ Legend
 + : added
 - : removed
 
-v2.3.5, 2023-07-??
+v2.4.0, 2025-01-22
+------------------
+! BREAKING: version constant was moved zif_text2tab. zif_text2tab_constants is deleted.
+! Restructured packages: core objects were separated from examples, to improve deployment (abapGit supports skipping packages, so examples package can be left out of the real system)
+
+v2.3.5, 2023-07-11
 ------------------
 * code and type cleanups
 + possibility to keep fields_only order during serialization #25

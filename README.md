@@ -1,7 +1,7 @@
 # ABAP text2tab parser and serializer (ex. Abap data parser)
 
 ![abaplint](https://github.com/sbcgua/text2tab/workflows/abaplint/badge.svg)
-![Version](https://img.shields.io/github/v/tag/sbcgua/abap_data_parser.svg)
+![Version](https://img.shields.io/github/v/tag/sbcgua/text2tab.svg)
 
 TAB-delimited text parser and serializer for ABAP  
 *[changelog](./changelog.txt)*
@@ -30,9 +30,11 @@ The package also contains 2 **examples**:
 
 ## Installation
 
-You can install the whole code using [abapGit](https://github.com/larshp/abapGit) tool (recommended way). Alternatively, you can also copy content of `*.clas.abap` to your program (please keep the homepage reference and license text).
+You can install the whole code using [abapGit](https://github.com/abapGit/abapGit) tool.
 
 The tool is open source and distributed under MIT license. It was initially created as a part of another project - [mockup loader](https://github.com/sbcgua/mockup_loader) - but then separated as an independent multi-usage tool.
+
+The package contains 2 subpackages: `core` (the tool itself) and `examples` (example programs). The latter can be skipped for the deserialization (abapGit supports filename filtering - specify `*/examples/*` in the corresponding repo setting).
 
 ## Example of usage
 
@@ -391,7 +393,7 @@ This is supported in parser only at the moment. Serializer does not produce many
 
 ## Checking version
 
-`zif_text2tab_constants` has the `version` attribute. And there is a helper method `check_version_fits` to check if the text2tab package has the minimal required version.
+`zif_text2tab` has the `version` attribute. And there is a helper method `check_version_fits` to check if the text2tab package has the minimal required version. To extract the current version prefer `zcl_text2tab_parser=>version( )` method.
 
 ```abap
 * Assuming version is 2.1.0

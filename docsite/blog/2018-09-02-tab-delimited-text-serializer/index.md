@@ -1,11 +1,11 @@
 ---
 slug: tab-delimited-text-serializer
-title: TAB-delimited text serializer
+title: Abap tab-delimited text serializer
 authors: sbcgua
 tags: [old]
 ---
 
-My first article on this topic was quite a while ago - [Abap data parser, open source TAB-delimited text parser](./tab-delimited-text-parser) - Since then I added some improvements to the project.
+My first article on this topic was quite a while ago - [Abap tab-delimited text parser](/blog/tab-delimited-text-parser) - Since then I added some improvements to the project.
 
 ## Serializer - new feature
 

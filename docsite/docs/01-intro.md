@@ -9,17 +9,17 @@ Text2tab is an utility to parse TAB-delimited text into an internal table of an 
 ## Features
 
 - supports *non-strict* mode which allows to skip fields in the source data (for the case when only certain fields are being loaded).
+- supports *corresponding* parsing - filling only those fields which are in target structure. Kind of opposite to *non-strict* feature above.
 - supports *header* specification as the first line in the text - in this case field order in the text may differ from the internal abap structure field order.
 - supports loading into a structure (the first data line of the text is parsed).
 - supports *type-less* parsing, when the data is not checked against existing structure but dynamically create as a table with string fields.
 - supports specifying date and amount formats
 - supports on-the-fly field name remapping (e.g. field `FOO` in the parsed text move to `BAR` component of the target internal table)
 - supports *deep* parsing - filling structure or table components in the target data container
-- supports *corresponding* parsing - filling only those fields which are in target structure. Kind of opposite to *non-strict* feature above.
 
-And vice versa - serialize a flat table or structure to text.
+And vice versa - **serialize** a flat table or structure to text.
 
-- support specifying date and amount formats, and line-break symbol
+- supports specifying date and amount formats, and line-break symbol
 
 The package also contains 2 **examples**:
 
@@ -32,9 +32,9 @@ Source text file (CRLF as a line delimiter, TAB as a field delimiter)
 
 ```text
 NAME     BIRTHDATE
-ALEX     01.01.1990
-JOHN     02.02.1995
-LARA     03.03.2000
+Alex     01.01.1990
+John     02.02.1995
+Lara     03.03.2000
 ```
 
 Simple parsing code
@@ -50,7 +50,7 @@ data lt_container type my_table_type.
 
 zcl_text2tab_parser=>create( lt_container )->parse(
   exporting
-    i_data      = my_get_some_raw_text_data( )
+    i_data      = get_raw_text_data_above( )
   importing
     e_container = lt_container ).
 ```
@@ -72,11 +72,11 @@ zcl_text2tab_parser=>create(
     i_amount_format = ' .'           " specify thousand and decimal delimiters
   )->parse( 
     exporting 
-      i_data      = my_get_some_raw_text_data( )
-      i_strict    = abap_false       " text may contain not all fields (city field will be skipped)
+      i_data      = get_some_raw_text_data( )
+      i_strict    = abap_false       " text may contain not all fields ("city" field will be skipped)
       i_has_head  = abap_true        " headers in the first line of the text
     importing 
       e_container = lt_container ).  " table or structure (first data line from text)
 ```
 
-Of course, you can keep the object reference returned by `create()` and use it to parse more data of the same pattern.
+You can keep the object reference returned by `create()` and use it to parse more data of the same pattern.

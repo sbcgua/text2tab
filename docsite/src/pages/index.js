@@ -2,10 +2,10 @@ import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-import HomepageFeatures from '@site/src/components/HomepageFeatures';
 
 import Heading from '@theme/Heading';
 import styles from './index.module.css';
+import Stuff from '@site/src/components/feature-list.md';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
@@ -20,7 +20,7 @@ function HomepageHeader() {
           <Link
             className="button button--secondary button--lg"
             to="/docs/intro">
-            Docusaurus Tutorial - 5min ⏱️
+            See documentation
           </Link>
         </div>
       </div>
@@ -32,11 +32,15 @@ export default function Home() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      title="Home"
+      description={siteConfig.tagline}>
       <HomepageHeader />
       <main>
-        <HomepageFeatures />
+        <div className={clsx('col col--6 col--offset-3')}>
+          <div className="padding-horiz--md padding-vert--md">
+            <Stuff />
+          </div>
+        </div>
       </main>
     </Layout>
   );

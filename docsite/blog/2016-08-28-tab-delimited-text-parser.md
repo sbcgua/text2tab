@@ -1,6 +1,6 @@
 ---
 slug: tab-delimited-text-parser
-title: Open source TAB-delimited text parser
+title: Abap tab-delimited text parser
 authors: sbcgua
 tags: [old]
 ---

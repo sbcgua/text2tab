@@ -40,7 +40,7 @@ const config = {
     [
       'classic',
       /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
           sidebarPath: './sidebars.js',
           // Please change this to your repo.
@@ -66,13 +66,13 @@ const config = {
         theme: {
           customCss: './src/css/custom.css',
         },
-      }),
+      },
     ],
   ],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
+    {
       // Replace with your project's social card
       image: 'img/logo1-128.png',
       navbar: {
@@ -123,7 +123,21 @@ const config = {
         darkTheme: prismThemes.dracula,
         additionalLanguages: ['abap'],
       },
-    }),
+    },
+
+    // plugins: [
+    //   [
+    //     '@docusaurus/plugin-client-redirects',
+    //     {
+    //       redirects: [
+    //         {
+    //           from: ['/'],
+    //           to: '/docs/intro',
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // ],
 };
 
 export default config;

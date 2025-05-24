@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocsite=self.webpackChunkdocsite||[]).push([[646],{5701:s=>{s.exports=JSON.parse('{"tags":[{"label":"old","permalink":"/text2tab/blog/tags/old","description":"Old posts (SAP Community)","count":2}]}')}}]);

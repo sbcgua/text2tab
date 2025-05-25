@@ -39,3 +39,14 @@ GIT_USER=<Your GitHub username> npm deploy
 ```
 
 If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+
+## Notes
+
+- `npm install --save @docusaurus/plugin-client-redirects` to support redirect from `/docs/` to `/docs/intro`
+- redirect gh-actions to master
+- logo works in wip
+- prism `additionalLanguages: ['abap']`
+- add google analytics
+- if blog link is above `truncate` is must be complete (start with `/`), otherwise will be broken on tags page
+- change gh/Settings/Pages/Source to Github actions (otherwise does not deploy from GA)
+- to add search, apply for Algolia

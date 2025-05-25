@@ -8,6 +8,11 @@ import {themes as prismThemes} from 'prism-react-renderer';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+const githubUrl = 'https://github.com';
+const organizationName = 'sbcgua';
+const projectName = 'text2tab';
+const repoUrl = `${githubUrl}/${organizationName}/${projectName}`
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title:   'Text2Tab',
@@ -15,12 +20,12 @@ const config = {
   favicon: 'img/favicon.ico',
 
   // Site URLs
-  url: 'https://github.com',  // Set the production url of the site here
-  baseUrl: '/text2tab/',      // Set the /<baseUrl>/ pathname under which your site is served, @github usually '/<projectName>/'
+  url: githubUrl,               // Set the production url of the site here
+  baseUrl: `/${projectName}/`,  // Set the /<baseUrl>/ pathname under which your site is served, @github usually '/<projectName>/'
 
-  // GitHub pages deployment config.
-  organizationName: 'sbcgua',   // GitHub org/user name.
-  projectName: 'text2tab',      // repo name.
+  // GitHub pages deployment config
+  organizationName,   // GitHub org/user name
+  projectName,        // Repo name
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -83,7 +88,7 @@ const config = {
             position: 'left'
           },
           {
-            href: 'https://github.com/sbcgua/text2tab',
+            href: repoUrl,
             label: 'GitHub',
             position: 'right',
           },
@@ -102,7 +107,7 @@ const config = {
           },
           {
             label: 'GitHub',
-            href: 'https://github.com/sbcgua/text2tab',
+            href: repoUrl,
           },
         ],
         copyright: `Copyright © ${new Date().getFullYear()} Alexander Tsybulsky (aka sbcgua), Built with Docusaurus.`,

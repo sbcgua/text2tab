@@ -8,6 +8,10 @@ Legend
 + : added
 - : removed
 
+v2.4.1, 2025-??
+------------------
++ new documentation based on docusaurus.io
+
 v2.4.0, 2025-01-22
 ------------------
 ! BREAKING: version constant was moved zif_text2tab. zif_text2tab_constants is deleted.

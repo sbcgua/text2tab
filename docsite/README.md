@@ -48,5 +48,5 @@ If you are using GitHub pages for hosting, this command is a convenient way to b
 - prism `additionalLanguages: ['abap']`
 - add google analytics
 - if blog link is above `truncate` is must be complete (start with `/`), otherwise will be broken on tags page
-- change gh/Settings/Pages/Source to Github actions (otherwise does not deploy from GA)
+- change Repo/Settings/Pages/Source to Github actions (otherwise does not deploy from GA) - after that the pages are based on the GA artifact not the `gh-pages` branch! (TODO: maybe check how to deploy to a branch ... but maybe not)
 - to add search, apply for Algolia

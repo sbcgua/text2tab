@@ -1,47 +1,35 @@
 class zcl_text2tab_parser definition
   public
   final
-  create public .
+  create public.
 
   public section.
-    type-pools abap .
-
-    types:
-      ty_amount_format type c length 2.
-    types:
-      ty_date_format type c length 4.
-    types:
-      tt_field_map type standard table of i with default key.
-
-    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab. "#EC NOTEXT
-    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf. "#EC NOTEXT
-    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline. "#EC NOTEXT
 
     class-methods version
       returning
-        value(r_version) type string .
+        value(r_version) type string.
     class-methods check_version_fits
       importing
         !i_required_version type string
       returning
-        value(r_fits) type abap_bool .
+        value(r_fits) type abap_bool.
     class-methods create
       importing
         !i_pattern type any         " target structure or table
         !i_ignore_nonflat type abap_bool default abap_false
-        !i_amount_format  type ty_amount_format optional
-        !i_date_format    type ty_date_format optional
+        !i_amount_format  type zif_text2tab=>ty_amount_format optional
+        !i_date_format    type zif_text2tab=>ty_date_format optional
         !i_begin_comment  type zif_text2tab=>ty_begin_comment optional
         !i_deep_provider  type ref to zif_text2tab_deep_provider optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods create_typeless
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse
       importing
         !i_data type string
@@ -53,7 +41,7 @@ class zcl_text2tab_parser definition
         !e_container type any
         !e_head_fields type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods ignore_conv_exit " Beta ! May be subject to change
       importing
         !i_convexit type abap_editmask
@@ -63,17 +51,19 @@ class zcl_text2tab_parser definition
   protected section.
   private section.
 
-    data mv_amount_format type ty_amount_format .
-    data mv_date_format type ty_date_format .
-    data mo_struc_descr type ref to cl_abap_structdescr .
-    data mv_current_field type string .
-    data mv_line_index type i .
-    data mv_is_typeless type abap_bool .
-    data mv_begin_comment type zif_text2tab=>ty_begin_comment .
+    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
+
+    data mv_amount_format type zif_text2tab=>ty_amount_format.
+    data mv_date_format type zif_text2tab=>ty_date_format.
+    data mo_struc_descr type ref to cl_abap_structdescr.
+    data mv_current_field type string.
+    data mv_line_index type i.
+    data mv_is_typeless type abap_bool.
+    data mv_begin_comment type zif_text2tab=>ty_begin_comment.
     data mt_ignore_exits type sorted table of abap_editmask with unique key table_line.
 
-    data mt_components type zcl_text2tab_utils=>tt_comp_descr .
-    data mi_deep_provider type ref to zif_text2tab_deep_provider .
+    data mt_components type zif_text2tab=>tt_comp_descr.
+    data mi_deep_provider type ref to zif_text2tab_deep_provider.
 
     methods parse_typefull
       importing
@@ -81,67 +71,67 @@ class zcl_text2tab_parser definition
         !i_strict type abap_bool default abap_true
         !i_corresponding type abap_bool default abap_false
         !i_has_head type abap_bool default abap_true
-        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
+        !i_rename_map type zif_text2tab=>th_field_name_map
       exporting
         !e_container type any
         !e_head_fields type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_typeless
       importing
         !i_data type string
-        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
+        !i_rename_map type zif_text2tab=>th_field_name_map
       exporting
         !e_container type ref to data
         !e_head_fields type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_head_line
       importing
         !i_strict type abap_bool
         !i_corresponding type abap_bool
-        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
+        !i_rename_map type zif_text2tab=>th_field_name_map
       changing
         !ct_data type string_table
-        !ct_map type tt_field_map
+        !ct_map type zif_text2tab=>tt_field_map
         !ct_head_fields type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods map_head_structure
       importing
         !i_header type string
         !i_strict type abap_bool
         !i_corresponding type abap_bool
-        !i_rename_map type zcl_text2tab_utils=>th_field_name_map
+        !i_rename_map type zif_text2tab=>th_field_name_map
       exporting
-        !et_map type tt_field_map
+        !et_map type zif_text2tab=>tt_field_map
         !et_head_fields type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_data
       importing
         !it_data type string_table
-        !it_map type tt_field_map
+        !it_map type zif_text2tab=>tt_field_map
       exporting
         !e_container type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_line
       importing
         !i_dataline type string
-        !it_map type tt_field_map
+        !it_map type zif_text2tab=>tt_field_map
       exporting
         !es_container type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_field
       importing
-        !is_component type zcl_text2tab_utils=>ty_comp_descr
+        !is_component type zif_text2tab=>ty_comp_descr
         !i_value type string
       exporting
         !e_field type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_float
       importing
         !i_value type string
@@ -149,21 +139,21 @@ class zcl_text2tab_parser definition
       exporting
         !e_field type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_date
       importing
         !i_value type string
       returning
         value(r_date) type d
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods parse_time
       importing
         !i_value type string
       returning
         value(r_time) type t
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods apply_conv_exit
       importing
         !i_value type string
@@ -171,13 +161,13 @@ class zcl_text2tab_parser definition
       exporting
         !e_field type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods raise_error
       importing
         !i_msg type string
         !i_code type zcx_text2tab_error=>ty_rc optional
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
 ENDCLASS.
 
 
@@ -367,7 +357,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse.
 
-    data lt_rename_map type zcl_text2tab_utils=>th_field_name_map.
+    data lt_rename_map type zif_text2tab=>th_field_name_map.
     lt_rename_map = zcl_text2tab_utils=>build_rename_map( i_rename_fields ).
 
     if mv_is_typeless = abap_true.
@@ -841,7 +831,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
     data:
           lt_data      type string_table,
-          lt_map       type tt_field_map,
+          lt_map       type zif_text2tab=>tt_field_map,
           ls_component like line of mt_components.
 
     clear: e_container, e_head_fields.
@@ -900,7 +890,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse_typeless.
     data lt_data type string_table.
-    data lt_map type tt_field_map.
+    data lt_map type zif_text2tab=>tt_field_map.
     field-symbols <f> like line of e_head_fields.
 
     lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).

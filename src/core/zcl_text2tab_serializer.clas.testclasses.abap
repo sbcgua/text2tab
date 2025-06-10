@@ -59,14 +59,14 @@ class ltcl_text2tab_serializer_test definition final
 
 * ==== HELPERS ===
 
-    data mt_field_components type zcl_text2tab_utils=>tt_comp_descr.
+    data mt_field_components type zif_text2tab=>tt_comp_descr.
 
     methods setup.
     methods get_dummy_data
       exporting
         e_dummy_struc         type ty_dummy
         e_dummy_tab           type tt_dummy
-        e_given_fields_list   type zcl_text2tab_serializer=>tt_fields_list
+        e_given_fields_list   type zif_text2tab=>tt_fields_list
         e_given_fields_str    type string
         e_dummy_struc_str     type string
         e_dummy_string        type string
@@ -204,7 +204,7 @@ class ltcl_text2tab_serializer_test implementation.
 
     data lv_act type string.
     data lt_tab type table of ty_dummy_with_ddic.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
     data lx type ref to zcx_text2tab_error.
 
     " Fail on wrong header_type
@@ -221,14 +221,14 @@ class ltcl_text2tab_serializer_test implementation.
 
     " Complete data set
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
+      i_header_type = zif_text2tab=>c_header-descriptions
       i_data = lt_tab ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
       exp = |User Name\tDate\tTime| ).
 
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_header_type = zif_text2tab=>c_header-technical_names
       i_data = lt_tab ).
     cl_abap_unit_assert=>assert_equals(
       act = lv_act
@@ -240,7 +240,7 @@ class ltcl_text2tab_serializer_test implementation.
     append 'UZEIT' to lt_fields_only.
 
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
+      i_header_type = zif_text2tab=>c_header-descriptions
       i_data = lt_tab
       i_fields_only = lt_fields_only ).
     cl_abap_unit_assert=>assert_equals(
@@ -248,7 +248,7 @@ class ltcl_text2tab_serializer_test implementation.
       exp = |Date\tTime| ).
 
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_header_type = zif_text2tab=>c_header-technical_names
       i_data = lt_tab
       i_fields_only = lt_fields_only ).
     cl_abap_unit_assert=>assert_equals(
@@ -261,13 +261,13 @@ class ltcl_text2tab_serializer_test implementation.
 
     data lv_act type string.
     data lt_tab type table of ty_dummy_with_ddic.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
 
     append 'UZEIT' to lt_fields_only.
     append 'UNAME' to lt_fields_only.
 
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-descriptions
+      i_header_type = zif_text2tab=>c_header-descriptions
       i_keep_order  = abap_true
       i_data        = lt_tab
       i_fields_only = lt_fields_only ).
@@ -276,7 +276,7 @@ class ltcl_text2tab_serializer_test implementation.
       exp = |Time\tUser Name| ).
 
     lv_act = o->serialize_header(
-      i_header_type = zcl_text2tab_serializer=>c_header-technical_names
+      i_header_type = zif_text2tab=>c_header-technical_names
       i_keep_order  = abap_true
       i_data        = lt_tab
       i_fields_only = lt_fields_only ).
@@ -291,7 +291,7 @@ class ltcl_text2tab_serializer_test implementation.
     data lv_act type string.
     data lv_exp type string.
     data ls_tab type ty_dummy_with_ddic.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
 
     append 'UZEIT' to lt_fields_only.
     append 'UNAME' to lt_fields_only.
@@ -316,7 +316,7 @@ class ltcl_text2tab_serializer_test implementation.
     data lv_act        type string.
     data lv_exp_string type string.
     data lt_tab        type tt_dummy.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
 
     get_dummy_data( importing
       e_dummy_tab         = lt_tab
@@ -338,7 +338,7 @@ class ltcl_text2tab_serializer_test implementation.
     data lv_act type string.
     data lv_exp type string.
     data lt_tab type table of ty_dummy_with_ddic.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
 
     field-symbols <i> like line of lt_tab.
     append initial line to lt_tab assigning <i>.
@@ -609,7 +609,7 @@ class ltcl_text2tab_serializer_test implementation.
     data lv_exp type string.
     data lv_exp_limited type string.
     data lt_tab type tt_dummy.
-    data lt_fields_only type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields_only type zif_text2tab=>tt_fields_list.
 
     get_dummy_data( importing
       e_dummy_tab       = lt_tab

@@ -197,7 +197,7 @@ class lcl_app implementation.
   method serialize_with_fields_only.
 
     data lo_serializer type ref to zcl_text2tab_serializer.
-    data lt_fields type zcl_text2tab_serializer=>tt_fields_list.
+    data lt_fields type zif_text2tab=>tt_fields_list.
 
     append 'MANDT' to lt_fields.
     append 'TDATE' to lt_fields.

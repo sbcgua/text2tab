@@ -55,9 +55,9 @@ class ltcl_text2tab_utils_test implementation.
     endtry.
     cl_abap_unit_assert=>assert_not_initial( act = lx ).
 
-    data lt_fields  type zcl_text2tab_utils=>tt_field_name_map.
-    data lt_map_act type zcl_text2tab_utils=>tt_field_name_map.
-    data lt_map_exp type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_fields  type zif_text2tab=>tt_field_name_map.
+    data lt_map_act type zif_text2tab=>tt_field_name_map.
+    data lt_map_exp type zif_text2tab=>tt_field_name_map.
     field-symbols <map> like line of lt_map_exp.
 
     append initial line to lt_fields assigning <map>.
@@ -192,7 +192,7 @@ class ltcl_text2tab_utils_test implementation.
   method validate_date_format_spec.
     data:
           lx type ref to zcx_text2tab_error,
-          lv_date_format type zcl_text2tab_parser=>ty_date_format.
+          lv_date_format type zif_text2tab=>ty_date_format.
 
     do 3 times.
       case sy-index.
@@ -241,7 +241,7 @@ class ltcl_text2tab_utils_test implementation.
 
     data ld_struc type ref to cl_abap_structdescr.
     data ls_dummy type lty_dummy.
-    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    data lt_descr type zif_text2tab=>tt_comp_descr.
     data lx type ref to zcx_text2tab_error.
     field-symbols <c> like line of lt_descr.
 
@@ -282,7 +282,7 @@ class ltcl_text2tab_utils_test implementation.
 
     data ld_struc type ref to cl_abap_structdescr.
     data ls_dummy type lty_dummy.
-    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    data lt_descr type zif_text2tab=>tt_comp_descr.
     field-symbols <c> like line of lt_descr.
 
     ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
@@ -310,7 +310,7 @@ class ltcl_text2tab_utils_test implementation.
 
     data ld_struc type ref to cl_abap_structdescr.
     data ls_dummy type lty_dummy.
-    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    data lt_descr type zif_text2tab=>tt_comp_descr.
     field-symbols <c> like line of lt_descr.
 
     ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
@@ -342,7 +342,7 @@ class ltcl_text2tab_utils_test implementation.
 
     data ld_struc type ref to cl_abap_structdescr.
     data ls_dummy type lty_dummy.
-    data lt_descr type zcl_text2tab_utils=>tt_comp_descr.
+    data lt_descr type zif_text2tab=>tt_comp_descr.
     field-symbols <c> like line of lt_descr.
 
     ld_struc ?= cl_abap_structdescr=>describe_by_data( ls_dummy ).
@@ -504,7 +504,7 @@ class ltcl_text2tab_utils_test implementation.
 
   method parse_deep_address.
 
-    data ls_parsed type zcl_text2tab_utils=>ty_deep_address.
+    data ls_parsed type zif_text2tab=>ty_deep_address.
     data lx type ref to zcx_text2tab_error.
 
     ls_parsed = zcl_text2tab_utils=>parse_deep_address( 'filename[id=@headid]' ).

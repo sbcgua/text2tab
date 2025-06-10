@@ -1,5 +1,5 @@
-interface ZIF_TEXT2TAB_DEEP_PROVIDER
-  public .
+interface zif_text2tab_deep_provider
+  public.
 
   methods select
     importing

@@ -1,55 +1,33 @@
 class zcl_text2tab_serializer definition
   public
   final
-  create public .
+  create public.
 
   public section.
-
-    types:
-      ty_decimal_sep type c length 1.
-
-    types:
-      ty_header_type type c length 1.
-
-    types:
-      tt_fields_list type standard table of abap_compname with default key.
-
-    types:
-      ts_fields_list type sorted table of abap_compname with unique key table_line.
-
-    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
-    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
-    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
-
-    constants:
-      begin of c_header,
-        technical_names type ty_header_type value 'T',
-        descriptions type ty_header_type value 'D',
-      end of c_header.
 
     methods serialize
       importing
         !i_data type any optional
         !i_header_only type abap_bool default abap_false " DEPRECATIED, Use serialize_header
-        !i_fields_only type tt_fields_list optional
+        !i_fields_only type zif_text2tab=>tt_fields_list optional
         !i_keep_order type abap_bool default abap_false
         preferred parameter i_data
       returning
         value(r_string) type string
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods serialize_header
       importing
         !i_data type any optional
-        !i_header_type type ty_header_type default c_header-technical_names
+        !i_header_type type zif_text2tab=>ty_header_type default zif_text2tab=>c_header-technical_names
         !i_lang type sy-langu default sy-langu
-        !i_fields_only type tt_fields_list optional
+        !i_fields_only type zif_text2tab=>tt_fields_list optional
         !i_keep_order type abap_bool default abap_false
         preferred parameter i_data
       returning
         value(r_string) type string
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
 
     " EXPERIMENTAL
     methods bind_data
@@ -58,77 +36,81 @@ class zcl_text2tab_serializer definition
       returning
         value(ro_instance) type ref to zcl_text2tab_serializer
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods bind_fields_only
       importing
-        !i_field_list type tt_fields_list
+        !i_field_list type zif_text2tab=>tt_fields_list
         !i_keep_order type abap_bool default abap_false
       returning
         value(ro_instance) type ref to zcl_text2tab_serializer
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods as_html
       importing
         !i_yes type abap_bool default abap_true
         !i_bold_header type abap_bool default abap_false
         !i_text_fields type string_table optional
       returning
-        value(ro_instance) type ref to zcl_text2tab_serializer .
+        value(ro_instance) type ref to zcl_text2tab_serializer.
 
     " CONSTRUCTION
     class-methods create
       importing
-        !i_decimal_sep type ty_decimal_sep optional
-        !i_date_format type zcl_text2tab_parser=>ty_date_format optional
+        !i_decimal_sep type zif_text2tab=>ty_decimal_sep optional
+        !i_date_format type zif_text2tab=>ty_date_format optional
         !i_max_frac_digits type i optional
         !i_use_lf type abap_bool default abap_false
         !i_add_header_descr type sy-langu optional " DEPRECATIED, MAY CHANGE SOON
       returning
         value(ro_serializer) type ref to zcl_text2tab_serializer
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
 
   protected section.
   private section.
+
+    constants c_crlf like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
+    constants c_lf like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
+    constants c_tab like cl_abap_char_utilities=>horizontal_tab value cl_abap_char_utilities=>horizontal_tab.
 
     types:
       begin of ty_context,
         struc_type type ref to cl_abap_structdescr,
         data_kind like cl_abap_typedescr=>kind_struct,
-        fields_only type tt_fields_list,
+        fields_only type zif_text2tab=>tt_fields_list,
         keep_order type abap_bool,
-        components type zcl_text2tab_utils=>tt_comp_descr,
+        components type zif_text2tab=>tt_comp_descr,
         data_ref type ref to data,
         as_html type abap_bool,
         html_bold_header type abap_bool,
-        html_text_fields type ts_fields_list,
+        html_text_fields type zif_text2tab=>ts_fields_list,
       end of ty_context.
 
-    data mv_decimal_sep type ty_decimal_sep .
-    data mv_date_format type zcl_text2tab_parser=>ty_date_format .
-    data mv_line_sep type string .
-    data mv_max_frac_digits type i .
+    data mv_decimal_sep type zif_text2tab=>ty_decimal_sep.
+    data mv_date_format type zif_text2tab=>ty_date_format.
+    data mv_line_sep type string.
+    data mv_max_frac_digits type i.
 
-    data mv_current_field type string .
-    data mv_line_index type i .
+    data mv_current_field type string.
+    data mv_line_index type i.
 
     data mv_add_header_descr type sy-langu.
-    data mt_fields_only type tt_fields_list.
+    data mt_fields_only type zif_text2tab=>tt_fields_list.
     data mv_keep_order type abap_bool.
 
     data ms_bind_context type ty_context.
     data mv_as_html type abap_bool.
     data mv_html_bold_header type abap_bool.
-    data mt_html_text_fields type tt_fields_list.
+    data mt_html_text_fields type zif_text2tab=>tt_fields_list.
 
     methods serialize_field
       importing
-        !is_component type zcl_text2tab_utils=>ty_comp_descr
+        !is_component type zif_text2tab=>ty_comp_descr
         !i_value type any
       returning
         value(r_out) type string
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods apply_conv_exit
       importing
         !i_in type any
@@ -136,25 +118,25 @@ class zcl_text2tab_serializer definition
       returning
         value(r_out) type string
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods serialize_date
       importing
         !i_date type d
-        !iv_date_format type zcl_text2tab_parser=>ty_date_format
+        !iv_date_format type zif_text2tab=>ty_date_format
       returning
-        value(r_out) type string .
+        value(r_out) type string.
     class-methods validate_components
       importing
         !id_struc type ref to cl_abap_structdescr
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods _serialize_header
       importing
         !is_context type ty_context
         !iv_add_header_tech type abap_bool default abap_true
         !iv_add_header_descr type abap_bool default abap_false
       changing
-        !ct_lines type string_table .
+        !ct_lines type string_table.
     methods serialize_data
       importing
         !is_context type ty_context
@@ -162,7 +144,7 @@ class zcl_text2tab_serializer definition
       changing
         !ct_lines type string_table
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     methods render_field
       importing
         !is_context type ty_context
@@ -171,7 +153,7 @@ class zcl_text2tab_serializer definition
       returning
         value(rv_value) type string
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods detect_type
       importing
         !i_data type any
@@ -179,18 +161,18 @@ class zcl_text2tab_serializer definition
         !e_struc_type type ref to cl_abap_structdescr
         !e_data_kind like cl_abap_typedescr=>kind_struct
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods build_context
       importing
         !i_data type any
-        !i_fields_only type tt_fields_list
+        !i_fields_only type zif_text2tab=>tt_fields_list
         !i_header_descr_lang type sy-langu
         !i_build_data_ref type abap_bool
         !i_keep_order type abap_bool default abap_false
       returning
         value(rs_context) type ty_context
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
 ENDCLASS.
 
 
@@ -463,7 +445,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     field-symbols <c> like line of is_context-components.
     field-symbols <f> like line of is_context-fields_only.
 
-    data lt_fields_only_sorted type ts_fields_list.
+    data lt_fields_only_sorted type zif_text2tab=>ts_fields_list.
     data lt_components_sorted like sorted table of <c> with unique key name.
 
     lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).
@@ -638,7 +620,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     endif.
 
     case i_header_type.
-      when c_header-technical_names.
+      when zif_text2tab=>c_header-technical_names.
         _serialize_header(
           exporting
             is_context          = ls_context
@@ -646,7 +628,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
             iv_add_header_descr = abap_false
           changing
             ct_lines = lt_lines ).
-      when c_header-descriptions.
+      when zif_text2tab=>c_header-descriptions.
         _serialize_header(
           exporting
             is_context          = ls_context
@@ -690,7 +672,7 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
     field-symbols <c> like line of is_context-components.
     field-symbols <f> like line of is_context-fields_only.
 
-    data lt_fields_only_sorted type ts_fields_list.
+    data lt_fields_only_sorted type zif_text2tab=>ts_fields_list.
     data lt_components_sorted like sorted table of <c> with unique key name.
 
     lv_limit_fields = boolc( lines( is_context-fields_only ) > 0 ).

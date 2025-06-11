@@ -1,48 +1,20 @@
-class ZCL_TEXT2TAB_UTILS definition
+class zcl_text2tab_utils definition
   public
   final
-  create public .
+  create public.
 
   public section.
-
-    types:
-      begin of ty_comp_descr.
-        include type abap_compdescr.
-    types:
-        edit_mask type abap_editmask,
-        output_length type i,
-        ignore type abap_bool,
-        description type string,
-      end of ty_comp_descr .
-    types:
-      tt_comp_descr type standard table of ty_comp_descr with default key .
-    types:
-      begin of ty_deep_address,
-        location  type string,
-        key_field type abap_compname, " at source table
-        ref_field type abap_compname, " at target (currently processed) table
-        key_value type string,
-      end of ty_deep_address.
-    types:
-      begin of ty_field_name_map,
-        from type string,
-        to   type abap_compname,
-      end of ty_field_name_map .
-    types:
-      tt_field_name_map type standard table of ty_field_name_map with key from .
-    types:
-      th_field_name_map type hashed table of ty_field_name_map with unique key from .
 
     class-methods function_exists
       importing
         !i_function_name type tfdir-funcname
       returning
-        value(r_yes) type abap_bool .
+        value(r_yes) type abap_bool.
     class-methods validate_date_format_spec
       importing
-        !i_date_format type zcl_text2tab_parser=>ty_date_format
+        !i_date_format type zif_text2tab=>ty_date_format
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods describe_struct
       importing
         !i_struc type ref to cl_abap_structdescr
@@ -50,22 +22,22 @@ class ZCL_TEXT2TAB_UTILS definition
         !i_ignore_nonflat type abap_bool default abap_false
         !i_with_descr_in_lang type sy-langu optional
       returning
-        value(rt_descr) type tt_comp_descr
+        value(rt_descr) type zif_text2tab=>tt_comp_descr
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods check_version_fits
       importing
         !i_required_version type csequence
         !i_current_version type csequence
       returning
-        value(r_fits) type abap_bool .
+        value(r_fits) type abap_bool.
     class-methods parse_deep_address
       importing
         !i_address type string
       returning
-        value(rs_parsed) type ty_deep_address
+        value(rs_parsed) type zif_text2tab=>ty_deep_address
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods get_struc_field_value_by_name
       importing
         !i_struc type any
@@ -73,34 +45,34 @@ class ZCL_TEXT2TAB_UTILS definition
       exporting
         !e_value type any
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods break_to_lines
       importing
         !i_text type string
         !i_begin_comment type zif_text2tab=>ty_begin_comment
       returning
-        value(rt_tab) type string_table .
+        value(rt_tab) type string_table.
     class-methods get_safe_struc_descr
       importing
         !i_pattern type any
       returning
         value(ro_struc_descr) type ref to cl_abap_structdescr
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods build_rename_map
       importing
         !i_rename_fields type any
       returning
-        value(r_rename_map) type tt_field_name_map
+        value(r_rename_map) type zif_text2tab=>tt_field_name_map
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
     class-methods create_standard_table_of
       importing
         i_pattern type any
       returning
         value(rr_dref) type ref to data
       raising
-        zcx_text2tab_error .
+        zcx_text2tab_error.
 
   protected section.
   private section.
@@ -123,6 +95,7 @@ class ZCL_TEXT2TAB_UTILS definition
         i_str_ver type csequence
       returning
         value(rs_ver) type ty_version.
+
 ENDCLASS.
 
 

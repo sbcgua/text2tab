@@ -107,7 +107,7 @@ class ltcl_text2tab_parser_test definition for testing
     data mt_dummy_tmp type tt_dummy.
     data mt_dummy_str_tmp type tt_dummy_str.
     data mt_strict_tmp type abap_bool.
-    data mt_field_components type zcl_text2tab_utils=>tt_comp_descr.
+    data mt_field_components type zif_text2tab=>tt_comp_descr.
 
     methods setup raising zcx_text2tab_error.
     methods get_dummy_data
@@ -119,8 +119,8 @@ class ltcl_text2tab_parser_test definition for testing
         e_dummy_tab_s  type tt_dummy_str
         e_dummy_header type string
         e_dummy_string type string
-        e_map_corresp  type zcl_text2tab_parser=>tt_field_map
-        e_map          type zcl_text2tab_parser=>tt_field_map.
+        e_map_corresp  type zif_text2tab=>tt_field_map
+        e_map          type zif_text2tab=>tt_field_map.
     methods get_dummy_data_with_time
       exporting
         e_exp_result        type ty_dummy_with_time
@@ -213,7 +213,7 @@ class ltcl_text2tab_parser_test implementation.
     data:
           lo type ref to zcl_text2tab_parser,
           lx type ref to zcx_text2tab_error,
-          lv_date_format type zcl_text2tab_parser=>ty_date_format,
+          lv_date_format type zif_text2tab=>ty_date_format,
           ls_dummy       type ty_dummy,
           lt_dummy       type tt_dummy,
           lv_dummy       type i.
@@ -683,7 +683,7 @@ class ltcl_text2tab_parser_test implementation.
     data:
       ls_dummy       type ty_dummy,
       lo_struc_descr type ref to cl_abap_structdescr,
-      lt_components  type zcl_text2tab_utils=>tt_comp_descr,
+      lt_components  type zif_text2tab=>tt_comp_descr,
       ls_component   like line of lt_components,
       lx             type ref to zcx_text2tab_error.
 
@@ -847,9 +847,9 @@ class ltcl_text2tab_parser_test implementation.
           l_header      type string,
           l_header_bak  type string,
           l_exp_code    type c length 2,
-          l_act_map     type zcl_text2tab_parser=>tt_field_map,
-          l_exp_map     type zcl_text2tab_parser=>tt_field_map,
-          l_ren_map     type zcl_text2tab_utils=>th_field_name_map,
+          l_act_map     type zif_text2tab=>tt_field_map,
+          l_exp_map     type zif_text2tab=>tt_field_map,
+          l_ren_map     type zif_text2tab=>th_field_name_map,
           l_rename      like line of l_ren_map,
           lx            type ref to zcx_text2tab_error.
 
@@ -1001,9 +1001,9 @@ class ltcl_text2tab_parser_test implementation.
 
     data:
           l_header      type string,
-          l_act_map     type zcl_text2tab_parser=>tt_field_map,
-          l_exp_map     type zcl_text2tab_parser=>tt_field_map,
-          l_ren_map     type zcl_text2tab_utils=>th_field_name_map.
+          l_act_map     type zif_text2tab=>tt_field_map,
+          l_exp_map     type zif_text2tab=>tt_field_map,
+          l_ren_map     type zif_text2tab=>th_field_name_map.
 
     get_dummy_data(
       importing
@@ -1030,7 +1030,7 @@ class ltcl_text2tab_parser_test implementation.
           l_dataline    type string,
           l_header_bak  type string,
           l_exp_code    type c length 2,
-          lt_map        type zcl_text2tab_parser=>tt_field_map,
+          lt_map        type zif_text2tab=>tt_field_map,
           lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_header = l_header_bak
@@ -1072,7 +1072,7 @@ class ltcl_text2tab_parser_test implementation.
           dummy_tab_act type tt_dummy,
           l_string      type string,
           lt_data       type table of string,
-          lt_map        type zcl_text2tab_parser=>tt_field_map,
+          lt_map        type zif_text2tab=>tt_field_map,
           lx            type ref to zcx_text2tab_error.
 
     get_dummy_data( importing e_dummy_tab    = dummy_tab_exp
@@ -1352,7 +1352,7 @@ class ltcl_text2tab_parser_test implementation.
     split lv_dummy_head at c_tab into table lt_header_exp.
 
     l_string = replace( val = l_string sub = 'TSTRING' with = 'SOME_FIELD' ).
-    data lt_map type zcl_text2tab_utils=>tt_field_name_map.
+    data lt_map type zif_text2tab=>tt_field_name_map.
     field-symbols <map> like line of lt_map.
     append initial line to lt_map assigning <map>.
     <map>-from = 'some_field'.
@@ -1430,9 +1430,9 @@ class ltcl_text2tab_parser_test implementation.
       i_ignore_nonflat = abap_true ).
 
     data:
-      lt_ren_map type zcl_text2tab_utils=>th_field_name_map,
-      lt_act_map type zcl_text2tab_parser=>tt_field_map,
-      lt_exp_map type zcl_text2tab_parser=>tt_field_map,
+      lt_ren_map type zif_text2tab=>th_field_name_map,
+      lt_act_map type zif_text2tab=>tt_field_map,
+      lt_exp_map type zif_text2tab=>tt_field_map,
       lx         type ref to zcx_text2tab_error.
 
 

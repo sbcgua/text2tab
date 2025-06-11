@@ -19,21 +19,6 @@
      <DESCRIPT>Create serializer instance</DESCRIPT>
     </SEOCOMPOTX>
     <SEOCOMPOTX>
-     <CMPNAME>C_CRLF</CMPNAME>
-     <LANGU>E</LANGU>
-     <DESCRIPT>&quot;Carriage Return and Line Feed&quot; Character Pair</DESCRIPT>
-    </SEOCOMPOTX>
-    <SEOCOMPOTX>
-     <CMPNAME>C_LF</CMPNAME>
-     <LANGU>E</LANGU>
-     <DESCRIPT>&quot;New</DESCRIPT>
-    </SEOCOMPOTX>
-    <SEOCOMPOTX>
-     <CMPNAME>C_TAB</CMPNAME>
-     <LANGU>E</LANGU>
-     <DESCRIPT>&quot;Horizontal Tab Stop&quot; Character</DESCRIPT>
-    </SEOCOMPOTX>
-    <SEOCOMPOTX>
      <CMPNAME>MV_DATE_FORMAT</CMPNAME>
      <LANGU>E</LANGU>
      <DESCRIPT>Not More Closely Defined Area, Possibly Used for Patchlevels</DESCRIPT>

@@ -8,8 +8,9 @@ Legend
 + : added
 - : removed
 
-v2.4.1, 2025-??
+v2.5.0, 2025-06-10
 ------------------
+! BREAKING: move types to zif_text2tab interface #27
 + new documentation based on docusaurus.io
 
 v2.4.0, 2025-01-22

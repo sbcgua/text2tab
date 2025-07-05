@@ -171,7 +171,11 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     elseif lo_type->type_kind = cl_abap_typedescr=>typekind_char or lo_type->type_kind = cl_abap_typedescr=>typekind_string.
       data lt_renames type string_table.
       field-symbols <str> type string.
-      split i_rename_fields at ';' into table lt_renames.
+      if find( val = i_rename_fields sub = ',' ) >= 0.
+        split i_rename_fields at ',' into table lt_renames. " TODO maybe make comma the only separator
+      else.
+        split i_rename_fields at ';' into table lt_renames.
+      endif.
       delete lt_renames where table_line is initial.
       loop at lt_renames assigning <str>.
         clear ls_rename.

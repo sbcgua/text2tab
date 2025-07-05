@@ -101,6 +101,8 @@ class ltcl_text2tab_parser_test definition for testing
     methods deep_structures for testing.
     methods parse_corresponding for testing raising zcx_text2tab_error.
 
+    methods begin_comments for testing raising zcx_text2tab_error.
+    methods line_comments for testing raising zcx_text2tab_error.
 
 * ==== HELPERS ===
 
@@ -1648,6 +1650,71 @@ class ltcl_text2tab_parser_test implementation.
     clear lt_exp.
     append 'KG' to lt_exp.
     append 'PC' to lt_exp. " No conversion
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
+
+  endmethod.
+
+  method begin_comments.
+
+    data lv_text_orig type string.
+    data lt_exp type tt_dummy.
+    data lt_act like lt_exp.
+
+    get_dummy_data(
+      importing
+        e_dummy_tab    = lt_exp
+        e_dummy_string = lv_text_orig ).
+
+    zcl_text2tab_parser=>create(
+      i_pattern = lt_act
+      i_begin_comment = '#'
+    )->parse(
+      exporting
+        i_data      = |#comment{ c_crlf }{ lv_text_orig }|
+      importing
+        e_container = lt_act ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
+
+    zcl_text2tab_parser=>create(
+      i_pattern = lt_act
+      i_begin_comment = zif_text2tab=>c_auto_detect_by_space
+    )->parse(
+      exporting
+        i_data      = |field descr with space\tanother one...{ c_crlf }{ lv_text_orig }|
+      importing
+        e_container = lt_act ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
+
+  endmethod.
+
+  method line_comments.
+
+    data lv_text_orig type string.
+    data lt_exp type tt_dummy.
+    data lt_act like lt_exp.
+
+    get_dummy_data(
+      importing
+        e_dummy_tab    = lt_exp
+        e_dummy_string = lv_text_orig ).
+
+    zcl_text2tab_parser=>create(
+      i_pattern = lt_act
+      i_skip_lines_starting_with = '#'
+    )->parse(
+      exporting
+        i_data      = |{ lv_text_orig }#comment| " CRLF is already at the end, no need to add
+      importing
+        e_container = lt_act ).
 
     cl_abap_unit_assert=>assert_equals(
       act = lt_act

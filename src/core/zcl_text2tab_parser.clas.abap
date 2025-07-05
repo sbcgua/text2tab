@@ -20,6 +20,7 @@ class zcl_text2tab_parser definition
         !i_amount_format  type zif_text2tab=>ty_amount_format optional
         !i_date_format    type zif_text2tab=>ty_date_format optional
         !i_begin_comment  type zif_text2tab=>ty_begin_comment optional
+        !i_skip_lines_starting_with type zif_text2tab=>ty_begin_comment optional
         !i_deep_provider  type ref to zif_text2tab_deep_provider optional
       returning
         value(ro_parser) type ref to zcl_text2tab_parser
@@ -60,6 +61,7 @@ class zcl_text2tab_parser definition
     data mv_line_index type i.
     data mv_is_typeless type abap_bool.
     data mv_begin_comment type zif_text2tab=>ty_begin_comment.
+    data mv_skip_lines_starting_with type zif_text2tab=>ty_begin_comment.
     data mt_ignore_exits type sorted table of abap_editmask with unique key table_line.
 
     data mt_components type zif_text2tab=>tt_comp_descr.
@@ -244,6 +246,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     endif.
 
     ro_parser->mv_begin_comment = i_begin_comment.
+    ro_parser->mv_skip_lines_starting_with = i_skip_lines_starting_with.
 
   endmethod.
 
@@ -416,6 +419,10 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       if <dataline> is initial. " Check empty lines
         check mv_line_index < lines( it_data ). " Last line of a file may be empty, others - not
         raise_error( i_msg = 'Empty line cannot be parsed'  i_code = 'LE' ). "#EC NOTEXT
+      endif.
+
+      if mv_skip_lines_starting_with is not initial and <dataline>+0(1) = mv_skip_lines_starting_with.
+        continue. " Skip comment lines
       endif.
 
       parse_line(

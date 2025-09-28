@@ -35,7 +35,7 @@ zcl_text2tab_parser=>create( lt_container )->parse(
 * JOHN  02.02.1995
 ```
 
-Renames can be also passed as a string in this format: `'field_to_rename:new_name;another_field:another_new_name'`. Coding convenience is important ;)
+Renames can be also passed as a string in this format: `'field_to_rename:new_name, another_field:another_new_name'`. `;` and `,` are supported as separators. Coding convenience is important ;)
 
 ```abap
 zcl_text2tab_parser=>create( lt_container )->parse(
@@ -134,7 +134,9 @@ JOHN    01.01.1990
 Now we should call the factory method like this and the first line is interpreted as a comment:
 
 ```abap
-zcl_text2tab_parser=>create( i_pattern = ls_birthday i_begin_comment = '*' ).
+zcl_text2tab_parser=>create(
+  i_pattern = ls_birthday
+  i_begin_comment = '*' ).
 ```
 
 The char '*' must have the first position in the text line.  Otherwise it isn't interpreted as a comment.
@@ -146,3 +148,22 @@ Name    Date of birth <<< containes spaces
 NAME    BIRTHDAY
 JOHN    01.01.1990
 ```
+
+### Within-data comments
+
+Also the data can contain commented lines. They can be skipped if started with a char passed with `i_skip_lines_starting_with` param. This can be useful for human-friendly data grouping.
+
+```abap
+zcl_text2tab_parser=>create(
+  i_pattern = ls_birthday
+  i_skip_lines_starting_with = '#' ).
+```
+
+```text
+NAME    BIRTHDAY
+# Managers <<< will be ignored
+John    01.01.1990
+# Employees <<< will be ignored
+Anna    01.01.1990
+```
+

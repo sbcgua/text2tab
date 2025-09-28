@@ -93,6 +93,16 @@ class ltcl_text2tab_utils_test implementation.
     endtry.
     cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
 
+    " with comma
+    lv_fields = 'some_field:tstring,some_field2:tstring2,,'.
+
+    try.
+      lt_map_act = zcl_text2tab_utils=>build_rename_map( lv_fields ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>fail( lx->get_text( ) ).
+    endtry.
+    cl_abap_unit_assert=>assert_equals( act = lt_map_act exp = lt_map_exp ).
+
   endmethod.
 
   method break_to_lines.

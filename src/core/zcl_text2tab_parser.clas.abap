@@ -924,8 +924,13 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       append ls_comp to lt_components.
     endloop.
 
-    ld_struc    = cl_abap_structdescr=>create( lt_components ).
-    e_container = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
+    data lx_type type ref to cx_sy_struct_creation.
+    try.
+      ld_struc    = cl_abap_structdescr=>create( lt_components ).
+      e_container = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
+    catch cx_sy_struct_creation into lx_type.
+      raise_error( i_msg = 'Error creating receiving typeless structure' ). "#EC NOTEXT
+    endtry.
 
     " parse remaining data into the structure
     field-symbols <tab> type any.

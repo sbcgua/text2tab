@@ -8,8 +8,9 @@ Legend
 + : added
 - : removed
 
-v2.5.1, 2026-?
+v2.5.1, 2026-04-13
 ------------------
+! updated docusaurus to 3.10 and to pnpm
 * Improve structure creation error handling in typeless parsing
 + New parameter skip_lines_starting_with to allow skipping "commented" lines
 + String i_renames now also support `,` delimiter

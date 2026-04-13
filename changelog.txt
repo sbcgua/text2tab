@@ -8,10 +8,11 @@ Legend
 + : added
 - : removed
 
-v2.5.1, 2025-?
+v2.5.1, 2026-?
 ------------------
-+ new parameter skip_lines_starting_with to allow skipping "commented" lines
-+ string i_renames now also support `,` delimiter
+* Improve structure creation error handling in typeless parsing
++ New parameter skip_lines_starting_with to allow skipping "commented" lines
++ String i_renames now also support `,` delimiter
 
 v2.5.0, 2025-06-10
 ------------------

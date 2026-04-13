@@ -7,7 +7,7 @@ tags: [old]
 
 I'd like to share a piece of code which might be useful for someone. It is called text2tab (at the time of initial publishing - Abap data parser). Its purpose is parsing of TAB-delimited text into an arbitrary flat structure or internal table. Why TAB-delimited? This is the format which is used automatically if you copy (clipboard) something from Excel - this creates some opportunities for good program usability.
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## Example
 

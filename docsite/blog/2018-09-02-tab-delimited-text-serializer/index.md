@@ -7,7 +7,7 @@ tags: [old]
 
 My first article on this topic was quite a while ago - [Abap tab-delimited text parser](/blog/tab-delimited-text-parser) - Since then I added some improvements to the project. The main new feature is serializing. `ZCL_TEXT2TAB_SERIALIZER` class supports serialization of flat tables and structures. Here is how it works ...
 
-<!-- truncate -->
+{/*truncate*/}
 
 ## Let's start with an example
 

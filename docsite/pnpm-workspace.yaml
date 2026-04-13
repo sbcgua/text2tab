@@ -1,4 +1,5 @@
-minimumReleaseAge: 10080
+# minimumReleaseAge: 10080
+minimumReleaseAge: 5040
 
 blockExoticSubdeps: true
 
@@ -9,3 +10,6 @@ allowBuilds:
   core-js: true
 
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - 'detect-port@1.6.1'
+  - 'semver@6.3.1'

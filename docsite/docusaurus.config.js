@@ -29,7 +29,7 @@ const config = {
 
   future: {
     v4: true,
-    experimental_faster: true,
+    faster: true,
   },
 
   title:   'Text2Tab',

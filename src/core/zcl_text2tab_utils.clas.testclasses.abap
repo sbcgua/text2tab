@@ -10,7 +10,6 @@ class ltcl_text2tab_utils_test definition
     constants c_crlf  like cl_abap_char_utilities=>cr_lf value cl_abap_char_utilities=>cr_lf.
     constants c_lf    like cl_abap_char_utilities=>newline value cl_abap_char_utilities=>newline.
 
-* ==== TESTING ===
     methods validate_date_format_spec for testing.
     methods function_exists for testing.
     methods get_safe_struc_descr for testing raising zcx_text2tab_error.
@@ -24,15 +23,12 @@ class ltcl_text2tab_utils_test definition
 
     methods parse_deep_address for testing raising zcx_text2tab_error.
     methods get_struc_field_value_by_name for testing raising zcx_text2tab_error.
+    methods get_typeless_struc_descr for testing raising zcx_text2tab_error.
 
     methods check_version_fits for testing.
     methods check_version_fits_w_pre for testing.
 
 endclass.
-
-**********************************************************************
-* Implementation
-**********************************************************************
 
 class ltcl_text2tab_utils_test implementation.
 
@@ -569,6 +565,78 @@ class ltcl_text2tab_utils_test implementation.
     cl_abap_unit_assert=>assert_equals( act = lo_type->kind exp = cl_abap_typedescr=>kind_table ).
     lo_ttype ?= lo_type.
     cl_abap_unit_assert=>assert_equals( act = lo_ttype->table_kind exp = cl_abap_tabledescr=>tablekind_std ).
+
+  endmethod.
+
+  method get_typeless_struc_descr.
+
+    data lt_fields type string_table.
+    data lo_stype type ref to cl_abap_structdescr.
+    data lx type ref to zcx_text2tab_error.
+    field-symbols <comp> like line of lo_stype->components.
+
+    append 'a' to lt_fields.
+    append 'b' to lt_fields.
+    append 'c' to lt_fields.
+
+    lo_stype = zcl_text2tab_utils=>get_typeless_struc_descr( lt_fields ).
+    cl_abap_unit_assert=>assert_equals(
+      act = lines( lo_stype->components )
+      exp = 3 ).
+
+    loop at lo_stype->components assigning <comp>.
+      case sy-tabix.
+        when 1.
+          cl_abap_unit_assert=>assert_equals( act = <comp>-name exp = 'A' ).
+        when 2.
+          cl_abap_unit_assert=>assert_equals( act = <comp>-name exp = 'B' ).
+        when 3.
+          cl_abap_unit_assert=>assert_equals( act = <comp>-name exp = 'C' ).
+      endcase.
+    endloop.
+
+    append '!' to lt_fields.
+    try.
+      zcl_text2tab_utils=>get_typeless_struc_descr( lt_fields ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'WE' ).
+    endtry.
+
+    delete lt_fields index 4.
+    append `` to lt_fields.
+    try.
+      zcl_text2tab_utils=>get_typeless_struc_descr( lt_fields ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'EN' ).
+    endtry.
+
+    delete lt_fields index 4.
+    append ` ` to lt_fields.
+    try.
+      zcl_text2tab_utils=>get_typeless_struc_descr( lt_fields ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'WE' ).
+    endtry.
+
+    delete lt_fields index 4.
+    append `A` to lt_fields.
+    try.
+      zcl_text2tab_utils=>get_typeless_struc_descr( lt_fields ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals(
+        act = lx->code
+        exp = 'ND' ).
+    endtry.
 
   endmethod.
 

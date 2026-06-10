@@ -73,6 +73,13 @@ class zcl_text2tab_utils definition
         value(rr_dref) type ref to data
       raising
         zcx_text2tab_error.
+    class-methods get_typeless_struc_descr
+      importing
+        !i_fields type string_table
+      returning
+        value(ro_struc_descr) type ref to cl_abap_structdescr
+      raising
+        zcx_text2tab_error.
 
   protected section.
   private section.
@@ -374,6 +381,54 @@ CLASS ZCL_TEXT2TAB_UTILS IMPLEMENTATION.
     endif.
 
     e_value = <val>. " Maybe catch move error ?
+
+  endmethod.
+
+
+  method get_typeless_struc_descr.
+
+    data lt_components type cl_abap_structdescr=>component_table.
+    data ls_comp like line of lt_components.
+    data lt_uniq like hashed table of ls_comp-name with unique default key.
+    field-symbols <f> like line of i_fields.
+
+    ls_comp-type = cl_abap_elemdescr=>get_string( ).
+
+    loop at i_fields assigning <f>.
+      ls_comp-name = to_upper( <f> ).
+
+      if ls_comp-name is initial.
+        raise exception type zcx_text2tab_error
+          exporting
+            methname = 'GET_TYPELESS_STRUC_DESCR'
+            msg      = 'Empty field name found'
+            code     = 'EN'.
+      endif.
+      " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, strict mode
+      if ls_comp-name = 'TABLE_LINE'                                     " reserved word
+        or strlen( ls_comp-name ) > abap_max_comp_name_ln                " too long
+        or ls_comp-name+0(1) cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_'            " illegal char in name
+        or ls_comp-name+1(*) cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789'.
+        raise exception type zcx_text2tab_error
+          exporting
+            methname = 'GET_TYPELESS_STRUC_DESCR'
+            msg      = 'Incorrect field name (long or special chars used)'
+            code     = 'WE'.
+      endif.
+
+      insert ls_comp-name into table lt_uniq.
+      if sy-subrc <> 0.
+        raise exception type zcx_text2tab_error
+          exporting
+            methname = 'GET_TYPELESS_STRUC_DESCR'
+            msg      = |Field name duplicate { ls_comp-name }|
+            code     = 'ND'.
+      endif.
+
+      append ls_comp to lt_components.
+    endloop.
+
+    ro_struc_descr = cl_abap_structdescr=>create( lt_components ).
 
   endmethod.
 

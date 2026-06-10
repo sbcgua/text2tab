@@ -533,8 +533,8 @@ CLASS ZCL_TEXT2TAB_SERIALIZER IMPLEMENTATION.
 
 
   method serialize_field.
-    data:
-          l_tmp type c length 40.
+
+    data l_tmp type c length 40.
 
     case is_component-type_kind.
 

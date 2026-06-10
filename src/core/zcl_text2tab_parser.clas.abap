@@ -900,7 +900,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     data lt_map type zif_text2tab=>tt_field_map.
     field-symbols <f> like line of e_head_fields.
 
-    lt_data = zcl_text2tab_utils=>break_to_lines( i_text = i_data i_begin_comment = mv_begin_comment ).
+    lt_data = zcl_text2tab_utils=>break_to_lines(
+      i_text          = i_data
+      i_begin_comment = mv_begin_comment ).
 
     " Read and process header line
     parse_head_line(
@@ -914,28 +916,17 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         ct_map         = lt_map ).
 
     " Create dynamic structure
-    data lt_components type abap_component_tab.
-    data ls_comp like line of lt_components.
-    data ld_struc type ref to cl_abap_structdescr.
-
-    ls_comp-type ?= cl_abap_typedescr=>describe_by_name( 'STRING' ).
-    loop at e_head_fields assigning <f>.
-      ls_comp-name = <f>.
-      append ls_comp to lt_components.
-    endloop.
-
     data lx_type type ref to cx_sy_struct_creation.
     try.
-      ld_struc    = cl_abap_structdescr=>create( lt_components ).
-      e_container = zcl_text2tab_utils=>create_standard_table_of( ld_struc ).
+      mo_struc_descr = zcl_text2tab_utils=>get_typeless_struc_descr( e_head_fields ).
+      e_container = zcl_text2tab_utils=>create_standard_table_of( mo_struc_descr ).
     catch cx_sy_struct_creation into lx_type.
-      raise_error( i_msg = 'Error creating receiving typeless structure' ). "#EC NOTEXT
+      raise_error( i_msg = 'Error creating receiving typeless structure' ).
     endtry.
 
     " parse remaining data into the structure
     field-symbols <tab> type any.
     assign e_container->* to <tab>.
-    mo_struc_descr = ld_struc. "TODO: hack, maybe improve
     mt_components  = zcl_text2tab_utils=>describe_struct(
       i_struc          = mo_struc_descr
       i_ignore_nonflat = abap_false ).

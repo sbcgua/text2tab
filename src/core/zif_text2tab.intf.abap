@@ -65,5 +65,7 @@ interface zif_text2tab
       ref_field type abap_compname, " at target (currently processed) table
       key_value type string,
     end of ty_deep_address.
+  types:
+    ty_grid type standard table of string_table with default key.
 
 endinterface.

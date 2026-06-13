@@ -13,6 +13,7 @@ class zcl_text2tab_parser definition
         !i_required_version type string
       returning
         value(r_fits) type abap_bool.
+
     class-methods create
       importing
         !i_pattern type any         " target structure or table
@@ -31,6 +32,21 @@ class zcl_text2tab_parser definition
         value(ro_parser) type ref to zcl_text2tab_parser
       raising
         zcx_text2tab_error.
+    class-methods typify
+      importing
+        !i_data type standard table " typeless table: each field of string type
+        !i_strict type abap_bool default abap_false
+        !i_corresponding type abap_bool default abap_true
+        !i_rename_fields type any optional
+        !i_ignore_nonflat type abap_bool default abap_false
+        !i_amount_format  type zif_text2tab=>ty_amount_format optional
+        !i_date_format    type zif_text2tab=>ty_date_format optional
+      exporting
+        !e_container type any
+        !e_head_fields type string_table
+      raising
+        zcx_text2tab_error.
+
     methods parse
       importing
         !i_data type string
@@ -48,6 +64,7 @@ class zcl_text2tab_parser definition
         !i_convexit type abap_editmask
       returning
         value(ro_parser) type ref to zcl_text2tab_parser.
+
 
   protected section.
   private section.
@@ -67,7 +84,7 @@ class zcl_text2tab_parser definition
     data mt_components type zif_text2tab=>tt_comp_descr.
     data mi_deep_provider type ref to zif_text2tab_deep_provider.
 
-    methods parse_typefull
+    methods parse_typeful
       importing
         !i_data type string
         !i_strict type abap_bool default abap_true
@@ -101,27 +118,38 @@ class zcl_text2tab_parser definition
         zcx_text2tab_error.
     methods map_head_structure
       importing
-        !i_header type string
+        !i_header type string optional
+        !io_struc type ref to cl_abap_structdescr optional
         !i_strict type abap_bool
         !i_corresponding type abap_bool
-        !i_rename_map type zif_text2tab=>th_field_name_map
+        !i_rename_map type zif_text2tab=>th_field_name_map optional
       exporting
         !et_map type zif_text2tab=>tt_field_map
         !et_head_fields type string_table
       raising
         zcx_text2tab_error.
+    methods get_fields_list_safe
+      importing
+        !i_header type string optional
+        !io_struc type ref to cl_abap_structdescr optional
+      returning
+        value(rt_head_fields) type string_table
+      raising
+        zcx_text2tab_error.
     methods parse_data
       importing
-        !it_data type string_table
+        !it_data type any table
         !it_map type zif_text2tab=>tt_field_map
+        !i_struc_mode type abap_bool default abap_false
       exporting
         !e_container type any
       raising
         zcx_text2tab_error.
     methods parse_line
       importing
-        !i_dataline type string
+        !i_dataline type any
         !it_map type zif_text2tab=>tt_field_map
+        !i_struc_mode type abap_bool default abap_false
       exporting
         !es_container type any
       raising
@@ -170,6 +198,7 @@ class zcl_text2tab_parser definition
         !i_code type zcx_text2tab_error=>ty_rc optional
       raising
         zcx_text2tab_error.
+
 ENDCLASS.
 
 
@@ -257,6 +286,34 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   endmethod.
 
 
+  method get_fields_list_safe.
+
+    data l_field_cnt type i.
+    data l_tab_cnt   type i.
+    field-symbols <comp> like line of io_struc->components.
+
+    if i_header is not initial.
+      split i_header at c_tab into table rt_head_fields.
+      l_field_cnt = lines( rt_head_fields ).
+
+      " Check if the line ends with TAB
+      find all occurrences of c_tab in i_header match count l_tab_cnt.
+      if l_tab_cnt = l_field_cnt. " Line ends with TAB, last empty field is not added to table, see help for 'split'
+        raise_error( i_msg = 'Empty field at the end' i_code = 'EE' ).
+      endif.
+
+    elseif io_struc is bound.
+      loop at io_struc->components assigning <comp>.
+        append <comp>-name to rt_head_fields.
+      endloop.
+
+    else.
+      raise_error( i_msg = 'Field list is not given' i_code = 'FLNG' ).
+    endif.
+
+  endmethod.
+
+
   method ignore_conv_exit.
     insert i_convexit into table mt_ignore_exits.
     ro_parser = me.
@@ -264,33 +321,28 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
 
   method map_head_structure.
-    data:
-          l_field_cnt  type i,
-          l_mandt_cnt  type i,
-          l_tab_cnt    type i,
-          lt_dupcheck  type string_table.
 
-    clear: et_map, et_head_fields.
-    assert not ( i_strict = abap_true and mv_is_typeless = abap_true ).
-    assert not ( i_strict = abap_true and i_corresponding = abap_true ).
+    data l_mandt_cnt type i.
+    data l_field_cnt type i.
+    data lt_dupcheck type string_table.
 
     field-symbols <field> type string.
 
-    split i_header at c_tab into table et_head_fields.
-    l_field_cnt = lines( et_head_fields ).
+    assert not ( i_strict = abap_true and mv_is_typeless = abap_true ).
+    assert not ( i_strict = abap_true and i_corresponding = abap_true ).
+    clear et_map.
 
-    " Check if the line ends with TAB
-    find all occurrences of c_tab in i_header match count l_tab_cnt.
-    if l_tab_cnt = l_field_cnt. " Line ends with TAB, last empty field is not added to table, see help for 'split'
-      raise_error( i_msg = 'Empty field at the end' i_code = 'EE' ).   "#EC NOTEXT
-    endif.
+    et_head_fields = get_fields_list_safe(
+      i_header = i_header
+      io_struc = io_struc ).
+    l_field_cnt = lines( et_head_fields ).
 
     " Compare number of fields, check structure similarity
     if i_strict = abap_true.
       read table mt_components with key name = 'MANDT' transporting no fields.
-      if sy-subrc is initial. " Found in structure components
+      if sy-subrc = 0. " Found in structure components
         read table et_head_fields with key table_line = 'MANDT' transporting no fields.
-        if sy-subrc is not initial. " But not found in the file
+        if sy-subrc <> 0. " But not found in the file
           l_mandt_cnt = 1. " MANDT field may be skipped
         endif.
       endif.
@@ -313,8 +365,9 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     if i_rename_map is not initial.
       loop at et_head_fields assigning <field>.
         read table i_rename_map with key from = <field> into ls_rename.
-        check sy-subrc is initial.
-        <field> = ls_rename-to.
+        if sy-subrc = 0.
+          <field> = ls_rename-to.
+        endif.
       endloop.
 
       lt_dupcheck = et_head_fields.
@@ -331,13 +384,14 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
       if <field> is initial. " Check empty fields
         raise_error( i_msg = 'Empty field name found' i_code = 'EN' ).   "#EC NOTEXT
       endif.
-      " ~ following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, non-strict mode characters included
-      if strlen( <field> ) > abap_max_comp_name_ln or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
+      " following CL_ABAP_STRUCTDESCR->CHECK_COMPONENT_TABLE, non-strict mode characters included
+      if strlen( <field> ) > abap_max_comp_name_ln or <field> = 'TABLE_LINE'
+        or <field> cn 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789#$%&*-/;<=>?@^{|}'.
         raise_error( i_msg = 'Incorrect field name (long or special chars used)' i_code = 'WE' ). "#EC NOTEXT
       endif.
       if mv_is_typeless = abap_false.
         read table mt_components with key name = <field> assigning <component>.
-        if sy-subrc is initial.
+        if sy-subrc = 0.
           if <component>-ignore = abap_false.
             append sy-tabix to et_map.
           else.
@@ -376,7 +430,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
           e_container   = e_container
           e_head_fields = e_head_fields ).
     else.
-      parse_typefull(
+      parse_typeful(
         exporting
           i_data       = i_data
           i_has_head   = i_has_head
@@ -393,14 +447,12 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse_data.
 
-    data:
-          l_container_kind like cl_abap_typedescr=>kind,
-          ref_tab_line     type ref to data.
+    data l_container_kind like cl_abap_typedescr=>kind.
+    data ref_tab_line type ref to data.
 
-    field-symbols:
-                   <dataline> type string,
-                   <table>    type any table,
-                   <record>   type any.
+    field-symbols <dataline> type any.
+    field-symbols <table> type any table.
+    field-symbols <record> type any.
 
     clear e_container.
 
@@ -408,7 +460,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     l_container_kind = cl_abap_typedescr=>describe_by_data( e_container )->kind.
     create data ref_tab_line type handle mo_struc_descr.
     assign ref_tab_line->* to <record>.
-    if l_container_kind = 'T'. " Table
+    if l_container_kind = cl_abap_typedescr=>kind_table.
       assign e_container   to <table>.
     endif.
 
@@ -416,25 +468,28 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
     loop at it_data assigning <dataline>.
       mv_line_index = sy-tabix.
 
-      if <dataline> is initial. " Check empty lines
-        check mv_line_index < lines( it_data ). " Last line of a file may be empty, others - not
-        raise_error( i_msg = 'Empty line cannot be parsed'  i_code = 'LE' ). "#EC NOTEXT
-      endif.
+      if i_struc_mode = abap_false.
+        if <dataline> is initial. " Check empty lines
+          check mv_line_index < lines( it_data ). " Last line of a file may be empty, others - not
+          raise_error( i_msg = 'Empty line cannot be parsed'  i_code = 'LE' ). "#EC NOTEXT
+        endif.
 
-      if mv_skip_lines_starting_with is not initial and <dataline>+0(1) = mv_skip_lines_starting_with.
-        continue. " Skip comment lines
+        if mv_skip_lines_starting_with is not initial and <dataline>+0(1) = mv_skip_lines_starting_with.
+          continue. " Skip comment lines
+        endif.
       endif.
 
       parse_line(
         exporting
-          i_dataline     = <dataline>
-          it_map         = it_map
+          i_dataline   = <dataline>
+          it_map       = it_map
+          i_struc_mode = i_struc_mode
         importing
-          es_container   = <record> ).
+          es_container = <record> ).
 
-      if l_container_kind = 'T'. " Table
+      if l_container_kind = cl_abap_typedescr=>kind_table.
         insert <record> into table <table>.
-      else.                      " Structure
+      else. " Structure
         e_container = <record>.
         exit. " Only first line goes to structure and then exits
       endif.
@@ -741,79 +796,96 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
 
   method parse_line.
 
-    data:
-          lt_fields      type table of string,
-          l_tab_cnt      type i,
-          l_field_value  type string,
-          ls_component   like line of mt_components,
-          l_index        type i.
+    data lt_fields    type table of string.
+    data l_tab_cnt    type i.
+    data ls_component like line of mt_components.
+    data l_index      type i.
 
-    field-symbols <field> type any.
+    field-symbols <dfield> type any.
+    field-symbols <value> type string.
 
     clear es_container.
-    split i_dataline at c_tab into table lt_fields.
 
-    " Count TABs, if line ends with TAB last empty field is not added to table, see help for 'split'
-    find all occurrences of c_tab in i_dataline match count l_tab_cnt.
-    l_tab_cnt = l_tab_cnt + 1. " Number of fields in the line
+    if i_struc_mode = abap_true.
+      l_tab_cnt = lines( it_map ). " Assume size of source = size of map (checked in prev stages)
+    else.
+      split i_dataline at c_tab into table lt_fields.
 
-    " Check field number is the same as in header
-    if l_tab_cnt > lines( it_map ).
-      raise_error( i_msg = 'More fields than in header' i_code = '>H' ). "#EC NOTEXT
-    elseif l_tab_cnt < lines( it_map ).
-      raise_error( i_msg = 'Less fields than in header' i_code = '<H' ). "#EC NOTEXT
+      " Count TABs, if line ends with TAB last empty field is not added to table, see help for 'split'
+      find all occurrences of c_tab in i_dataline match count l_tab_cnt.
+      l_tab_cnt = l_tab_cnt + 1. " Number of fields in the line
+
+      " Check field number is the same as in header
+      if l_tab_cnt > lines( it_map ).
+        raise_error( i_msg = 'More fields than in header' i_code = '>H' ). "#EC NOTEXT
+      elseif l_tab_cnt < lines( it_map ).
+        raise_error( i_msg = 'Less fields than in header' i_code = '<H' ). "#EC NOTEXT
+      endif.
     endif.
 
     " Move data to table line
-    loop at lt_fields into l_field_value.
-      read table it_map into l_index index sy-tabix. " Read map
+    do l_tab_cnt times.
+      read table it_map into l_index index sy-index. " Read map
       if l_index = -1.
         continue. " corresponding parsing
       endif.
 
       read table mt_components into ls_component index l_index.  " Get component
-      if sy-subrc is not initial.
+      if sy-subrc <> 0.
         raise_error( 'No component found?!' ). "#EC NOTEXT
       endif.
 
       check ls_component-name <> 'MANDT'.   " Skip client fields
       mv_current_field = ls_component-name. " For error handling
 
-      unassign <field>.
-      assign component ls_component-name of structure es_container to <field>.
-      if <field> is not assigned.
+      if i_struc_mode = abap_true.
+        assign component sy-index of structure i_dataline to <value>.
+        if sy-subrc <> 0.
+          raise_error( 'Src field assign failed?!' ).
+        endif.
+      else.
+        read table lt_fields index sy-index assigning <value>.
+        if sy-subrc <> 0.
+          exit. " This may happen in case of empty fields at the end of line (split does not create empty entries)
+        endif.
+      endif.
+
+      assign component ls_component-name of structure es_container to <dfield>.
+      if sy-subrc <> 0.
         raise_error( 'Field assign failed?!' ). "#EC NOTEXT
       endif.
 
       if mv_is_typeless = abap_true.
-        <field> = l_field_value.
+        <dfield> = <value>.
+
       elseif ls_component-type_kind = cl_abap_typedescr=>typekind_struct1
         or ls_component-type_kind = cl_abap_typedescr=>typekind_struct2
         or ls_component-type_kind = cl_abap_typedescr=>typekind_table.
 
         assert mi_deep_provider is bound.
-        if l_field_value is not initial.
+        if <value> is not initial.
           mi_deep_provider->select(
             exporting
-              i_address = l_field_value
+              i_address = <value>
               i_cursor  = es_container
             importing
-              e_container = <field> ).
+              e_container = <dfield> ).
           " Potetial bug if key field is parsed AFTER deep field that references it
           " option 1 - just demand key fields before deep ones - look like normal constrain
           " option 2 - postpone parsing of deep fields till after all others were parsed
         endif.
+
       else.
         parse_field(
           exporting
             is_component = ls_component
-            i_value      = l_field_value
+            i_value      = <value>
           importing
-            e_field      = <field> ).
+            e_field      = <dfield> ).
       endif.
 
       clear mv_current_field. " For error handling - field is not processed any more
-    endloop.
+    enddo.
 
   endmethod.
 
@@ -834,7 +906,7 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
   endmethod.
 
 
-  method parse_typefull.
+  method parse_typeful.
 
     data:
           lt_data      type string_table,
@@ -977,6 +1049,70 @@ CLASS ZCL_TEXT2TAB_PARSER IMPLEMENTATION.
         line      = mv_line_index
         structure = l_struc
         location  = l_location.
+
+  endmethod.
+
+
+  method typify.
+
+    data lo_parser type ref to zcl_text2tab_parser.
+
+    lo_parser = create(
+      i_pattern        = e_container
+      i_ignore_nonflat = i_ignore_nonflat
+      i_amount_format  = i_amount_format
+      i_date_format    = i_date_format ).
+
+    " Ensure data is of right format (all components are strings)
+    data lo_ttype type ref to cl_abap_tabledescr.
+    data lo_stype type ref to cl_abap_structdescr.
+    field-symbols <comp> like line of lo_stype->components.
+
+    lo_ttype ?= cl_abap_typedescr=>describe_by_data( i_data ).
+    if lo_ttype->get_table_line_type( )->kind <> cl_abap_typedescr=>kind_struct.
+      zcx_text2tab_error=>raise(
+        msg  = 'Incorrect input data type, must be a table of structure with string components'
+        code = 'IIT' ).
+    endif.
+    lo_stype ?= lo_ttype->get_table_line_type( ).
+    loop at lo_stype->components assigning <comp>.
+      if <comp>-type_kind <> cl_abap_typedescr=>typekind_string.
+        zcx_text2tab_error=>raise(
+          msg  = 'Incorrect input data type, must be a table of structure with string components'
+          code = 'IIT' ).
+      endif.
+    endloop.
+
+    " Validate params
+    if i_corresponding = abap_true and i_strict = abap_true.
+      zcx_text2tab_error=>raise(
+        msg  = 'Cannot be strict and corresponding'
+        code = 'WP' ).
+    endif.
+
+    " Map fields
+    data lt_rename_map type zif_text2tab=>th_field_name_map.
+    data lt_field_map type zif_text2tab=>tt_field_map.
+
+    lt_rename_map = zcl_text2tab_utils=>build_rename_map( i_rename_fields ).
+
+    lo_parser->map_head_structure(
+      exporting
+        io_struc        = lo_stype
+        i_strict        = i_strict
+        i_corresponding = i_corresponding
+        i_rename_map    = lt_rename_map
+      importing
+        et_head_fields = e_head_fields
+        et_map         = lt_field_map ).
+
+    lo_parser->parse_data(
+      exporting
+        it_data      = i_data
+        it_map       = lt_field_map
+        i_struc_mode = abap_true
+      importing
+        e_container  = e_container ).
 
   endmethod.
 

@@ -9,7 +9,7 @@ public section.
   interfaces IF_T100_MESSAGE .
 
   types:
-    TY_RC type c length 2 .
+    TY_RC type c length 4 .
 
   constants:
     begin of ZCX_TEXT2TAB_ERROR,

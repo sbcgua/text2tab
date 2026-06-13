@@ -1723,3 +1723,139 @@ class ltcl_text2tab_parser_test implementation.
   endmethod.
 
 endclass.
+
+**********************************************************************
+
+class ltcl_typify definition final
+  for testing
+  risk level harmless
+  duration short.
+
+  private section.
+
+    types:
+      ty_dummy_typeful type ltcl_text2tab_parser_test=>ty_dummy,
+      tt_dummy_typeful type standard table of ty_dummy_typeful with default key,
+      ty_dummy_typeless type ltcl_text2tab_parser_test=>ty_dummy_str,
+      tt_dummy_typeless type standard table of ty_dummy_typeless with default key.
+
+    methods dummies
+      exporting
+        et_typeful type tt_dummy_typeful
+        et_typeless type tt_dummy_typeless.
+
+    methods happy_path for testing raising zcx_text2tab_error.
+    methods correct_input_type for testing raising zcx_text2tab_error.
+
+endclass.
+
+class ltcl_typify implementation.
+
+  method dummies.
+
+    field-symbols <typeful> like line of et_typeful.
+    field-symbols <typeless> like line of et_typeless.
+
+    if et_typeful is supplied.
+      append initial line to et_typeful assigning <typeful>.
+      <typeful>-tdate    = '20260601'.
+      <typeful>-tchar    = 'XYZ1'.
+      <typeful>-tstring  = 'xyz1'.
+      <typeful>-talpha   = '0000100000'.
+      <typeful>-tdecimal = '123.54'.
+      <typeful>-tnumber  = '1234'.
+      <typeful>-tinteger = 23451.
+      <typeful>-tfloat   = '123.25'.
+
+      append initial line to et_typeful assigning <typeful>.
+      <typeful>-tdate    = '20260602'.
+      <typeful>-tchar    = 'XYZ2'.
+      <typeful>-tstring  = 'xyz2'.
+      <typeful>-talpha   = '0000200000'.
+      <typeful>-tdecimal = '123.54'.
+      <typeful>-tnumber  = '2234'.
+      <typeful>-tinteger = 23452.
+      <typeful>-tfloat   = '123.75'.
+    endif.
+
+    if et_typeless is supplied.
+      append initial line to et_typeless assigning <typeless>.
+      <typeless>-tdate    = '01.06.2026'.
+      <typeless>-tchar    = 'XYZ1'.
+      <typeless>-tstring  = 'xyz1'.
+      <typeless>-talpha   = '100000'.
+      <typeless>-tdecimal = '123,54'.
+      <typeless>-tnumber  = '1234'.
+      <typeless>-tinteger = '23451'.
+      <typeless>-tfloat   = '123,25'.
+
+      append initial line to et_typeless assigning <typeless>.
+      <typeless>-tdate    = '02.06.2026'.
+      <typeless>-tchar    = 'XYZ2'.
+      <typeless>-tstring  = 'xyz2'.
+      <typeless>-talpha   = '200000'.
+      <typeless>-tdecimal = '123,54'.
+      <typeless>-tnumber  = '2234'.
+      <typeless>-tinteger = '23452'.
+      <typeless>-tfloat   = '123,75'.
+    endif.
+
+  endmethod.
+
+  method happy_path.
+
+    data lt_src type tt_dummy_typeless.
+    data lt_act type tt_dummy_typeful.
+    data lt_exp type tt_dummy_typeful.
+
+    dummies(
+      importing
+        et_typeless = lt_src
+        et_typeful = lt_exp ).
+
+    zcl_text2tab_parser=>typify(
+      exporting
+        i_data = lt_src
+      importing
+        e_container = lt_act ).
+
+    cl_abap_unit_assert=>assert_equals(
+      act = lt_act
+      exp = lt_exp ).
+
+  endmethod.
+
+  method correct_input_type.
+
+    data lt_act type tt_dummy_typeful.
+    data lt_test type tt_dummy_typeful.
+    data lt_test2 type string_table.
+    data lx type ref to zcx_text2tab_error.
+
+    dummies( importing et_typeful = lt_test ).
+
+    try.
+      zcl_text2tab_parser=>typify(
+        exporting
+          i_data = lt_test
+        importing
+          e_container = lt_act ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'IIT' ).
+    endtry.
+
+    try.
+      zcl_text2tab_parser=>typify(
+        exporting
+          i_data = lt_test2
+        importing
+          e_container = lt_act ).
+      cl_abap_unit_assert=>fail( ).
+    catch zcx_text2tab_error into lx.
+      cl_abap_unit_assert=>assert_equals( act = lx->code exp = 'IIT' ).
+    endtry.
+
+  endmethod.
+
+endclass.
